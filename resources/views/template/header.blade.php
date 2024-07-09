@@ -26,6 +26,12 @@
                 <li class="nav-item">
                     <a class="nav-link ml-0 ml-md-2" href="/">{{ __('Home') }}</a>
                 </li>
+				<li class="nav-item">
+					<a class="nav-link ml-0 ml-md-2" href="{{route('pages.get',['slug' => 'about'])}}">{{ __('About') }}</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link ml-0 ml-md-2" href="{{route('contact')}}">{{ __('Contact') }}</a>
+				</li>
                 @if(Auth::check())
                     <li class="nav-item">
                         <a class="nav-link ml-0 ml-md-2" href="{{ route('posts.create') }}">{{ __('Create') }}</a>

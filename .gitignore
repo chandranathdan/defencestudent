@@ -1,8 +1,8 @@
 /node_modules
 /public/hot
-/public/storage
 /storage/*.key
 /vendor
+/DB
 .env
 .env.backup
 .phpunit.result.cache
@@ -12,9 +12,6 @@ npm-debug.log
 yarn-error.log
 .idea
 public/node_modules
-public/libs
-public/dist
-public/css/theme
 app/cloudfront/*
 .php-cs-fixer.cache
 public/sitemap.xml

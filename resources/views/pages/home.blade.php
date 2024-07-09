@@ -92,34 +92,37 @@
             <div class="row">
                 <div class="col-12 col-md-4 mb-5 mb-md-0">
                     <div class="d-flex justify-content-center">
-                        <img src="{{asset('/img/home-scene-1.svg')}}" class="img-fluid home-box-img" alt="{{__('Premium & Private content')}}">
+					{{--<img src="{{asset('/img/home-scene-1.svg')}}" class="img-fluid home-box-img" alt="{{__('Premium & Private content')}}">--}}
+						@include('elements.icon',['icon'=>'home-outline','variant'=>'xlarge','centered'=>false,'classes'=>''])
                     </div>
                     <div class="d-flex justify-content-center mt-4">
                         <div class="col-12 col-md-10 text-center">
-                            <h5 class="text-bold">{{__('Premium & Private content')}}</h5>
-                            <span>{{__('Enjoy high quality content, made for you and the ones like you.')}} </span>
+                            <h5 class="text-bold">{{__('LEARN ANYWHERE')}}</h5>
+                            <span>{{__('You Can Learn Martial Arts From Anywhere In The World With Our Easy 24/7 Online Access..')}} </span>
                         </div>
                     </div>
                 </div>
                 <div class="col-12 col-md-4 mb-5 mb-md-0">
                     <div class="d-flex justify-content-center">
-                        <img src="{{asset('/img/home-scene-2.svg')}}" class="img-fluid home-box-img" alt="{{__('Private chat & Tips')}}">
+                        {{--<img src="{{asset('/img/home-scene-2.svg')}}" class="img-fluid home-box-img" alt="{{__('Private chat & Tips')}}">--}}
+						@include('elements.icon',['icon'=>'star-outline','variant'=>'xlarge','centered'=>false,'classes'=>''])
                     </div>
                     <div class="d-flex justify-content-center mt-4">
                         <div class="col-12 col-md-10 text-center">
-                            <h5 class="text-bold">{{__('Private chat & Tips')}}</h5>
-                            <span>{{__('Enjoy private conversations and get tipped for your content.')}}</span>
+                            <h5 class="text-bold">{{__('INSTRUCTORS')}}</h5>
+                            <span>{{__('We Provide You With Some Of The Most Highly Trained And Qualified Instructors In The World.')}}</span>
                         </div>
                     </div>
                 </div>
                 <div class="col-12 col-md-4 mb-5 mb-md-0">
                     <div class="d-flex justify-content-center">
-                        <img src="{{asset('/img/home-scene-3.svg')}}" class="img-fluid home-box-img" alt="{{__('Secured assets & Privacy focus')}}">
+                        {{--<img src="{{asset('/img/home-scene-3.svg')}}" class="img-fluid home-box-img" alt="{{__('Secured assets & Privacy focus')}}">--}}
+						@include('elements.icon',['icon'=>'medkit-outline','variant'=>'xlarge','centered'=>false,'classes'=>''])
                     </div>
                     <div class="d-flex justify-content-center mt-4">
                         <div class="col-12 col-md-10 text-center">
-                            <h5 class="text-bold">{{__('Secured assets & Privacy focus')}}</h5>
-                            <span>{{__("Your content get's safely upload in the cloud and full controll to your account.")}}</span>
+                            <h5 class="text-bold">{{__('HEALTH AND SAFETY')}}</h5>
+                            <span>{{__("We Give You The Skills Required To Protect Yourself And More Importantly, Your Loved Ones.")}}</span>
                         </div>
                     </div>
                 </div>
@@ -131,19 +134,25 @@
     <div class="mt-5 pb-3 pt-5">
         <div class="container">
             <div class="row">
-                <div class="col-12 col-md-6 d-none d-md-flex justify-content-center">
-                    <img src="{{asset('/img/home-creators.svg')}}" class="home-mid-img" alt="{{__('Make more money')}}">
+                <div class="col-12 col-md-5 d-none d-md-flex justify-content-center">
+                    {{--<img src="{{asset('/img/home-creators.svg')}}" class="home-mid-img" alt="{{__('Make more money')}}">--}}
+					<img src="{{asset('/img/defence-1.jpg')}}" class="home-mid-img home-achieve-img" alt="{{__('Make more money')}}">
                 </div>
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-7">
                     <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                         <div class="pl-4 pl-md-5">
-                            <h2 class="font-weight-bold m-0">{{__('Make more money')}},</h2>
-                            <h2 class="font-weight-bold m-0">{{__('with your content')}}.</h2>
+                            <h4 class="font-weight-normal font-italic m-0">{{__('State Of The Art Online Training')}}.</h4>
+                            <h2 class="font-weight-bold m-0">{{__('ACHIEVE MORE THAN YOU EVER THOUGHT POSSIBLE!')}},</h2>
                             <div class="my-4 col-9 px-0">
-                                <p>{{__("become a creator long")}}</p>
+                                <p>{{__("We focus on giving everyone the opportunity to achieve more than they ever thought possible.")}}</p>
+                                <p>{{__("This program gives you the ability to reach your goals in a much quicker period of time, providing you with access to some of the best Martial Arts in the world, by bringing together some of the most highly trained, respected and qualified instructors in the world.")}}</p>
+                                <p>{{__("We understand that it can be hard making the time in life to do the things you like and want to do, that is why our online program is designed to make it easier for you!")}}</p>
+                                <p>{{__("You can now learn Martial Arts from the comfort of your own home or anywhere in the world with our easy online access that is available 24/7 at a click of a button.")}}</p>
+                                <p>{{__("We know that you cannot put a price on your family’s safety. That is why we offer a wide range of courses for you to choose from, that are specifically designed to teach you self defence, also how to be aware of your surroundings and give you the skills required to neutralise any attacker and protect you and your loved ones.")}}</p>
+                                <p>{{__("Don’t delay JOIN us today on this journey and become part of something special.")}}</p>
                             </div>
                             <div>
-                                <a href="{{Auth::check() ? route('my.settings',['type'=>'verify']) : route('login') }}" class="btn bg-gradient-primary btn-grow btn-round mb-0 me-1 mt-2 mt-md-0 p-3">{{__('Become a creator')}}</a>
+                                <a href="{{route('pages.get',['slug' => 'about'])}}" class="btn bg-gradient-primary btn-grow btn-round mb-0 me-1 mt-2 mt-md-0 p-3">{{__('About Us')}}</a>
                             </div>
 
                         </div>
@@ -154,7 +163,7 @@
     </div>
 
 
-    <div class="mt-5 pb-3 pt-5 home-bg-section">
+    {{--<div class="mt-5 pb-3 pt-5 home-bg-section">
         <div class="container">
             <div class="text-center mb-5">
                 <h2 class="font-weight-bold">{{__('Main features')}}</h2>
@@ -245,25 +254,77 @@
             </div>
             <div class="d-flex align-items-center justify-content-center">
                 <div class="d-flex justify-content-center align-items-center row col">
-                    <img src="{{asset('/img/logos/laravel.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("laravel"))}}" alt="{{__("laravel")}}"/>
-                    <img src="{{asset('/img/logos/bootstrap.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("bootstrap"))}}" alt="{{__("bootstrap")}}"/>
-                    <img src="{{asset('/img/logos/jquery.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("jquery"))}}" alt="{{__("jquery")}}"/>
-                    <img src="{{asset('/img/logos/aws.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("aws"))}}" alt="{{__("aws")}}"/>
-                    <img src="{{asset('/img/logos/pusher.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("pusher"))}}" alt="{{__("pusher")}}"/>
-                    <img src="{{asset('/img/logos/stripe.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("stripe"))}}" alt="{{__("stripe")}}"/>
-                    <img src="{{asset('/img/logos/paypal.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("paypal"))}}" alt="{{__("paypal")}}"/>
-                    <img src="{{asset('/img/logos/coinbase.svg')}}" class="mx-3 mb-2 grayscale coinbasae-logo" title="{{ucfirst(__("coinbase"))}}" alt="{{__("coinbase")}}"/>
-                    <img src="{{asset('/img/logos/wasabi.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__("wasabi"))}}" alt="{{__("wasabi")}}"/>
+                    <img src="{{asset('/img/logos/laravel.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('laravel'))}}" alt="{{__('laravel')}}"/>
+                    <img src="{{asset('/img/logos/bootstrap.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('bootstrap'))}}" alt="{{__('bootstrap')}}"/>
+                    <img src="{{asset('/img/logos/jquery.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('jquery'))}}" alt="{{__('jquery')}}"/>
+                    <img src="{{asset('/img/logos/aws.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('aws'))}}" alt="{{__('aws')}}"/>
+                    <img src="{{asset('/img/logos/pusher.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('pusher'))}}" alt="{{__('pusher')}}"/>
+                    <img src="{{asset('/img/logos/stripe.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('stripe'))}}" alt="{{__('stripe')}}"/>
+                    <img src="{{asset('/img/logos/paypal.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('paypal'))}}" alt="{{__('paypal')}}"/>
+                    <img src="{{asset('/img/logos/coinbase.svg')}}" class="mx-3 mb-2 grayscale coinbasae-logo" title="{{ucfirst(__('coinbase'))}}" alt="{{__('coinbase')}}"/>
+                    <img src="{{asset('/img/logos/wasabi.svg')}}" class="mx-3 mb-2 grayscale" title="{{ucfirst(__('wasabi'))}}" alt="{{__('wasabi')}}"/>
                 </div>
             </div>
         </div>
-    </div>
+    </div>--}}
 
+    <div class="my-5 py-5 home-bg-section text-white bgimg-1" style="background-image: url({{asset('/img/static/slider4.png')}});">
+        <div class="container">
+            <div class="text-center mb-4">
+                <h4 class="font-weight-normal font-italic m-0">{{__('Our Students Believe In Us')}}.</h4>
+                <h2 class="font-weight-bold">{{__("Here's what they are saying")}}</h2>
+				{{--<p>{{__("Here's list of currated content creators to start exploring now!")}}</p>--}}
+            </div>
+
+            <div class="creators-wrapper">
+            <div class="row">
+            <div class="col-md-12">
+                <div id="carouselExampleIndicators1" class="carousel slide" data-ride="carousel">
+				  <div class="carousel-inner">
+					<div class="carousel-item active">
+						<div class="carousel-testimonial">
+							<p>“Amazing course and great value for money! Looking forward to learning more!"</p>
+							<h4 class="font-weight-normal font-italic m-0">{{__('Charlotte Wood')}}.</h4>
+						</div>
+					</div>
+					<div class="carousel-item">
+						<div class="carousel-testimonial">
+							<p>“Great value for money! My child feels a lot more confident now!"</p>
+							<h4 class="font-weight-normal font-italic m-0">{{__('Paul Cooper')}}.</h4>
+						</div>
+					</div>
+					<div class="carousel-item">
+						<div class="carousel-testimonial">
+							<p>“Great way to spend more time with my son! The techniques are so simple and effective!"</p>
+							<h4 class="font-weight-normal font-italic m-0">{{__('David James')}}.</h4>
+						</div>
+					</div>
+				  </div>
+				  <ol class="testimonial-carousel-indicators">
+					<li data-target="#carouselExampleIndicators1" data-slide-to="0" class="active"></li>
+					<li data-target="#carouselExampleIndicators1" data-slide-to="1"></li>
+					<li data-target="#carouselExampleIndicators1" data-slide-to="2"></li>
+				  </ol>
+				  <a class="carousel-control-prev" href="#carouselExampleIndicators1" role="button" data-slide="prev">
+					<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+					<span class="sr-only">Previous</span>
+				  </a>
+				  <a class="carousel-control-next" href="#carouselExampleIndicators1" role="button" data-slide="next">
+					<span class="carousel-control-next-icon" aria-hidden="true"></span>
+					<span class="sr-only">Next</span>
+				  </a>
+				</div>
+            </div>
+            </div>
+            </div>
+        </div>
+    </div>
     <div class="my-5 py-5 home-bg-section">
         <div class="container">
             <div class="text-center mb-4">
-                <h2 class="font-weight-bold">{{__("Featured creators")}}</h2>
-                <p>{{__("Here's list of currated content creators to start exploring now!")}}</p>
+                <h2 class="font-weight-bold">{{__("Featured Instructors")}}</h2>
+                <p>{{__("Meet just some of the instructors")}}</p>
+				{{--<p>{{__("Here's list of currated content creators to start exploring now!")}}</p>--}}
             </div>
 
             <div class="creators-wrapper">
@@ -282,11 +343,22 @@
         </div>
     </div>
 
-    <div class="py-4 my-4 white-section ">
+    {{--<div class="py-4 my-4 white-section ">
         <div class="container">
             <div class="text-center">
                 <h3 class="font-weight-bold">{{__("Got questions?")}}</h3>
                 <p>{{__("Don't hesitate to send us a message at")}} - <a href="{{route('contact')}}">{{__("Contact")}}</a> </p>
+            </div>
+        </div>
+    </div>--}}
+    <div class="py-4 my-4 white-section ">
+        <div class="container">
+            <div class="text-center">
+                <h4 class="font-weight-normal font-italic m-0">State Of The Art Online Training.</h4>
+				<h1 class="font-weight-bold">{{__("Challenge yourself. have you got what it takes?")}}</h1>
+                <div>
+					<a href="#" class="btn bg-gradient-primary btn-grow btn-round mb-0 me-1 mt-2 mt-md-0 p-3">{{__('Join Us')}}</a>
+				</div>
             </div>
         </div>
     </div>
