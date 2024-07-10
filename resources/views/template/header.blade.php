@@ -43,7 +43,7 @@
                 @guest
                     @if(Route::currentRouteName() !== 'profile')
                         <li class="nav-item">
-                            <a href="{{ route('login') }}" class="btn bg-gradient-primary btn-grow btn-round mb-0 me-1 mt-2 mt-md-0 p-3">Get Started</a>
+                            <a href="{{ route('login') }}" class="btn btn-grow mb-0 me-1 mt-2 mt-md-0 button-default">Get Started</a>
                         </li>
 
                         {{-- @if (Route::has('register'))

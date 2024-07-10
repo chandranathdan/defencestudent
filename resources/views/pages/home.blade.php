@@ -152,7 +152,11 @@
                                 <p>{{__("Don’t delay JOIN us today on this journey and become part of something special.")}}</p>
                             </div>
                             <div>
-                                <a href="{{route('pages.get',['slug' => 'about'])}}" class="btn bg-gradient-primary btn-grow btn-round mb-0 me-1 mt-2 mt-md-0 p-3">{{__('About Us')}}</a>
+                                <a href="{{route('pages.get',['slug' => 'about'])}}" class="btn btn-grow mb-0 me-1 mt-2 mt-md-0 button-default">
+								@include('elements.icon',['icon'=>'chevron-forward-outline','variant'=>'small','centered'=>false,'classes'=>''])
+									
+									{{__('About Us')}}
+								</a>
                             </div>
 
                         </div>
@@ -357,7 +361,10 @@
                 <h4 class="font-weight-normal font-italic m-0">State Of The Art Online Training.</h4>
 				<h1 class="font-weight-bold">{{__("Challenge yourself. have you got what it takes?")}}</h1>
                 <div>
-					<a href="#" class="btn bg-gradient-primary btn-grow btn-round mb-0 me-1 mt-2 mt-md-0 p-3">{{__('Join Us')}}</a>
+					<a href="#" class="btn btn-grow mb-0 me-1 mt-2 mt-md-0 button-default">
+						@include('elements.icon',['icon'=>'chevron-forward-outline','variant'=>'small','centered'=>false,'classes'=>''])
+						{{__('Join Us')}}
+					</a>
 				</div>
             </div>
         </div>
