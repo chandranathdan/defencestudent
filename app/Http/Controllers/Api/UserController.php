@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 
 use Illuminate\Validation\Rule;
-use App\Models\User;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -25,7 +26,7 @@ class UserController extends Controller
         $email =  $request->input('email');
         $password = $request->input('password');
  
-        $user = User::where('email',$email)->where('status', '!=', 2)->first();
+        $user = User::where('email',$email)->first();
         if($user){
 			if(!Hash::check($password, $user->password)){
 				$response['status']="400";
