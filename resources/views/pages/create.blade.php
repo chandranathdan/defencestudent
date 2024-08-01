@@ -77,8 +77,6 @@
                             </div>
 
                         </div>
-
-
                     </div>
                     <div class="dropzone-previews dropzone w-100 ppl-0 pr-0 pt-1 pb-1"></div>
                 </div>

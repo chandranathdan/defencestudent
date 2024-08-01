@@ -237,26 +237,24 @@ class UserController extends Controller
             'text' => 'required|string|min:10',
         ]);
 
-           // Create a new Post instance
         $post = new Post();
         $post->text = $request->input('text');
         $post->user_id = $request->input('user_id');
         $post->price = $request->input('price', 0);
         $post->release_date = $request->input('release_date');
         $post->expire_date = $request->input('expire_date');
-
-        // Handle file upload if present
-        if ($request->hasFile('filename')) {
-            $file = $request->file('filename');
-            $filename = time() . '-' . $file->getClientOriginalName();
-            $path = $file->storeAs('uploads', $filename, 'public');
-            $post->filename = $filename; 
-        } else {
-            $post->filename = null; 
-        }
-
         $post->save();
 
-        return response()->json(['success' => true, 'post' => $post]);
+        $attachment = new Attachment();
+
+        $attachment->filename= $request->input('filename');
+            if ($request->hasFile('filename')) {
+                foreach ($request->file('filename') as $file) {
+                    $filePath = $file->storeurl($attachment->filename);
+                    $attachment->filename = $file->getClientOriginalName();
+                    $attachment->path($attachment->filename);     
+                }
+            }
+        $attachment->save();   
     }
 }
