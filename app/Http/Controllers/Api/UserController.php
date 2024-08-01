@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 use App\Models\Otp;
 use App\Mail\GenericEmail;
 use Carbon\Carbon;
-/////
+
 
 use App\Providers\AttachmentServiceProvider; 
 use App\Http\Requests\SavePostCommentRequest;
@@ -64,9 +64,13 @@ class UserController extends Controller
 			}
 			else
 			{
+				$token = $user->createToken('API Token')->plainTextToken;
+				$response['message'] = 'Successfully logged in';
+				$response['access_token'] = $token;
+				$response['token_type'] = 'Bearer';
+				$response['expires_at'] = null;
 				$response['status']="200";
 				$response['user']=$user;
-				$response['message']="Login success";
 			}
         }else{
 			$response['status']="400";
@@ -93,7 +97,7 @@ class UserController extends Controller
 		$email = $request->input('email');
 		$password = $request->input('password');
 		
-		$user = User::where('name', $name)->first();
+		$user = User::where('email', $email)->first();
 
 		$response = [
 			'status' => '400',
@@ -103,7 +107,7 @@ class UserController extends Controller
 		if ($user) {
 			if (!Hash::check($password, $user->password)) {
 				$response['message'] = 'Password does not match';
-			} elseif ($user->email_verified_at === null) {
+			} elseif ($user->email_verified_at == null) {
 				$response['message'] = 'User is not verified';
 			} else {
 				$response['status'] = '200';
@@ -116,9 +120,9 @@ class UserController extends Controller
 	}
 	
     public function forgotPassword(Request $request){
-    $request->validate([
-        'email' => 'required|email|exists:users,email',
-    ]);
+		$request->validate([
+			'email' => 'required|email|exists:users,email',
+		]);
         $email = $request->input('email');
         $user = User::where('email', $email)->first();
 
@@ -258,5 +262,8 @@ class UserController extends Controller
         $post->save();
 
         return response()->json(['success' => true, 'post' => $post]);
+    }
+    public function user_data(){
+        return auth()->user();
     }
 }

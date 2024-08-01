@@ -27,3 +27,7 @@ Route::post('/reset-password',[UserController::class,'resetpassword']); // RESET
 Route::post('/logout',[UserController::class,'logout']); // RESETPASSWOR url
 Route::post('/feed',[UserController::class,'feed']); // feed url
 Route::post('/post-create',[UserController::class,'create']); // POSTCREATE url
+
+Route::group(['middleware' => ['auth:sanctum']], function () {
+	Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
+});
