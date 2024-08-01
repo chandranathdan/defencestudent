@@ -11,9 +11,11 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends \TCG\Voyager\Models\User implements MustVerifyEmail
 {
+    use HasApiTokens;
     use Notifiable;
 
     /**
