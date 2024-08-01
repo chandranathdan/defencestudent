@@ -36,8 +36,7 @@ use View;
 
 class UserController extends Controller
 {
-    public function login(Request $request)
-    {
+    public function login(Request $request){
 		$validator = Validator::make($request->all(),[
 			'email'=>'required',
 			'password'=>'required',
@@ -162,6 +161,40 @@ class UserController extends Controller
 		return $this->authResponse($user, $msg);
 	}
 	
+    public function register_verify_otp(Request $request){
+		$validator = Validator::make($request->all(), [
+			'email' => 'required|email',
+            'otp' => 'required|numeric|digits:6',
+		]);
+
+		if ($validator->fails()) {
+			return response()->json([
+				'errors' => $validator->errors(),
+				'status' => '600',
+			]);
+		}
+    
+        $email = $request->input('email');
+        $otp = $request->input('otp');
+    
+        // Retrieve the user by email
+        $user = User::where('email', $email)->first();
+		
+        if (!$user) {
+            return response()->json(['status' => '400', 'message' => 'User not found']);
+        }
+    
+        // Check if the provided OTP matches the user's OTP
+        if ($user->otp != $otp) {
+            return response()->json(['status' => '400', 'message' => 'Invalid OTP']);
+        }
+        $user->otp = null;
+        $user->email_verified_at = date('Y-m-d H:i:s');
+        $user->save();
+    
+        return response()->json(['status' => '200', 'message' => 'Email verified successfully']);
+    }
+	
 	protected function authResponse($user, $msg){
         $token = $user->createToken('API Token')->plainTextToken;
 
@@ -247,10 +280,11 @@ class UserController extends Controller
         return response()->json(['status' => '200', 'message' => 'OTP verified successfully']);
     }
 	
-    public function register_verify_otp(Request $request){
+    public function resetpassword(Request $request){
 		$validator = Validator::make($request->all(), [
 			'email' => 'required|email',
-            'otp' => 'required|numeric|digits:6',
+			'password' => 'required|confirmed|min:6',
+			'password_confirmation' => 'required'
 		]);
 
 		if ($validator->fails()) {
@@ -261,26 +295,20 @@ class UserController extends Controller
 		}
     
         $email = $request->input('email');
-        $otp = $request->input('otp');
     
         // Retrieve the user by email
         $user = User::where('email', $email)->first();
-		
+    
         if (!$user) {
             return response()->json(['status' => '400', 'message' => 'User not found']);
         }
-    
-        // Check if the provided OTP matches the user's OTP
-        if ($user->otp != $otp) {
-            return response()->json(['status' => '400', 'message' => 'Invalid OTP']);
-        }
-        $user->otp = null;
-        $user->email_verified_at = date('Y-m-d H:i:s');
+        $user->password = Hash::make($request->input('password'));
         $user->save();
-    
-        return response()->json(['status' => '200', 'message' => 'Email verified successfully']);
+		
+		$msg = 'Password updated successfully.';
+		return $this->authResponse($user, $msg);
     }
-
+	
     public function feed(Request $request){
         try {
             // Ensure user is authenticated
@@ -343,6 +371,7 @@ class UserController extends Controller
             ], 500);
         }
     }
+	
 	public function create(Request $request){
         // Validate the request
         $validator = Validator::make($request->all(), [
@@ -388,4 +417,13 @@ class UserController extends Controller
         return auth()->user();
     }
 
+    public function logout(Request $request)
+    {
+        $user = auth()->user();
+        $user
+            ->tokens()
+            ->where('id', $user->currentAccessToken()->id)
+            ->delete();
+		return response()->json(['status' => '200.', 'success' => 'Successfully logged out.']);	
+    }
 }
