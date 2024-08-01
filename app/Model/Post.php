@@ -87,7 +87,7 @@ class Post extends Model
 
     public function attachments()
     {
-        return $this->hasMany('App\Model\Attachment');
+        return $this->hasMany('App\Model\Attachment',);
     }
 
     public function transactions()

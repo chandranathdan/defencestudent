@@ -82,7 +82,7 @@ class Attachment extends Model
 
     public function post()
     {
-        return $this->belongsTo('App\Model\Post', 'post_id');
+        return $this->belongsTo('App\Model\Post', 'post_id',);
     }
 
     public function paymentRequest()

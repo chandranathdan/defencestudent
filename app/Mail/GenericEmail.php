@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
+
 class GenericEmail extends Mailable
 {
     use Queueable, SerializesModels;
@@ -21,6 +22,8 @@ class GenericEmail extends Mailable
     public $mailQuote = '';
 
     public $button = [];
+
+    public $otp;
 
     /**
      * Create a new message instance.
@@ -49,6 +52,9 @@ class GenericEmail extends Mailable
         }
         if(isset($data['replyTo'])){
             $this->replyTo( $data['replyTo'],'');
+        }
+        if (isset($data['otp'])) { // Initialize OTP if provided
+            $this->otp = $data['otp'];
         }
     }
 
