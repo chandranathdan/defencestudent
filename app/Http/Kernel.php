@@ -71,6 +71,7 @@ class Kernel extends HttpKernel
         'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         '2fa' => \App\Http\Middleware\Check2FA::class,
         'jsVars' => \App\Http\Middleware\JavascriptVariables::class,
+        'api_email_verified' => \App\Http\Middleware\EmailVerifiedApi::class,
     ];
 
     /**

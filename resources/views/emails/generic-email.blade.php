@@ -11,9 +11,6 @@
 
 # {{$mailTitle}}
 {{$mailContent}}
-@if(isset($otp))
-    <p>Your OTP code is:{{$otp}}</p>
-@endif
 @if($mailQuote)
     <blockquote>
         {{$mailQuote}}
