@@ -28,9 +28,12 @@ Route::post('/logout', [UserController::class, 'logout']); // RESETPASSWOR url
 Route::post('/feed', [UserController::class, 'feed']); // feed url
 Route::post('/post-create', [UserController::class, 'create']); // POSTCREATE url
 
+
 Route::group(['middleware' => ['auth:sanctum']], function () {
 	Route::post('/register/verify-otp', [UserController::class, 'register_verify_otp']);
+	
 	Route::group(['middleware' => ['api_email_verified']], function () {
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
+		
 	});
 });
