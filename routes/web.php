@@ -12,6 +12,18 @@
 */
 
 // Admin routes ( Needs to be placed above )
+
+Route::get('clear-cache', function () {
+    \Artisan::call('config:cache');
+    \Artisan::call('cache:clear');
+	\Artisan::call('cache:clear');
+    \Artisan::call('route:cache');
+    \Artisan::call('view:clear');
+    \Artisan::call('config:cache');
+    \Artisan::call('optimize:clear');
+	Log::info('Clear all cache');
+    dd("Cache is cleared");
+});
 Route::group(['prefix' => 'admin', 'middleware' => 'jsVars'], function () {
     Voyager::routes();
     Route::get('/metrics/new/users/value', 'MetricsController@newUsersValue')->name('admin.metrics.new.users.value');

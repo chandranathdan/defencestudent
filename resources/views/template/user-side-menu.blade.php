@@ -59,7 +59,7 @@
             </li>
             <div class="menu-divider"></div>
         @endif
-        <li>
+        {{--<li>
             <a class="scroll-link d-flex align-items-center" href="{{route('pages.get',['slug'=>'help'])}}">
                 @include('elements.icon',['icon'=>'help-circle-outline','variant'=>'medium','centered'=>false,'classes'=>'mr-2'])
                 {{__('Help and support')}}</a>
@@ -101,6 +101,7 @@
                 </ul>
             </li>
         @endif
+		--}}
         <div class="menu-divider"></div>
         <li>
             @if(Auth::check())
