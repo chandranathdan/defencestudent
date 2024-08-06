@@ -164,7 +164,7 @@ class UserController extends Controller
     public function register_verify_otp(Request $request){
 		$validator = Validator::make($request->all(), [
 			'email' => 'required|email',
-            'otp' => 'required|numeric|digits:6',
+            'otp' => 'required|numeric|digits:4',
 		]);
 
 		if ($validator->fails()) {
@@ -250,7 +250,7 @@ class UserController extends Controller
     public function forget_password_verify_otp(Request $request){
 		$validator = Validator::make($request->all(), [
 			'email' => 'required|email',
-            'otp' => 'required|numeric|digits:6',
+            'otp' => 'required|numeric|digits:4',
 		]);
 
 		if ($validator->fails()) {
