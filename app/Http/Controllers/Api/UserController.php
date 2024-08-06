@@ -139,7 +139,7 @@ class UserController extends Controller
 			$code = AuthServiceProvider::generateReferralCode(8);
             $userData['referral_code'] = $code;
 			
-			$otp = mt_rand(100000, 999999);
+			$otp = mt_rand(1000, 9999);
 			$userData['otp'] = $otp;
         } catch (\Exception $exception){
         }
@@ -227,7 +227,7 @@ class UserController extends Controller
             return response()->json(['status' => '400', 'message' => 'User not found'], 404);
         }
 		
-        $otp = mt_rand(100000, 999999); // Generating a 6-digit OTP
+        $otp = mt_rand(1000, 9999); // Generating a 6-digit OTP
         if ($user) {
 			$user->otp = $otp;
 			$user->save();
