@@ -27,6 +27,7 @@ class ListsController extends Controller
     {
         $lists = ListsHelperServiceProvider::getUserLists();
         $followersList = ListsHelperServiceProvider::getUserFollowersList();
+       
         $lists->splice(1, 0, [$followersList]);
         return view('pages.lists', [
             'lists' => $lists,

@@ -281,107 +281,38 @@ class UserController extends Controller
         return response()->json(['status' => '200', 'message' => 'Email verified successfully']);
     }
 
-    public function feed(Request $request){
-        try {
-            // Ensure user is authenticated
-            if (!Auth::check()) {
-                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-            }
-
-            // Log request data
-            Log::info('Feed request received with parameters: ', $request->all());
-
-            // Fetch previous page and start page
-            $prevPage = PostsHelperServiceProvider::getPrevPage($request);
-            $startPage = PostsHelperServiceProvider::getFeedStartPage($prevPage);
-
-            // Fetch posts
-            $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage);
-
-            // Handle pagination cookie
-            PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
-
-            // Set up JavaScript variables
-            JavaScript::put([
-                'paginatorConfig' => [
-                    'next_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->nextPageUrl()),
-                    'prev_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->previousPageUrl()),
-                    'current_page' => $posts->currentPage(),
-                    'total' => $posts->total(),
-                    'per_page' => $posts->perPage(),
-                    'hasMore' => $posts->hasMorePages(), 
-                ],
-                'initialPostIDs' => $posts->pluck('id')->toArray(),
-                'sliderConfig' => [
-                    'autoslide' => getSetting('feed.feed_suggestions_autoplay') ? true : false,
-                ],
-                'user' => [
-                    'username' => Auth::user()->username,
-                    'user_id' => Auth::user()->id,
-                    'lists' => [
-                        'blocked' => Auth::user()->lists->firstWhere('type', 'blocked')->id,
-                        'following' => Auth::user()->lists->firstWhere('type', 'following')->id,
-                    ],
-                ],
-            ]);
-
-            // Return the view with headers
-            return Response::view('pages.feed', [
-                'posts' => $posts,
-                'suggestions' => MembersHelperServiceProvider::getSuggestedMembers(),
-            ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-              ->header('Pragma', 'no-cache')
-              ->header('Expires', '0');
-        } catch (\Exception $e) {
-            // Log the error message and stack trace
-            Log::error('Error in UserController@feed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-
-            // Return a user-friendly error response
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while processing your request.'
-            ], 500);
-        }
-    }
-	public function create(Request $request){
-        // Validate the request
+	public function post_create(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'text' => 'required|string|min:10',
-            'user_id' => 'required|integer|exists:users,id',
             'price' => 'nullable|numeric',
             'release_date' => 'nullable|date',
-            'expire_date' => 'nullable|date|after_or_equal:release_date', 
-            'filename' => 'nullable|file|mimes:jpeg,png,pdf,doc,docx|max:2048',
+            'expire_date' => 'nullable|date',
+            'attachments' => 'nullable|array',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
-        // Create a new Post
-        $post = new Post();
+        $post = $request->input('post_id') ? Post::find($request->input('post_id')) : new Post;
+        if (!$post) {
+            return response()->json(['error' => 'Post not found'], 404);
+        }
+
+        $post->user_id = Auth::id();
         $post->text = $request->input('text');
-        $post->user_id = $request->input('user_id');
         $post->price = $request->input('price', 0);
         $post->release_date = $request->input('release_date');
         $post->expire_date = $request->input('expire_date');
         $post->save();
-    
-        if ($request->hasFile('filename')) {
-            $file = $request->file('filename');
-            if ($file->isValid()) {
-                $filename = time() . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('public/attachments', $filename);
-                $attachment = new Attachment();
-                $attachment->filename = $filename;
-                $attachment->post_id = $post->id;
-                $attachment->save();
-            } else {
-                return response()->json(['error' => 'File upload failed.'], 422);
+        if ($request->has('attachments')) {
+            foreach ($request->input('attachments') as $attachment) {
             }
         }
-    
-        return response()->json(['success' => 'Post created successfully with file upload.']);
+        return response()->json([
+            'status' => 200,
+            'message' => 'post_create saved successfully'
+        ], 200);
     }
    
 	public function user_data(){

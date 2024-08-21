@@ -369,7 +369,6 @@ class SettingsController extends Controller
     public function saveAccount(UpdateUserSettingsRequest $request)
     {
         Auth::user()->update(['password'=>Hash::make($request->input('confirm_password'))]);
-
         return back()->with('success', __('Settings saved.'));
     }
 

@@ -27,6 +27,7 @@ class FeedController extends Controller
         header('Expires: 0 '); // Proxies.
 
         $startPage = PostsHelperServiceProvider::getFeedStartPage(PostsHelperServiceProvider::getPrevPage($request));
+       
         $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage);
         PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
 

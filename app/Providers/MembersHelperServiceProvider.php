@@ -43,7 +43,7 @@ class MembersHelperServiceProvider extends ServiceProvider
      */
     public static function getSuggestedMembers($encodeToHtml = false, $filters = [])
     {
-        $skipEmptyProfiles = getSetting('feed.suggestions_skip_empty_profiles') ? true : false;
+        $skipEmptyProfiles = getSetting('feed.suggestions_skip_empty_profiless') ? true : false;
         $skipUnverifiedProfiles = getSetting('feed.suggestions_skip_unverified_profiles') ? true : false;
         if(getSetting('feed.suggestions_use_featured_users_list')){
             $userLists = FeaturedUser::get()->pluck('user_id')->toArray();
@@ -66,9 +66,7 @@ class MembersHelperServiceProvider extends ServiceProvider
             $topSubbedUsers = array_map(function ($v) {
                 return $v->id;
             }, $topSubbedUsers);
-
             $members = User::limit(getSetting('feed.feed_suggestions_total_cards') * getSetting('feed.feed_suggestions_card_per_page'))->where('public_profile', 1);
-
             // If there are more than 9 users having subs, use those
             // Otherwise, grab latest 9 users by date
             if (count($topSubbedUsers) >= 6) {
@@ -94,14 +92,12 @@ class MembersHelperServiceProvider extends ServiceProvider
             }
         }
 
-
-
         // Filtering free/paid accounts
         if (isset($filters['free'])) {
             $members->where('paid_profile', 0);
         }
         $members = $members->get();
-
+         
         // Shuffle the list each time for more randomness
         $members = $members->shuffle();
         // Return either raw data to the views or json encoded, rendered views

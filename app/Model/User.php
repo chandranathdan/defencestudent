@@ -31,7 +31,7 @@ class User extends \TCG\Voyager\Models\User implements MustVerifyEmail
         'profile_access_price_12_months',
         'profile_access_price_3_months',
         'public_profile', 'city', 'country', 'state', 'email_verified_at', 'paid_profile',
-        'auth_provider','auth_provider_id', 'enable_2fa', 'enable_geoblocking', 'open_profile', 'referral_code', 'country_id','otp'
+        'auth_provider','auth_provider_id', 'enable_2fa', 'enable_geoblocking', 'open_profile', 'referral_code', 'country_id','otp','userId'
     ];
 
     /**
@@ -136,7 +136,7 @@ class User extends \TCG\Voyager\Models\User implements MustVerifyEmail
 
     public function subscriptions()
     {
-        return $this->hasMany('App\Model\Subscription');
+        return $this->hasMany('App\Model\Subscription','user_id');
     }
 
     public function activeSubscriptions()
@@ -151,7 +151,7 @@ class User extends \TCG\Voyager\Models\User implements MustVerifyEmail
 
     public function subscribers()
     {
-        return $this->hasMany('App\Model\Subscription', 'recipient_user_id');
+        return $this->hasMany('App\Model\Subscription', 'recipient_user_id','user_id');
     }
 
     public function transactions()

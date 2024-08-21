@@ -38,7 +38,6 @@ class NotificationsController extends Controller
         }
 
         $notificationsCountOverride = NotificationServiceProvider::getUnreadNotifications();
-
         if(count($unreadNotificationIds)){
             Notification::whereIn('id', array_values($unreadNotificationIds))->update(['read' => true]);
         }
