@@ -318,5 +318,4 @@ class UserController extends Controller
 	public function user_data(){
         return auth()->user();
     }
-
 }
