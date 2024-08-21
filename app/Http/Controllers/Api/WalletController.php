@@ -71,7 +71,7 @@ class WalletController extends Controller
             'amount' => $pendingBalance,
             'formatted_amount' => $formattedPendingAmount
         ],
-        'status' => 200,
+        'status' => '200',
         /*'fee_info' => $withdrawalAllowFees && $defaultFeePercentage > 0
             ? [
                 'fee_percentage' => $defaultFeePercentage,
@@ -96,9 +96,9 @@ class WalletController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => 600,
-                'message' => $validator->errors()
-            ]);
+				'errors' => $validator->errors(),
+				'status' => '600',
+			]);
         }
 
         try {
@@ -115,13 +115,13 @@ class WalletController extends Controller
 
                 if (floatval($amount) < floatval(\App\Providers\PaymentsServiceProvider::getWithdrawalMinimumAmount())) {
                     return response()->json([
-                        'success' => false,
+                        'status' => '400',
                         'message' => __("You don't have enough credit to withdraw. Minimum amount is: :minAmount", ['minAmount' => PaymentsServiceProvider::getWithdrawalMinimumAmount()])
                     ], 400);
                 }
 
                 if (floatval($amount) > $user->wallet->total) {
-                    return response()->json(['status' => 400, 'message' => __('You cannot withdraw this amount, try with a lower Available funds')], 400);
+                    return response()->json(['status' => '400', 'message' => __('You cannot withdraw this amount, try with a lower Available funds')], 400);
                 }
 
                 $fee = 0;
@@ -160,17 +160,17 @@ class WalletController extends Controller
                 }
 
                 return response()->json([
-                    'status' => 200,
+                    'status' => '200',
                     'message' => __('Successfully requested withdrawal'),
                     'totalAmount' => SettingsServiceProvider::getWebsiteFormattedAmount($totalAmount),
                     'pendingBalance' => SettingsServiceProvider::getWebsiteFormattedAmount($pendingBalance),
                 ]);
             }
         } catch (\Exception $exception) {
-            return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+            return response()->json(['status' => '400', 'message' => $exception->getMessage()]);
         }
 
-        return response()->json(['success' => false, 'message' => __('Something went wrong, please try again')], 500);
+        return response()->json(['status' => '400', 'message' => __('Something went wrong, please try again')], 500);
     }
     public function wallet_deposit(Request $request)
     {
@@ -181,7 +181,7 @@ class WalletController extends Controller
             return response()->json([
                 'errors' => $validator->errors(),
                 'status' => '600',
-            ], 400);
+            ]);
         }
             $deposit = new PaymentRequest();
             $deposit->amount = $request->input('amount');
@@ -191,7 +191,7 @@ class WalletController extends Controller
                 'message' => 'Deposit successfully processed',
                 'status' => '200',
                 'deposit' => $deposit,
-            ], 201);
+            ]);
     }
     public function notifications(Request $request)
     { 
@@ -299,7 +299,7 @@ class WalletController extends Controller
 
             if (!$subscription) {
                 return response()->json([
-                    'status' => '404',
+                    'status' => '400',
                     'message' => 'Subscription not found',
                 ]);
             }

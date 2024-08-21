@@ -68,7 +68,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/subscriptions_fetch', [WalletController::class, 'subscriptions_fetch']); // subscriptions_fatch url
 		Route::post('/subscriptions_canceled', [WalletController::class, 'subscriptions_canceled']); // subscriptions_Canceled url
 		Route::get('/subscribers_fetch', [WalletController::class, 'subscribers_fetch']); // subscribers_fetch url
-		Route::post('/profile_another_user_fetch', [OtherUserController::class, 'profile_another_user_fetch']); // profile_another_user_fetch url
+		Route::get('/profile_another_user_subscriptions_fetcher', [OtherUserController::class, 'profile_another_user_subscriptions_fetcher']); // profile_another_user_fetch url
 		Route::post('/profile_another_user', [OtherUserController::class, 'profile_another_user']); // profile_another_user url
+		Route::post('/profile_another_user_subscriptions_submit', [OtherUserController::class, 'profile_another_user_subscriptions_submit']); // profile_another_user_subscriptions_submit url
+		Route::get('/profile_another_user_subscriptions_fetch', [OtherUserController::class, 'profile_another_user_subscriptions_fetch']); // profile_another_user_subscriptions_fetch url
+		Route::get('/profile_another_user_subscriptions_alldata', [OtherUserController::class, 'profile_another_user_subscriptions_alldata']); // profile_another_user_subscriptions_alldata url
 	});
 });

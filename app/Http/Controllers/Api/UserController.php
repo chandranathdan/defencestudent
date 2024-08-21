@@ -313,7 +313,7 @@ class UserController extends Controller
         try {
             // Ensure user is authenticated
             if (!Auth::check()) {
-                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+                return response()->json(['status' => '600', 'message' => 'Unauthorized']);
             }
 
             // Log request data
@@ -366,9 +366,9 @@ class UserController extends Controller
 
             // Return a user-friendly error response
             return response()->json([
-                'success' => false,
+                'status' => '400',
                 'message' => 'An error occurred while processing your request.'
-            ], 500);
+            ]);
         }
     }
 	
@@ -383,11 +383,14 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+				'errors' => $validator->errors(),
+				'status' => '600',
+			]);
         }
         $post = $request->input('post_id') ? Post::find($request->input('post_id')) : new Post();
         if (!$post) {
-            return response()->json(['error' => 'Post not found'], 404);
+            return response()->json(['status' => '400', 'message' => 'Post not found']);
         }
 
         $post->user_id = Auth::id();
@@ -406,11 +409,11 @@ class UserController extends Controller
                 $attachment->post_id = $post->id;
                 $attachment->save();
             } else {
-                return response()->json(['error' => 'File upload failed.'], 422);
+                return response()->json(['status' => '400', 'message' => 'File upload failed.']);
             }
         }
         return response()->json([
-            'status' => 200,
+            'status' => '200',
             'message' => 'post_create saved successfully'
         ], 200);
     }

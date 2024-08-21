@@ -28,7 +28,10 @@ class Homecontroller extends Controller
             ]
         ];
 
-        return response()->json($carouselItems);
+        return response()->json([
+            'status' => '200',
+            'user' => $carouselItems,
+        ]);
     }
 }
 

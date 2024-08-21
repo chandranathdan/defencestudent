@@ -32,10 +32,13 @@ class FeedsController extends Controller
             }
         ])->where('user_id', $id)->get();
         if (!$post) {
-            return response()->json(['error' => 'Post not found'], 404);
+            return response()->json(['status' => '400', 'message' => 'Post not found']);
         }
 
-        return response()->json($post);
+        return response()->json([
+            'status' => '200',
+            'user' => $post,
+        ]);
     } 
     //feeds_indivisual_filter_image
     public function feeds_indivisual_filter_image($id)
@@ -55,9 +58,12 @@ class FeedsController extends Controller
             }
         ])->where('user_id', $id)->whereHas('attachments')->get();
         if (!$post) {
-            return response()->json(['error' => 'Post not found'], 404);
+            return response()->json(['status' => '400', 'message' => 'Post not found']);
         }
-        return response()->json($post);
+        return response()->json([
+            'status' => '200',
+            'user' => $post,
+        ]);
     }
     //feed
     public function feed_data()
@@ -66,9 +72,12 @@ class FeedsController extends Controller
             $query->select('filename', 'post_id', 'driver');
         }])->get();
         if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['status' => '400', 'message' => 'user not found']);
         }
-        return response()->json($user);
+        return response()->json([
+            'status' => '200',
+            'user' => $user,
+        ]);
     }
     
 }

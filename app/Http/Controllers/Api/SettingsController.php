@@ -316,22 +316,21 @@ class SettingsController extends Controller
             'website' => $user->website,
             'country_id' => $user->country_id,
             'gender_id' => $user->gender_id,
+            'created_at ' => $user->created_at,
         ];
 
         if (!$user) {
-            return response()->json(['status' => '400', 'error' => 'User not found']);
+            return response()->json(['status' => '400', 'message' => 'User not found']);
         }
         return response()->json([
             'status' => '200',
             'user' => $user_data,
-            'UserList' => UserList::all(['id', 'type']),
-            'Post' => Post::all(['id']),
             'gender' => UserGender::all(['id', 'gender_name']),
             'country' => Country::all(['id', 'name']),
 
         ]);
         return response()->json($user);
-    }
+    } 
     public function profile_submit(Request $request)
     {
         $user = Auth::user();
@@ -368,7 +367,7 @@ class SettingsController extends Controller
         ]);
         
         return response()->json([
-            'status' => 200,
+            'status' => '200',
             'message' => __('Profile saved.'),
         ]);
     }
@@ -404,14 +403,14 @@ class SettingsController extends Controller
             Auth()->user()->update($data);
             $s3->put($filePath, $img, 'public');
         } catch (\Exception $exception) {
-            return response()->json(['success' => false, 'errors' => ['file'=>$exception->getMessage()]]);
+            return response()->json(['status' => '400','errors' => ['file'=>$exception->getMessage()]]);
         }
 
         $assetPath = GenericHelperServiceProvider::getStorageAvatarPath($filePath);
         if($type == 'cover'){
             $assetPath = GenericHelperServiceProvider::getStorageCoverPath($filePath);
         }
-        return response()->json(['success' => true, 'assetSrc' => $assetPath]);
+        return response()->json(['status' => '200', 'message' => __('Cover image uploaded successfully!'),'assetSrc' => $assetPath]);
     }
     public function profile_avatar_image_upload(ProfileUploadRequest $request)
    {    
@@ -444,14 +443,14 @@ class SettingsController extends Controller
             Auth()->user()->update($data);
             $s3->put($filePath, $img, 'public');
         } catch (\Exception $exception) {
-            return response()->json(['success' => false, 'errors' => ['file'=>$exception->getMessage()]]);
+            return response()->json(['status' => '400','message' => __('Failed to upload avatar image.'), 'errors' => ['file'=>$exception->getMessage()]]);
         }
 
         $assetPath = GenericHelperServiceProvider::getStorageAvatarPath($filePath);
         if($type == 'avatar'){
             $assetPath = GenericHelperServiceProvider::getStorageCoverPath($filePath);
         }
-        return response()->json(['success' => true, 'assetSrc' => $assetPath]);
+        return response()->json(['status' => '200','message' => __('avatar image uploaded successfully!'), 'assetSrc' => $assetPath]);
     }
    //delete
     public function profile_cover_image_delete(Request $request)
@@ -470,10 +469,10 @@ class SettingsController extends Controller
             $user->update(['cover' => null]);
             
         } catch (\Exception $exception) {
-            return response()->json(['status' => 400, 'errors' => ['file' => $exception->getMessage()]]);
+            return response()->json(['status' => '400', 'errors' => ['file' => $exception->getMessage()]]);
         }
     
-        return response()->json(['status' => 200, 'message' => 'Cover image deleted successfully.']);
+        return response()->json(['status' => '200', 'message' => 'Cover image deleted successfully.']);
     }
 
     public function profile_avatar_image_delete(Request $request)
@@ -481,7 +480,7 @@ class SettingsController extends Controller
         $user = Auth()->user();
         $avatarPath = $user->avatar;
         if (!$avatarPath) {
-            return response()->json(['status' => 600, 'errors' => ['file' => 'No avatar found to delete.']]);
+            return response()->json(['status' => '600', 'message' => ['file' => 'No avatar found to delete.']]);
         }
     
         try {
@@ -492,10 +491,10 @@ class SettingsController extends Controller
             $user->update(['avatar' => null]);
             
         } catch (\Exception $exception) {
-            return response()->json(['status' => 400, 'errors' => ['file' => $exception->getMessage()]]);
+            return response()->json(['status' => '400', 'errors' => ['file' => $exception->getMessage()]]);
         }
     
-        return response()->json(['status' => 200, 'message' => 'Avatar deleted successfully.']);
+        return response()->json(['status' => '200', 'message' => 'Avatar deleted successfully.']);
     }
 
     public function verify_Identity_check(Request $request)
@@ -578,7 +577,10 @@ class SettingsController extends Controller
             }
         }
 
-        return response()->json($response);
+        return response()->json([
+            'status' => '200',
+            'response' => $response,
+        ]);
     }
     
     
