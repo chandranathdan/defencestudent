@@ -36,8 +36,7 @@ use View;
 
 class UserController extends Controller
 {
-    public function login(Request $request)
-    {
+    public function login(Request $request){
 		$validator = Validator::make($request->all(),[
 			'email'=>'required',
 			'password'=>'required',
@@ -140,7 +139,7 @@ class UserController extends Controller
 			$code = AuthServiceProvider::generateReferralCode(8);
             $userData['referral_code'] = $code;
 			
-			$otp = mt_rand(100000, 999999);
+			$otp = mt_rand(1000, 9999);
 			$userData['otp'] = $otp;
         } catch (\Exception $exception){
         }
@@ -161,6 +160,40 @@ class UserController extends Controller
 		$msg = 'Successfully registered. We sent a OTP for email verification, Please verify your email with this otp.';
 		return $this->authResponse($user, $msg);
 	}
+	
+    public function register_verify_otp(Request $request){
+		$validator = Validator::make($request->all(), [
+			'email' => 'required|email',
+            'otp' => 'required|numeric|digits:4',
+		]);
+
+		if ($validator->fails()) {
+			return response()->json([
+				'errors' => $validator->errors(),
+				'status' => '600',
+			]);
+		}
+    
+        $email = $request->input('email');
+        $otp = $request->input('otp');
+    
+        // Retrieve the user by email
+        $user = User::where('email', $email)->first();
+		
+        if (!$user) {
+            return response()->json(['status' => '400', 'message' => 'User not found']);
+        }
+    
+        // Check if the provided OTP matches the user's OTP
+        if ($user->otp != $otp) {
+            return response()->json(['status' => '400', 'message' => 'Invalid OTP']);
+        }
+        $user->otp = null;
+        $user->email_verified_at = date('Y-m-d H:i:s');
+        $user->save();
+    
+        return response()->json(['status' => '200', 'message' => 'Email verified successfully']);
+    }
 	
 	protected function authResponse($user, $msg){
         $token = $user->createToken('API Token')->plainTextToken;
@@ -194,7 +227,7 @@ class UserController extends Controller
             return response()->json(['status' => '400', 'message' => 'User not found'], 404);
         }
 		
-        $otp = mt_rand(100000, 999999); // Generating a 6-digit OTP
+        $otp = mt_rand(1000, 9999); // Generating a 6-digit OTP
         if ($user) {
 			$user->otp = $otp;
 			$user->save();
@@ -217,7 +250,7 @@ class UserController extends Controller
     public function forget_password_verify_otp(Request $request){
 		$validator = Validator::make($request->all(), [
 			'email' => 'required|email',
-            'otp' => 'required|numeric|digits:6',
+            'otp' => 'required|numeric|digits:4',
 		]);
 
 		if ($validator->fails()) {
@@ -247,10 +280,11 @@ class UserController extends Controller
         return response()->json(['status' => '200', 'message' => 'OTP verified successfully']);
     }
 	
-    public function register_verify_otp(Request $request){
+    public function resetpassword(Request $request){
 		$validator = Validator::make($request->all(), [
 			'email' => 'required|email',
-            'otp' => 'required|numeric|digits:6',
+			'password' => 'required|confirmed|min:6',
+			'password_confirmation' => 'required'
 		]);
 
 		if ($validator->fails()) {
@@ -261,26 +295,83 @@ class UserController extends Controller
 		}
     
         $email = $request->input('email');
-        $otp = $request->input('otp');
     
         // Retrieve the user by email
         $user = User::where('email', $email)->first();
-		
+    
         if (!$user) {
             return response()->json(['status' => '400', 'message' => 'User not found']);
         }
-    
-        // Check if the provided OTP matches the user's OTP
-        if ($user->otp != $otp) {
-            return response()->json(['status' => '400', 'message' => 'Invalid OTP']);
-        }
-        $user->otp = null;
-        $user->email_verified_at = date('Y-m-d H:i:s');
+        $user->password = Hash::make($request->input('password'));
         $user->save();
-    
-        return response()->json(['status' => '200', 'message' => 'Email verified successfully']);
+		
+		$msg = 'Password updated successfully.';
+		return $this->authResponse($user, $msg);
     }
+	
+    public function feed(Request $request){
+        try {
+            // Ensure user is authenticated
+            if (!Auth::check()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            }
 
+            // Log request data
+            Log::info('Feed request received with parameters: ', $request->all());
+
+            // Fetch previous page and start page
+            $prevPage = PostsHelperServiceProvider::getPrevPage($request);
+            $startPage = PostsHelperServiceProvider::getFeedStartPage($prevPage);
+
+            // Fetch posts
+            $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage);
+
+            // Handle pagination cookie
+            PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
+
+            // Set up JavaScript variables
+            JavaScript::put([
+                'paginatorConfig' => [
+                    'next_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->nextPageUrl()),
+                    'prev_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->previousPageUrl()),
+                    'current_page' => $posts->currentPage(),
+                    'total' => $posts->total(),
+                    'per_page' => $posts->perPage(),
+                    'hasMore' => $posts->hasMorePages(), 
+                ],
+                'initialPostIDs' => $posts->pluck('id')->toArray(),
+                'sliderConfig' => [
+                    'autoslide' => getSetting('feed.feed_suggestions_autoplay') ? true : false,
+                ],
+                'user' => [
+                    'username' => Auth::user()->username,
+                    'user_id' => Auth::user()->id,
+                    'lists' => [
+                        'blocked' => Auth::user()->lists->firstWhere('type', 'blocked')->id,
+                        'following' => Auth::user()->lists->firstWhere('type', 'following')->id,
+                    ],
+                ],
+            ]);
+
+            // Return the view with headers
+            return Response::view('pages.feed', [
+                'posts' => $posts,
+                'suggestions' => MembersHelperServiceProvider::getSuggestedMembers(),
+            ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+              ->header('Pragma', 'no-cache')
+              ->header('Expires', '0');
+        } catch (\Exception $e) {
+            // Log the error message and stack trace
+            Log::error('Error in UserController@feed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
+            // Return a user-friendly error response
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while processing your request.'
+            ], 500);
+        }
+    }
+	
 	public function post_create(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -294,7 +385,7 @@ class UserController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-        $post = $request->input('post_id') ? Post::find($request->input('post_id')) : new Post;
+        $post = $request->input('post_id') ? Post::find($request->input('post_id')) : new Post();
         if (!$post) {
             return response()->json(['error' => 'Post not found'], 404);
         }
@@ -305,8 +396,17 @@ class UserController extends Controller
         $post->release_date = $request->input('release_date');
         $post->expire_date = $request->input('expire_date');
         $post->save();
-        if ($request->has('attachments')) {
-            foreach ($request->input('attachments') as $attachment) {
+        if ($request->hasFile('attachments')) {
+            $file = $request->file('attachments');
+            if ($file->isValid()) {
+                $filename = time() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('public/attachments', $filename);
+                $attachment = new Attachment();
+                $attachment->filename = $filename;
+                $attachment->post_id = $post->id;
+                $attachment->save();
+            } else {
+                return response()->json(['error' => 'File upload failed.'], 422);
             }
         }
         return response()->json([
@@ -317,5 +417,15 @@ class UserController extends Controller
    
 	public function user_data(){
         return auth()->user();
+    }
+
+    public function logout(Request $request)
+    {
+        $user = auth()->user();
+        $user
+            ->tokens()
+            ->where('id', $user->currentAccessToken()->id)
+            ->delete();
+		return response()->json(['status' => '200.', 'success' => 'Successfully logged out.']);	
     }
 }
