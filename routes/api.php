@@ -51,7 +51,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/rates_type', [SettingsController::class, 'rates_type']); // rates_type url
 		Route::get('/rates_fetch', [SettingsController::class, 'rates_fetch']); // rates_fetch url
 		Route::post('/account_update', [SettingsController::class, 'account_update']); // account_update url
-		//Route::get('/profile', [SettingsController::class, 'profile']); // profile url
 		Route::post('/profile', [SettingsController::class, 'profile']); // profile url
 		Route::post('/profile_submit', [SettingsController::class, 'profile_submit']); // profile_submit url
 		Route::post('/profile_cover_image_upload', [SettingsController::class, 'profile_cover_image_upload']); // profile_cover_image_upload url
