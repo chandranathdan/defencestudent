@@ -25,6 +25,7 @@ use App\Providers\AttachmentServiceProvider;
 use App\Providers\AuthServiceProvider;
 use App\Providers\EmailsServiceProvider;
 use App\Providers\GenericHelperServiceProvider;
+use App\Providers\SettingsServiceProvider; 
 use App\Model\UserCode;
 use App\Model\Post;
 use App\User;
@@ -299,7 +300,120 @@ class SettingsController extends Controller
             'message' => 'Password changed successfully'
         ], 200);
     } 
-    public function profile()
+    public function profile(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Extract integer parameters from the request
+        $fetchUser = (int) $request->post('user');
+        $fetchPosts = (int) $request->post('posts');
+        $fetchPostsWithAttachments = (int) $request->post('posts_with_attachments');
+        $fetchGenders = (int) $request->post('genders');
+        $fetchPricingData = (int) $request->post('pricingData');
+        $fetchCountries = (int) $request->post('countries');
+        
+        $response = [
+            'status' => '200',
+            'data' => []
+        ];
+        
+        if ($fetchUser === 1) {
+            $response['data']['user'] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'avatar' => $user->avatar,
+                'cover' => $user->cover,
+                'bio' => $user->bio,
+                'birthdate' => $user->birthdate,
+                'gender_pronoun' => $user->gender_pronoun,
+                'location' => $user->location,
+                'website' => $user->website,
+                'country_id' => $user->country_id,
+                'gender_id' => $user->gender_id,
+                'created_at' => $user->created_at,
+            ];
+        }
+        if ($fetchPosts === 1) {
+            $response['data']['posts'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
+                ->with([
+                    'attachments' => function ($query) {
+                        $query->select('filename', 'post_id', 'driver');
+                    },
+                    'user' => function ($query) {
+                        $query->select('id', 'name', 'username');
+                    },
+                    'comments' => function ($query) {
+                        $query->select('id', 'post_id', 'message', 'user_id');
+                    },
+                    'reactions' => function ($query) {
+                        $query->select('post_id', 'reaction_type');
+                    }
+                ])
+                ->where('user_id', $user->id)
+                ->get();
+        }
+    
+        if ($fetchPostsWithAttachments === 1) {
+            $response['data']['posts_with_attachments'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
+                ->with([
+                    'attachments' => function ($query) {
+                        $query->select('filename', 'post_id', 'driver');
+                    },
+                    'user' => function ($query) {
+                        $query->select('id', 'name', 'username');
+                    },
+                    'comments' => function ($query) {
+                        $query->select('id', 'post_id', 'message', 'user_id');
+                    },
+                    'reactions' => function ($query) {
+                        $query->select('post_id', 'reaction_type');
+                    }
+                ])
+                ->where('user_id', $user->id)
+                ->whereHas('attachments')
+                ->get();
+        }
+    
+        if ($fetchGenders === 1) {
+            $response['data']['genders'] = UserGender::all(['id', 'gender_name']);
+        }
+    
+        if ($fetchPricingData === 1) {
+            $response['data']['pricingData'] = [
+                '1_month' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
+                    'duration' => trans_choice('days', 30, ['number' => 30]),
+                ],
+                '3_months' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_3_months * 3),
+                    'duration' => trans_choice('months', 3, ['number' => 3]),
+                ],
+                '6_months' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_6_months * 6),
+                    'duration' => trans_choice('months', 6, ['number' => 6]),
+                ],
+                '12_months' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_12_months * 12),
+                    'duration' => trans_choice('months', 12, ['number' => 12]),
+                ],
+            ];
+        }
+    
+        if ($fetchCountries === 1) {
+            $response['data']['countries'] = Country::all(['id', 'name']);
+        }
+        
+        if (empty($response['data'])) {
+            $response = [
+                'status' => '400',
+                'message' => 'No valid parameters provided.',
+            ];
+        }
+        
+        return response()->json($response);
+    }
+   /* public function profile()
     {
         $user_data = [];
         $user = Auth::user();
@@ -330,7 +444,7 @@ class SettingsController extends Controller
 
         ]);
         return response()->json($user);
-    } 
+    } */
     public function profile_submit(Request $request)
     {
         $user = Auth::user();

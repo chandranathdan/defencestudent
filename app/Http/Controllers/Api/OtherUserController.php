@@ -171,8 +171,4 @@ class OtherUserController extends Controller
             'Payment method' => $settings,
         ]);
     }
-    public function profile_another_user_subscriptions_alldata()
-    {
-        
-    }
 }
