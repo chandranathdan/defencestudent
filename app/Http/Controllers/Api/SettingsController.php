@@ -306,6 +306,7 @@ class SettingsController extends Controller
         
         // Extract integer parameters from the request
         $fetchUser = (int) $request->post('user');
+        $fetchverify = (int) $request->post('UserVerify');
         $fetchPosts = (int) $request->post('posts');
         $fetchPostsWithAttachments = (int) $request->post('posts_with_attachments');
         $fetchGenders = (int) $request->post('genders');
@@ -333,6 +334,9 @@ class SettingsController extends Controller
                 'gender_id' => $user->gender_id,
                 'created_at' => $user->created_at,
             ];
+        }
+        if ($fetchverify === 1) {
+            $response['data']['UserVerify'] = UserVerify::all(['id','user_id', 'status']);
         }
         if ($fetchPosts === 1) {
             $response['data']['posts'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
