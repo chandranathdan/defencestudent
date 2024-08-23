@@ -51,7 +51,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/rates_type', [SettingsController::class, 'rates_type']); // rates_type url
 		Route::get('/rates_fetch', [SettingsController::class, 'rates_fetch']); // rates_fetch url
 		Route::post('/account_update', [SettingsController::class, 'account_update']); // account_update url
-		Route::get('/profile', [SettingsController::class, 'profile']); // profile url
+		Route::post('/profile', [SettingsController::class, 'profile']); // profile url
 		Route::post('/profile_submit', [SettingsController::class, 'profile_submit']); // profile_submit url
 		Route::post('/profile_cover_image_upload', [SettingsController::class, 'profile_cover_image_upload']); // profile_cover_image_upload url
 		Route::post('/profile_avatar_image_upload', [SettingsController::class, 'profile_avatar_image_upload']); // profile_avatar_image_upload url
@@ -72,6 +72,5 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/profile_another_user', [OtherUserController::class, 'profile_another_user']); // profile_another_user url
 		Route::post('/profile_another_user_subscriptions_submit', [OtherUserController::class, 'profile_another_user_subscriptions_submit']); // profile_another_user_subscriptions_submit url
 		Route::get('/profile_another_user_subscriptions_fetch', [OtherUserController::class, 'profile_another_user_subscriptions_fetch']); // profile_another_user_subscriptions_fetch url
-		Route::get('/profile_another_user_subscriptions_alldata', [OtherUserController::class, 'profile_another_user_subscriptions_alldata']); // profile_another_user_subscriptions_alldata url
 	});
 });
