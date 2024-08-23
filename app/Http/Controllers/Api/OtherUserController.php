@@ -22,6 +22,7 @@ use App\Http\Requests\UpdateReactionRequest;
 use App\Model\Attachment;
 use App\Model\Post;
 use App\Model\PostComment;
+use App\Model\UserVerify;
 use App\Model\UserListMember;
 use App\Model\Reaction;
 use App\Providers\PostsHelperServiceProvider;
@@ -36,14 +37,17 @@ class OtherUserController extends Controller
 {
     public function profile_another_user(Request $request)
     {
+        // Validate the request
         $request->validate([
             'id' => 'required|integer|exists:users,id',
         ]);
+    
         $id = $request->input('id');
-        $user = User::find($id);
-        if (!$user) {
-            return response()->json(['status' => '404', 'message' => 'User not found'], 404);
-        }
+    
+        // Retrieve user data
+        $user = User::findOrFail($id);
+    
+        // User data to be returned
         $user_data = [
             'id' => $user->id,
             'name' => $user->name,
@@ -58,7 +62,9 @@ class OtherUserController extends Controller
             'country_id' => $user->country_id,
             'gender_id' => $user->gender_id,
         ];
-        $Subscriptions = [
+    
+        // Define subscription options
+        $subscriptions = [
             '1_month' => [
                 'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
                 'duration' => trans_choice('days', 30, ['number' => 30]),
@@ -76,6 +82,8 @@ class OtherUserController extends Controller
                 'duration' => trans_choice('months', 12, ['number' => 12]),
             ],
         ];
+    
+        // Retrieve posts and associated data
         $posts = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
             ->with([
                 'attachments' => function ($query) {
@@ -93,12 +101,15 @@ class OtherUserController extends Controller
             ])
             ->where('user_id', $id)
             ->get();
+    
+        // Prepare the response
         return response()->json([
             'status' => '200',
             'user_data' => $user_data,
-            'UserListMemberfollow' => UserListMember::where('user_id', $id)->get(['id', 'user_id', 'list_id']),
+            'user_verify' => UserVerify::all(['id', 'user_id', 'status']),
+            'user_list_member_follow' => UserListMember::where('user_id', $id)->get(['id', 'user_id', 'list_id']),
             'feed' => $posts,
-            'Subscriptions' => $Subscriptions,
+            'subscriptions' => $subscriptions,
         ]);
     }
     public function profile_another_user_subscriptions_fetcher(Request $request)

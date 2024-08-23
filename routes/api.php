@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\Homecontroller;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\OtherUserController;
+use App\Http\Controllers\Api\SearchTopController;
 
 
 /*
@@ -72,5 +73,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/profile_another_user', [OtherUserController::class, 'profile_another_user']); // profile_another_user url
 		Route::post('/profile_another_user_subscriptions_submit', [OtherUserController::class, 'profile_another_user_subscriptions_submit']); // profile_another_user_subscriptions_submit url
 		Route::get('/profile_another_user_subscriptions_fetch', [OtherUserController::class, 'profile_another_user_subscriptions_fetch']); // profile_another_user_subscriptions_fetch url
+		Route::get('/search', [SearchTopController::class, 'search']); // search url
+		Route::get('/search_top', [SearchTopController::class, 'search_top']); // search_top url
+		Route::get('/search_people/{id}', [SearchTopController::class, 'search_people']); // search_people url
+		Route::get('/search_latest', [SearchTopController::class, 'search_latest']); // search_latest url
+	
+	
 	});
 });

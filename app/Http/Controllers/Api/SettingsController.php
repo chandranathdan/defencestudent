@@ -307,12 +307,12 @@ class SettingsController extends Controller
         
         // Extract integer parameters from the request
         $fetchUser = (int) $request->post('user');
-        $fetchverify = (int) $request->post('UserVerify');
-        $fetcfollowlist = (int) $request->post('UserListMemberfollow');
+        $fetchverify = (int) $request->post('user_verify');
+        $fetcfollowlist = (int) $request->post('user_list_member_follow');
         $fetchPosts = (int) $request->post('feeds');
         $fetchPostsWithAttachments = (int) $request->post('posts_with_attachments');
         $fetchGenders = (int) $request->post('genders');
-        $fetchPricingData = (int) $request->post('Subscriptions');
+        $fetchPricingData = (int) $request->post('subscriptions');
         $fetchCountries = (int) $request->post('countries');
         
         $response = [
@@ -338,10 +338,10 @@ class SettingsController extends Controller
             ];
         }
         if ($fetchverify === 1) {
-            $response['data']['UserVerify'] = UserVerify::all(['id','user_id', 'status']);
+            $response['data']['user_verify'] = UserVerify::all(['id','user_id', 'status']);
         }
         if ($fetcfollowlist === 1) {
-            $response['data']['UserListMemberfollow'] = UserListMember::all('id','user_id','list_id');
+            $response['data']['user_list_member_follow'] = UserListMember::all('id','user_id','list_id');
         }
         if ($fetchPosts === 1) {
             $response['data']['feeds'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
@@ -389,7 +389,7 @@ class SettingsController extends Controller
         }
     
         if ($fetchPricingData === 1) {
-            $response['data']['Subscriptions'] = [
+            $response['data']['subscriptions'] = [
                 '1_month' => [
                     'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
                     'duration' => trans_choice('days', 30, ['number' => 30]),
