@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1
+-- version 5.2.0
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost
--- Generation Time: Aug 23, 2024 at 05:10 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 7.2.30
+-- Host: 127.0.0.1:3306
+-- Generation Time: Jul 08, 2024 at 03:02 PM
+-- Server version: 8.0.31
+-- PHP Version: 8.2.0
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `exalteds_dancepr`
+-- Database: `defence_student`
 --
 
 -- --------------------------------------------------------
@@ -27,19 +27,27 @@ SET time_zone = "+00:00";
 -- Table structure for table `attachments`
 --
 
-CREATE TABLE `attachments` (
-  `id` char(36) NOT NULL,
-  `filename` text NOT NULL,
-  `driver` int(11) NOT NULL,
-  `type` varchar(191) NOT NULL,
-  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `post_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `message_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `coconut_id` varchar(191) DEFAULT NULL,
+DROP TABLE IF EXISTS `attachments`;
+CREATE TABLE IF NOT EXISTS `attachments` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `filename` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `driver` int NOT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` bigint UNSIGNED DEFAULT NULL,
+  `post_id` bigint UNSIGNED DEFAULT NULL,
+  `message_id` bigint UNSIGNED DEFAULT NULL,
+  `coconut_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `has_thumbnail` tinyint(1) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `payment_request_id` bigint(20) UNSIGNED DEFAULT NULL
+  `payment_request_id` bigint UNSIGNED DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `attachments_user_id_foreign` (`user_id`),
+  KEY `attachments_post_id_foreign` (`post_id`),
+  KEY `attachments_message_id_foreign` (`message_id`),
+  KEY `attachments_type_index` (`type`),
+  KEY `attachments_payment_request_id_foreign` (`payment_request_id`),
+  KEY `attachments_coconut_id_index` (`coconut_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -47,14 +55,7 @@ CREATE TABLE `attachments` (
 --
 
 INSERT INTO `attachments` (`id`, `filename`, `driver`, `type`, `user_id`, `post_id`, `message_id`, `coconut_id`, `has_thumbnail`, `created_at`, `updated_at`, `payment_request_id`) VALUES
-('1ca5ad2584cc472fac5a68cbcc8ac3cd', 'posts/images/1ca5ad2584cc472fac5a68cbcc8ac3cd.jpg', 0, 'jpg', 3, 1, NULL, NULL, 1, '2024-07-05 07:36:30', '2024-07-05 07:37:09', NULL),
-('1d64316e4ae84eca830e3bc093f44184', 'users/verifications/1d64316e4ae84eca830e3bc093f44184.pdf', 0, 'pdf', 4, NULL, NULL, NULL, NULL, '2024-07-22 02:20:05', '2024-07-22 02:20:05', NULL),
-('65550e868d97494ba89240c646acfacd', 'users/verifications/65550e868d97494ba89240c646acfacd.jpg', 0, 'jpg', 4, NULL, NULL, NULL, NULL, '2024-08-07 02:56:04', '2024-08-07 02:56:04', NULL),
-('888fbffe98c74598948e1e3fa66fc1fe', 'users/verifications/888fbffe98c74598948e1e3fa66fc1fe.jpg', 0, 'jpg', 4, NULL, NULL, NULL, NULL, '2024-07-22 02:20:01', '2024-07-22 02:20:01', NULL),
-('b033e82d7d6840edad04a3ccd405cec1', 'posts/images/b033e82d7d6840edad04a3ccd405cec1.jpg', 0, 'jpg', 4, 2, NULL, NULL, 1, '2024-07-16 07:58:21', '2024-07-16 07:58:46', NULL),
-('c9d68cf82ea54e7ca94cda35dffd47e0', 'posts/images/c9d68cf82ea54e7ca94cda35dffd47e0.jpg', 0, 'jpg', 4, 3, NULL, NULL, 1, '2024-07-16 09:03:10', '2024-07-16 09:03:21', NULL),
-('da058fa68bc34c1a8f1cccd272fc5876', 'users/verifications/da058fa68bc34c1a8f1cccd272fc5876.jpg', 0, 'jpg', 4, NULL, NULL, NULL, NULL, '2024-07-19 11:08:39', '2024-07-19 11:08:39', NULL),
-('e558482c4b9a4da48f04c3bc85b5db17', 'posts/images/e558482c4b9a4da48f04c3bc85b5db17.jpg', 0, 'jpg', 7, NULL, NULL, NULL, 1, '2024-07-23 05:45:43', '2024-07-23 05:45:43', NULL);
+('1ca5ad2584cc472fac5a68cbcc8ac3cd', 'posts/images/1ca5ad2584cc472fac5a68cbcc8ac3cd.jpg', 0, 'jpg', 3, 1, NULL, NULL, 1, '2024-07-05 07:36:30', '2024-07-05 07:37:09', NULL);
 
 -- --------------------------------------------------------
 
@@ -62,13 +63,16 @@ INSERT INTO `attachments` (`id`, `filename`, `driver`, `type`, `user_id`, `post_
 -- Table structure for table `contact_messages`
 --
 
-CREATE TABLE `contact_messages` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `email` varchar(191) NOT NULL,
-  `subject` varchar(191) NOT NULL,
-  `message` text NOT NULL,
+DROP TABLE IF EXISTS `contact_messages`;
+CREATE TABLE IF NOT EXISTS `contact_messages` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `contact_messages_email_index` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -77,14 +81,19 @@ CREATE TABLE `contact_messages` (
 -- Table structure for table `countries`
 --
 
-CREATE TABLE `countries` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(191) NOT NULL,
-  `country_code` varchar(191) DEFAULT NULL,
-  `phone_code` varchar(191) DEFAULT NULL,
+DROP TABLE IF EXISTS `countries`;
+CREATE TABLE IF NOT EXISTS `countries` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `country_code` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone_code` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `countries_name_unique` (`name`),
+  KEY `countries_country_code_index` (`country_code`),
+  KEY `countries_phone_code_index` (`phone_code`)
+) ENGINE=InnoDB AUTO_INCREMENT=251 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `countries`
@@ -348,9 +357,12 @@ INSERT INTO `countries` (`id`, `name`, `country_code`, `phone_code`, `created_at
 -- Table structure for table `country_taxes`
 --
 
-CREATE TABLE `country_taxes` (
-  `tax_id` bigint(20) UNSIGNED NOT NULL,
-  `country_id` bigint(20) UNSIGNED NOT NULL
+DROP TABLE IF EXISTS `country_taxes`;
+CREATE TABLE IF NOT EXISTS `country_taxes` (
+  `tax_id` bigint UNSIGNED NOT NULL,
+  `country_id` bigint UNSIGNED NOT NULL,
+  KEY `country_taxes_tax_id_foreign` (`tax_id`),
+  KEY `country_taxes_country_id_foreign` (`country_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -359,16 +371,19 @@ CREATE TABLE `country_taxes` (
 -- Table structure for table `creator_offers`
 --
 
-CREATE TABLE `creator_offers` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `old_profile_access_price` double DEFAULT 5,
-  `old_profile_access_price_3_months` double(8,2) DEFAULT 5.00,
-  `old_profile_access_price_6_months` double DEFAULT 5,
-  `old_profile_access_price_12_months` double DEFAULT 5,
+DROP TABLE IF EXISTS `creator_offers`;
+CREATE TABLE IF NOT EXISTS `creator_offers` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `old_profile_access_price` double DEFAULT '5',
+  `old_profile_access_price_3_months` double(8,2) DEFAULT '5.00',
+  `old_profile_access_price_6_months` double DEFAULT '5',
+  `old_profile_access_price_12_months` double DEFAULT '5',
   `expires_at` datetime DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `creator_offers_user_id_foreign` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -377,21 +392,24 @@ CREATE TABLE `creator_offers` (
 -- Table structure for table `data_rows`
 --
 
-CREATE TABLE `data_rows` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `data_type_id` int(10) UNSIGNED NOT NULL,
-  `field` varchar(191) NOT NULL,
-  `type` varchar(191) NOT NULL,
-  `display_name` varchar(191) NOT NULL,
-  `required` tinyint(1) NOT NULL DEFAULT 0,
-  `browse` tinyint(1) NOT NULL DEFAULT 1,
-  `read` tinyint(1) NOT NULL DEFAULT 1,
-  `edit` tinyint(1) NOT NULL DEFAULT 1,
-  `add` tinyint(1) NOT NULL DEFAULT 1,
-  `delete` tinyint(1) NOT NULL DEFAULT 1,
-  `details` text DEFAULT NULL,
-  `order` int(11) NOT NULL DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `data_rows`;
+CREATE TABLE IF NOT EXISTS `data_rows` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `data_type_id` int UNSIGNED NOT NULL,
+  `field` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `required` tinyint(1) NOT NULL DEFAULT '0',
+  `browse` tinyint(1) NOT NULL DEFAULT '1',
+  `read` tinyint(1) NOT NULL DEFAULT '1',
+  `edit` tinyint(1) NOT NULL DEFAULT '1',
+  `add` tinyint(1) NOT NULL DEFAULT '1',
+  `delete` tinyint(1) NOT NULL DEFAULT '1',
+  `details` text COLLATE utf8mb4_unicode_ci,
+  `order` int NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`),
+  KEY `data_rows_data_type_id_foreign` (`data_type_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=387 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `data_rows`
@@ -729,23 +747,27 @@ INSERT INTO `data_rows` (`id`, `data_type_id`, `field`, `type`, `display_name`, 
 -- Table structure for table `data_types`
 --
 
-CREATE TABLE `data_types` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `name` varchar(191) NOT NULL,
-  `slug` varchar(191) NOT NULL,
-  `display_name_singular` varchar(191) NOT NULL,
-  `display_name_plural` varchar(191) NOT NULL,
-  `icon` varchar(191) DEFAULT NULL,
-  `model_name` varchar(191) DEFAULT NULL,
-  `policy_name` varchar(191) DEFAULT NULL,
-  `controller` varchar(191) DEFAULT NULL,
-  `description` varchar(191) DEFAULT NULL,
-  `generate_permissions` tinyint(1) NOT NULL DEFAULT 0,
-  `server_side` tinyint(4) NOT NULL DEFAULT 0,
-  `details` text DEFAULT NULL,
+DROP TABLE IF EXISTS `data_types`;
+CREATE TABLE IF NOT EXISTS `data_types` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_name_singular` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_name_plural` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `icon` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `model_name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `policy_name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `controller` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `generate_permissions` tinyint(1) NOT NULL DEFAULT '0',
+  `server_side` tinyint NOT NULL DEFAULT '0',
+  `details` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `data_types_name_unique` (`name`),
+  UNIQUE KEY `data_types_slug_unique` (`slug`)
+) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `data_types`
@@ -785,39 +807,18 @@ INSERT INTO `data_types` (`id`, `name`, `slug`, `display_name_singular`, `displa
 -- --------------------------------------------------------
 
 --
--- Table structure for table `email_management`
---
-
-CREATE TABLE `email_management` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `message_subject` text NOT NULL,
-  `message` longtext NOT NULL,
-  `status` tinyint(4) NOT NULL DEFAULT 0,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `email_management`
---
-
-INSERT INTO `email_management` (`id`, `message_subject`, `message`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'Email verification OTP', '<div style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#ffffff;color:#718096;height:100%;line-height:1.4;margin:0;padding:0;width:100%!important\">\n\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#edf2f7;margin:0;padding:0;width:100%\">\n<tbody><tr>\n<td align=\"center\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\'\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';margin:0;padding:0;width:100%\">\n<tbody><tr>\n<td style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';padding:25px 0;text-align:center\">\n<div style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';color:#3d4852;font-size:19px;font-weight:bold;text-decoration:none;display:inline-block\">\n[SCREEN_NAME]</div></td>\n</tr>\n\n\n<tr>\n<td width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#edf2f7;border-bottom:1px solid #edf2f7;border-top:1px solid #edf2f7;margin:0;padding:0;width:100%;border:hidden!important\">\n<table class=\"m_6602954559826230236inner-body\" align=\"center\" width=\"570\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#ffffff;border-color:#e8e5ef;border-radius:2px;border-width:1px;margin:0 auto;padding:0;width:570px\">\n\n<tbody><tr>\n<td style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';max-width:100vw;padding:32px\"><span class=\"im\">\n<h1 style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';color:#3d4852;font-size:18px;font-weight:bold;margin-top:0;text-align:left\">Hello!</h1>\n<p style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';font-size:16px;line-height:1.5em;margin-top:0;text-align:left\">Your email verification otp is <span style=\"font-weight:bold\">[OTP]</span>.</p>\n\n<p style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';font-size:16px;line-height:1.5em;margin-top:0;text-align:left\">Regards,<br>\n[SCREEN_NAME]</p></span>\n</td>\n</tr>\n</tbody></table>\n</td>\n</tr>\n\n<tr>\n<td style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\'\">\n<table class=\"m_6602954559826230236footer\" align=\"center\" width=\"570\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';margin:0 auto;padding:0;text-align:center;width:570px\">\n<tbody><tr>\n<td align=\"center\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';max-width:100vw;padding:32px\">\n<p style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';line-height:1.5em;margin-top:0;color:#b0adc5;font-size:12px;text-align:center\">© [YEAR] [SCREEN_NAME]. All rights reserved.</p>\n\n</td>\n</tr>\n</tbody></table>\n</td>\n</tr>\n</tbody></table>\n</td>\n</tr>\n</tbody></table><div class=\"yj6qo\"></div><div class=\"adL\">\n</div></div>', 1, NULL, '2024-05-23 03:55:29'),
-(2, 'Forget Password OTP', '<div style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#ffffff;color:#718096;height:100%;line-height:1.4;margin:0;padding:0;width:100%!important\">\n\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#edf2f7;margin:0;padding:0;width:100%\">\n<tbody><tr>\n<td align=\"center\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\'\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';margin:0;padding:0;width:100%\">\n<tbody><tr>\n<td style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';padding:25px 0;text-align:center\">\n<div style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';color:#3d4852;font-size:19px;font-weight:bold;text-decoration:none;display:inline-block\">\n[SCREEN_NAME]</div></td>\n</tr>\n\n\n<tr>\n<td width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#edf2f7;border-bottom:1px solid #edf2f7;border-top:1px solid #edf2f7;margin:0;padding:0;width:100%;border:hidden!important\">\n<table class=\"m_6602954559826230236inner-body\" align=\"center\" width=\"570\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';background-color:#ffffff;border-color:#e8e5ef;border-radius:2px;border-width:1px;margin:0 auto;padding:0;width:570px\">\n\n<tbody><tr>\n<td style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';max-width:100vw;padding:32px\"><span class=\"im\">\n<h1 style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';color:#3d4852;font-size:18px;font-weight:bold;margin-top:0;text-align:left\">Hello!</h1>\n<p style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';font-size:16px;line-height:1.5em;margin-top:0;text-align:left\">Your reset password otp is <span style=\"font-weight:bold\">[OTP]</span>.</p>\n\n<p style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';font-size:16px;line-height:1.5em;margin-top:0;text-align:left\">Regards,<br>\n[SCREEN_NAME]</p></span>\n</td>\n</tr>\n</tbody></table>\n</td>\n</tr>\n\n<tr>\n<td style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\'\">\n<table class=\"m_6602954559826230236footer\" align=\"center\" width=\"570\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';margin:0 auto;padding:0;text-align:center;width:570px\">\n<tbody><tr>\n<td align=\"center\" style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';max-width:100vw;padding:32px\">\n<p style=\"box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif,\'Apple Color Emoji\',\'Segoe UI Emoji\',\'Segoe UI Symbol\';line-height:1.5em;margin-top:0;color:#b0adc5;font-size:12px;text-align:center\">© [YEAR] [SCREEN_NAME]. All rights reserved.</p>\n\n</td>\n</tr>\n</tbody></table>\n</td>\n</tr>\n</tbody></table>\n</td>\n</tr>\n</tbody></table><div class=\"yj6qo\"></div><div class=\"adL\">\n</div></div>', 1, NULL, '2024-05-23 03:57:30');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `failed_jobs`
 --
 
-CREATE TABLE `failed_jobs` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `connection` text NOT NULL,
-  `queue` text NOT NULL,
-  `payload` longtext NOT NULL,
-  `exception` longtext NOT NULL,
-  `failed_at` timestamp NOT NULL DEFAULT current_timestamp()
+DROP TABLE IF EXISTS `failed_jobs`;
+CREATE TABLE IF NOT EXISTS `failed_jobs` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `connection` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `queue` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `exception` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -826,11 +827,14 @@ CREATE TABLE `failed_jobs` (
 -- Table structure for table `featured_users`
 --
 
-CREATE TABLE `featured_users` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
+DROP TABLE IF EXISTS `featured_users`;
+CREATE TABLE IF NOT EXISTS `featured_users` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `featured_users_user_id_foreign` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -839,12 +843,15 @@ CREATE TABLE `featured_users` (
 -- Table structure for table `invoices`
 --
 
-CREATE TABLE `invoices` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `invoice_id` varchar(191) NOT NULL,
-  `data` text NOT NULL,
+DROP TABLE IF EXISTS `invoices`;
+CREATE TABLE IF NOT EXISTS `invoices` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `invoice_id` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `data` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `invoices_invoice_id_unique` (`invoice_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -853,14 +860,17 @@ CREATE TABLE `invoices` (
 -- Table structure for table `jobs`
 --
 
-CREATE TABLE `jobs` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `queue` varchar(191) NOT NULL,
-  `payload` longtext NOT NULL,
-  `attempts` tinyint(3) UNSIGNED NOT NULL,
-  `reserved_at` int(10) UNSIGNED DEFAULT NULL,
-  `available_at` int(10) UNSIGNED NOT NULL,
-  `created_at` int(10) UNSIGNED NOT NULL
+DROP TABLE IF EXISTS `jobs`;
+CREATE TABLE IF NOT EXISTS `jobs` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `queue` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `attempts` tinyint UNSIGNED NOT NULL,
+  `reserved_at` int UNSIGNED DEFAULT NULL,
+  `available_at` int UNSIGNED NOT NULL,
+  `created_at` int UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `jobs_queue_index` (`queue`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -869,12 +879,15 @@ CREATE TABLE `jobs` (
 -- Table structure for table `menus`
 --
 
-CREATE TABLE `menus` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `name` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `menus`;
+CREATE TABLE IF NOT EXISTS `menus` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `menus_name_unique` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `menus`
@@ -889,21 +902,24 @@ INSERT INTO `menus` (`id`, `name`, `created_at`, `updated_at`) VALUES
 -- Table structure for table `menu_items`
 --
 
-CREATE TABLE `menu_items` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `menu_id` int(10) UNSIGNED DEFAULT NULL,
-  `title` varchar(191) NOT NULL,
-  `url` varchar(191) NOT NULL,
-  `target` varchar(191) NOT NULL DEFAULT '_self',
-  `icon_class` varchar(191) DEFAULT NULL,
-  `color` varchar(191) DEFAULT NULL,
-  `parent_id` int(11) DEFAULT NULL,
-  `order` int(11) NOT NULL,
+DROP TABLE IF EXISTS `menu_items`;
+CREATE TABLE IF NOT EXISTS `menu_items` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `menu_id` int UNSIGNED DEFAULT NULL,
+  `title` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `url` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '_self',
+  `icon_class` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `color` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `parent_id` int DEFAULT NULL,
+  `order` int NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `route` varchar(191) DEFAULT NULL,
-  `parameters` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `route` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `parameters` text COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  KEY `menu_items_menu_id_foreign` (`menu_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `menu_items`
@@ -918,7 +934,7 @@ INSERT INTO `menu_items` (`id`, `menu_id`, `title`, `url`, `target`, `icon_class
 (7, 1, 'Database', '', '_self', 'voyager-data', NULL, 5, 2, '2021-08-07 13:22:09', '2021-08-07 14:42:22', 'voyager.database.index', NULL),
 (8, 1, 'Compass', '', '_self', 'voyager-compass', NULL, 5, 3, '2021-08-07 13:22:09', '2021-08-07 14:42:22', 'voyager.compass.index', NULL),
 (9, 1, 'BREAD', '', '_self', 'voyager-bread', NULL, 5, 4, '2021-08-07 13:22:09', '2021-08-07 14:42:22', 'voyager.bread.index', NULL),
-(10, NULL, 'Settings', '', '_self', 'voyager-settings', NULL, NULL, 11, '2021-08-07 13:22:09', '2023-06-21 09:32:27', 'voyager.settings.index', NULL),
+(10, 1, 'Settings', '', '_self', 'voyager-settings', NULL, NULL, 11, '2021-08-07 13:22:09', '2023-06-21 09:32:27', 'voyager.settings.index', NULL),
 (12, 1, 'Wallets', '', '_self', 'voyager-wallet', '#000000', 29, 4, '2021-08-07 14:07:16', '2021-10-20 10:50:11', 'voyager.wallets.index', 'null'),
 (14, 1, 'Attachments', '', '_self', 'voyager-paperclip', '#000000', 28, 2, '2021-08-07 14:46:55', '2022-02-01 10:11:20', 'voyager.attachments.index', 'null'),
 (15, 1, 'Notifications', '', '_self', 'voyager-bell', NULL, 29, 5, '2021-08-07 14:49:11', '2021-10-20 10:50:11', 'voyager.notifications.index', NULL),
@@ -957,11 +973,13 @@ INSERT INTO `menu_items` (`id`, `menu_id`, `title`, `url`, `target`, `icon_class
 -- Table structure for table `migrations`
 --
 
-CREATE TABLE `migrations` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `migration` varchar(191) NOT NULL,
-  `batch` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `migrations`;
+CREATE TABLE IF NOT EXISTS `migrations` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `migration` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `batch` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=117 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `migrations`
@@ -1091,36 +1109,36 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 -- Table structure for table `notifications`
 --
 
-CREATE TABLE `notifications` (
-  `id` char(36) NOT NULL,
-  `from_user_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `to_user_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `type` varchar(191) NOT NULL,
-  `post_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `post_comment_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `subscription_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `transaction_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `reaction_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `withdrawal_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `user_message_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `stream_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `read` tinyint(1) NOT NULL DEFAULT 0,
+DROP TABLE IF EXISTS `notifications`;
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `from_user_id` bigint UNSIGNED DEFAULT NULL,
+  `to_user_id` bigint UNSIGNED DEFAULT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `post_id` bigint UNSIGNED DEFAULT NULL,
+  `post_comment_id` bigint UNSIGNED DEFAULT NULL,
+  `subscription_id` bigint UNSIGNED DEFAULT NULL,
+  `transaction_id` bigint UNSIGNED DEFAULT NULL,
+  `reaction_id` bigint UNSIGNED DEFAULT NULL,
+  `withdrawal_id` bigint UNSIGNED DEFAULT NULL,
+  `user_message_id` bigint UNSIGNED DEFAULT NULL,
+  `stream_id` bigint UNSIGNED DEFAULT NULL,
+  `read` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `notifications_from_user_id_foreign` (`from_user_id`),
+  KEY `notifications_to_user_id_foreign` (`to_user_id`),
+  KEY `notifications_post_id_foreign` (`post_id`),
+  KEY `notifications_post_comment_id_foreign` (`post_comment_id`),
+  KEY `notifications_subscription_id_foreign` (`subscription_id`),
+  KEY `notifications_transaction_id_foreign` (`transaction_id`),
+  KEY `notifications_reaction_id_foreign` (`reaction_id`),
+  KEY `notifications_withdrawal_id_foreign` (`withdrawal_id`),
+  KEY `notifications_type_index` (`type`),
+  KEY `notifications_user_message_id_index` (`user_message_id`),
+  KEY `notifications_stream_id_foreign` (`stream_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `from_user_id`, `to_user_id`, `type`, `post_id`, `post_comment_id`, `subscription_id`, `transaction_id`, `reaction_id`, `withdrawal_id`, `user_message_id`, `stream_id`, `read`, `created_at`, `updated_at`) VALUES
-('00019ba8eb45494aaebde7d059fd939f', 7, 4, 'reaction', NULL, 1, NULL, NULL, 1, NULL, NULL, NULL, 1, '2024-07-23 06:30:04', '2024-07-23 06:33:21'),
-('3fb86fccd06b483ab7f87755fc6d6d8a', 1, 4, 'withdrawal-action', NULL, NULL, NULL, NULL, NULL, 2, NULL, NULL, 1, '2024-08-09 03:11:35', '2024-08-23 02:09:14'),
-('4397c9175ba64004afd1cb6be43347bd', 4, 7, 'new-message', NULL, NULL, NULL, NULL, NULL, NULL, 1, NULL, 1, '2024-07-29 07:11:48', '2024-07-29 09:02:33'),
-('50ff3e244f4047b1bdc52af2c1956bff', 4, 7, 'new-comment', NULL, 1, NULL, NULL, NULL, NULL, NULL, NULL, 1, '2024-07-23 06:28:14', '2024-07-23 06:28:45'),
-('60401e58f8c24b8f88974de827a57ef3', 4, 7, 'new-message', NULL, NULL, NULL, NULL, NULL, NULL, 2, NULL, 1, '2024-07-29 07:11:53', '2024-07-29 09:02:33'),
-('62ba850510674923a84032385f031ae6', 1, 4, 'withdrawal-action', NULL, NULL, NULL, NULL, NULL, 3, NULL, NULL, 1, '2024-08-09 03:13:02', '2024-08-23 02:09:14'),
-('d912202bce0148439744413397a06bc3', 4, 7, 'reaction', NULL, 2, NULL, NULL, 4, NULL, NULL, NULL, 1, '2024-07-23 11:41:52', '2024-07-29 09:02:33');
 
 -- --------------------------------------------------------
 
@@ -1128,18 +1146,13 @@ INSERT INTO `notifications` (`id`, `from_user_id`, `to_user_id`, `type`, `post_i
 -- Table structure for table `password_resets`
 --
 
-CREATE TABLE `password_resets` (
-  `email` varchar(191) NOT NULL,
-  `token` varchar(191) NOT NULL,
-  `created_at` timestamp NULL DEFAULT NULL
+DROP TABLE IF EXISTS `password_resets`;
+CREATE TABLE IF NOT EXISTS `password_resets` (
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  KEY `password_resets_email_index` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `password_resets`
---
-
-INSERT INTO `password_resets` (`email`, `token`, `created_at`) VALUES
-('exaltedsol06@gmail.com', '$2y$10$4X6IfjdJajpcu4W6jCmXjusPsnjJBa5KHnKwNu5q3oi2T2FQ/oYze', '2024-08-06 10:25:29');
 
 -- --------------------------------------------------------
 
@@ -1147,17 +1160,23 @@ INSERT INTO `password_resets` (`email`, `token`, `created_at`) VALUES
 -- Table structure for table `payment_requests`
 --
 
-CREATE TABLE `payment_requests` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `transaction_id` bigint(20) UNSIGNED NOT NULL,
-  `status` varchar(191) NOT NULL DEFAULT 'pending',
-  `type` varchar(191) DEFAULT NULL,
-  `reason` varchar(191) DEFAULT NULL,
-  `message` varchar(191) DEFAULT NULL,
+DROP TABLE IF EXISTS `payment_requests`;
+CREATE TABLE IF NOT EXISTS `payment_requests` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `transaction_id` bigint UNSIGNED NOT NULL,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reason` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `message` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `amount` double(8,2) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `payment_requests_user_id_foreign` (`user_id`),
+  KEY `payment_requests_transaction_id_foreign` (`transaction_id`),
+  KEY `payment_requests_status_index` (`status`),
+  KEY `payment_requests_type_index` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1166,13 +1185,16 @@ CREATE TABLE `payment_requests` (
 -- Table structure for table `permissions`
 --
 
-CREATE TABLE `permissions` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `key` varchar(191) NOT NULL,
-  `table_name` varchar(191) DEFAULT NULL,
+DROP TABLE IF EXISTS `permissions`;
+CREATE TABLE IF NOT EXISTS `permissions` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `key` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `table_name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `permissions_key_index` (`key`)
+) ENGINE=InnoDB AUTO_INCREMENT=162 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `permissions`
@@ -1342,9 +1364,13 @@ INSERT INTO `permissions` (`id`, `key`, `table_name`, `created_at`, `updated_at`
 -- Table structure for table `permission_role`
 --
 
-CREATE TABLE `permission_role` (
-  `permission_id` bigint(20) UNSIGNED NOT NULL,
-  `role_id` bigint(20) UNSIGNED NOT NULL
+DROP TABLE IF EXISTS `permission_role`;
+CREATE TABLE IF NOT EXISTS `permission_role` (
+  `permission_id` bigint UNSIGNED NOT NULL,
+  `role_id` bigint UNSIGNED NOT NULL,
+  PRIMARY KEY (`permission_id`,`role_id`),
+  KEY `permission_role_permission_id_index` (`permission_id`),
+  KEY `permission_role_role_id_index` (`role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1561,143 +1587,32 @@ INSERT INTO `permission_role` (`permission_id`, `role_id`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `personal_access_tokens`
---
-
-CREATE TABLE `personal_access_tokens` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `tokenable_type` varchar(191) NOT NULL,
-  `tokenable_id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(191) NOT NULL,
-  `token` varchar(64) NOT NULL,
-  `abilities` text DEFAULT NULL,
-  `last_used_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `expires_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `personal_access_tokens`
---
-
-INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `name`, `token`, `abilities`, `last_used_at`, `created_at`, `updated_at`, `expires_at`) VALUES
-(1, 'App\\User', 4, 'API Token', '88b8a692b85f0c6143799bbed9e6e6f8c98402a8343a874ed0c521db968803c9', '[\"*\"]', NULL, '2024-08-05 04:20:20', '2024-08-05 04:20:20', NULL),
-(2, 'App\\User', 4, 'API Token', 'acb54aba22bbfdb029fbf44f70420db088a26dff285c1373a64d019400093489', '[\"*\"]', NULL, '2024-08-05 04:20:58', '2024-08-05 04:20:58', NULL),
-(3, 'App\\User', 4, 'API Token', 'ad6f155c79dd99568b17bade1d5e66dcc09989446912d1ba2ed7de4fba6a977c', '[\"*\"]', NULL, '2024-08-05 09:43:15', '2024-08-05 09:43:15', NULL),
-(4, 'App\\User', 4, 'API Token', 'b9f789846f0d3cbb799771ff307745bcb8467bf2db6f38205f4524e4bfb354cf', '[\"*\"]', NULL, '2024-08-05 09:52:35', '2024-08-05 09:52:35', NULL),
-(5, 'App\\User', 4, 'API Token', '6af19312103355588bbed6b93e86a66e88c73dfbb2f0f9d94da2ea042e775324', '[\"*\"]', NULL, '2024-08-05 10:08:00', '2024-08-05 10:08:00', NULL),
-(6, 'App\\User', 4, 'API Token', '43abd776735eaf38d107e6234f59acb5592c7aa78fc5effa71cf59ddd3ae724e', '[\"*\"]', NULL, '2024-08-05 10:13:31', '2024-08-05 10:13:31', NULL),
-(7, 'App\\User', 4, 'API Token', '8373cfe747532ca82c452c50a51a4ec55f7bd42fde167822444440f3a0864045', '[\"*\"]', NULL, '2024-08-05 10:17:27', '2024-08-05 10:17:27', NULL),
-(8, 'App\\User', 4, 'API Token', '83d01aa675c25f759dc37c832051acfd1ee74511aa0f954cf8eba1624bef5f17', '[\"*\"]', NULL, '2024-08-05 10:19:08', '2024-08-05 10:19:08', NULL),
-(9, 'App\\User', 4, 'API Token', '32e38335071c9509745da83ad83348f1026b9d449fe53bdfab0e6042660e75e6', '[\"*\"]', NULL, '2024-08-06 09:55:56', '2024-08-06 09:55:56', NULL),
-(10, 'App\\User', 4, 'API Token', '007d11ee76598bde7541ec3a8dbea4cecea8ea4add43c98575aa34f9a460a80a', '[\"*\"]', NULL, '2024-08-06 10:02:13', '2024-08-06 10:02:13', NULL),
-(11, 'App\\User', 4, 'API Token', '47f799ff2e31063399db26598b0d9ea357dbcc8aaad27bcf71551a34c3352841', '[\"*\"]', NULL, '2024-08-06 10:13:24', '2024-08-06 10:13:24', NULL),
-(12, 'App\\User', 4, 'API Token', '9bc2befff547d1add735a3c0738c1d60355929d388942a11f8b2022813318294', '[\"*\"]', NULL, '2024-08-06 11:08:48', '2024-08-06 11:08:48', NULL),
-(13, 'App\\User', 4, 'API Token', 'acecca17dce5788bcfa13414024e466a8d8189c126ae16bb1893ca467f08aa8b', '[\"*\"]', NULL, '2024-08-06 11:19:30', '2024-08-06 11:19:30', NULL),
-(14, 'App\\User', 4, 'API Token', 'c9646cc2134b21dcd2ce4b2eec7292b9ad51dc6b0bd41febd28da84ea11c37d9', '[\"*\"]', NULL, '2024-08-06 11:21:52', '2024-08-06 11:21:52', NULL),
-(15, 'App\\User', 4, 'API Token', '1519be74825eb24da81a9950dbceba369e0ea698b1a6262550dab7243d540428', '[\"*\"]', NULL, '2024-08-07 02:34:51', '2024-08-07 02:34:51', NULL),
-(16, 'App\\User', 4, 'API Token', 'ac7997da902a8b0e864cc07e96ec05aa1910d22206d89e161fb18d9554b7deb0', '[\"*\"]', NULL, '2024-08-07 02:35:37', '2024-08-07 02:35:37', NULL),
-(17, 'App\\User', 4, 'API Token', 'b6c07aa6cdb38fd4b928f6b7244617a3badcd1a9b08efe64ae3173d3df7fbd7b', '[\"*\"]', NULL, '2024-08-07 09:31:14', '2024-08-07 09:31:14', NULL),
-(18, 'App\\User', 9, 'API Token', '743ff3ae2c63058e0be561dc4fa0ddae8e6fd386e13242ed2909dd78a45d86fc', '[\"*\"]', NULL, '2024-08-07 11:33:32', '2024-08-07 11:33:32', NULL),
-(19, 'App\\User', 10, 'API Token', '7d0acf0e008005d377c198d8aae8aab2e9fb9c4de84c415fba2eafbe9220bf0b', '[\"*\"]', NULL, '2024-08-07 11:58:28', '2024-08-07 11:58:28', NULL),
-(20, 'App\\User', 11, 'API Token', '425cce95a6b0d403aa34f0ac813879f2ad46b98b758849e7c086b7f21e12dd56', '[\"*\"]', NULL, '2024-08-07 12:03:56', '2024-08-07 12:03:56', NULL),
-(21, 'App\\User', 12, 'API Token', '65c355c9891a760224a968dc1d3d56ea6fa0466efefa23334dcba5ad1e397937', '[\"*\"]', '2024-08-07 12:17:59', '2024-08-07 12:15:59', '2024-08-07 12:17:59', NULL),
-(22, 'App\\User', 4, 'API Token', '716a09dc75c63ecf274dddb861fcc2647fbd6dda1ae2a888ba11fcc386208731', '[\"*\"]', NULL, '2024-08-09 03:14:17', '2024-08-09 03:14:17', NULL),
-(23, 'App\\User', 4, 'API Token', '9190dc409b0fe025d1ed66c537f8fc80a4c7a68aa3f4db003a0b2964a5285f35', '[\"*\"]', NULL, '2024-08-09 11:44:02', '2024-08-09 11:44:02', NULL),
-(24, 'App\\User', 4, 'API Token', '76a009c5b87f063d413e383e759b1f4960812767f93263311a891a7080b56d42', '[\"*\"]', NULL, '2024-08-10 07:02:16', '2024-08-10 07:02:16', NULL),
-(25, 'App\\User', 4, 'API Token', 'ae95cdefaf0154d09dbb97dd4381e5cebe627679e83744eb48903ec66ebb6a5f', '[\"*\"]', NULL, '2024-08-13 05:28:33', '2024-08-13 05:28:33', NULL),
-(26, 'App\\User', 4, 'API Token', '074ab9c5e60914aada8f9c043af232269ce842c13681a98cfb4e12d9b4f4af4f', '[\"*\"]', '2024-08-21 11:18:28', '2024-08-13 06:08:46', '2024-08-21 11:18:28', NULL),
-(27, 'App\\User', 4, 'API Token', '14698590430c8e1cf1daee6d6395dc0de8e1f2c315e7dd7fc7f49ee0f971d890', '[\"*\"]', NULL, '2024-08-13 06:43:05', '2024-08-13 06:43:05', NULL),
-(28, 'App\\User', 4, 'API Token', '1398dc72a9b9e6a1c81a9d3e2f370b0ffe51518af45860371d991fae67d623cf', '[\"*\"]', NULL, '2024-08-13 07:10:08', '2024-08-13 07:10:08', NULL),
-(29, 'App\\User', 4, 'API Token', '80e7302eeaab15a46e861537e518437f475db6543374fc3bff1ebced6e85a776', '[\"*\"]', NULL, '2024-08-13 07:17:40', '2024-08-13 07:17:40', NULL),
-(30, 'App\\User', 4, 'API Token', '37cffd30fe68ebda937aed3296f9d72662471add2367ddb14adf3ce4779580b9', '[\"*\"]', NULL, '2024-08-13 07:30:06', '2024-08-13 07:30:06', NULL),
-(31, 'App\\User', 4, 'API Token', '0eef6a0b08d810ef92a9fbdb3819226546f2c16acd06bad3e940fdebffbfd72e', '[\"*\"]', NULL, '2024-08-13 07:35:11', '2024-08-13 07:35:11', NULL),
-(32, 'App\\User', 4, 'API Token', 'd8d25231e325bd229e58ad867f09e8751e6dfa61a9967437d272c9ee31a4aef0', '[\"*\"]', '2024-08-13 08:13:57', '2024-08-13 07:45:24', '2024-08-13 08:13:57', NULL),
-(33, 'App\\User', 4, 'API Token', '7eb6d39da063504fa87340ba0e2d42582e8d1e34a469421299672c7c6477d3f4', '[\"*\"]', NULL, '2024-08-13 08:16:01', '2024-08-13 08:16:01', NULL),
-(34, 'App\\User', 12, 'API Token', 'ecd2e61fd4e10705a04b1e09b63a4db21e13cc60371c19958a6ab6031fe57247', '[\"*\"]', '2024-08-13 08:33:15', '2024-08-13 08:32:14', '2024-08-13 08:33:15', NULL),
-(35, 'App\\User', 4, 'API Token', 'f5306af6e28db5f20b876dd054093878f31fb6804802045f89f93c87d9fe3e0f', '[\"*\"]', NULL, '2024-08-13 08:39:04', '2024-08-13 08:39:04', NULL),
-(36, 'App\\User', 4, 'API Token', '682213a975d29ed7cb269665a6bcb9ddf6404cb803daebcfac1f139abe22933d', '[\"*\"]', NULL, '2024-08-13 08:52:33', '2024-08-13 08:52:33', NULL),
-(37, 'App\\User', 4, 'API Token', '8d251d369c9ce51a028c3e83f8e708800b63820b759366bba71d589432a05f94', '[\"*\"]', NULL, '2024-08-13 08:58:25', '2024-08-13 08:58:25', NULL),
-(38, 'App\\User', 4, 'API Token', '951f07ca19861a08c83496d878c93cfd7d1a324dce3c7575c1e853dcffa7ef6c', '[\"*\"]', NULL, '2024-08-13 09:03:24', '2024-08-13 09:03:24', NULL),
-(39, 'App\\User', 4, 'API Token', '5c7d0da2c6337977a3e9eade80267f9f06c5159da46002449057309cbd56a4f7', '[\"*\"]', '2024-08-13 09:26:03', '2024-08-13 09:05:20', '2024-08-13 09:26:03', NULL),
-(40, 'App\\User', 4, 'API Token', 'bc8e323441a734ea0b5f6d3ac831165a98fcc3f8711d4c4630bf2d58933525d1', '[\"*\"]', '2024-08-13 09:35:25', '2024-08-13 09:26:27', '2024-08-13 09:35:25', NULL),
-(41, 'App\\User', 4, 'API Token', 'dad534e0a233ddd0d72f35f5cdf71a387faa47eb10c41115f64af9777b19b43f', '[\"*\"]', '2024-08-13 10:17:14', '2024-08-13 09:35:50', '2024-08-13 10:17:14', NULL),
-(42, 'App\\User', 4, 'API Token', '936c3be98f42a146c662e89e6bb1af63694d6abb2707130949ff5d7f0420f7d3', '[\"*\"]', '2024-08-13 10:34:59', '2024-08-13 10:24:17', '2024-08-13 10:34:59', NULL),
-(43, 'App\\User', 4, 'API Token', 'a0c1239ef46efe2aba74cc070890c8ea02a182ff89e77d92ec7121b64ba79171', '[\"*\"]', '2024-08-13 11:07:36', '2024-08-13 10:55:31', '2024-08-13 11:07:36', NULL),
-(44, 'App\\User', 4, 'API Token', '453f001ce1588ff4471a472fb6d7711046394c57ccb89b37cbe038c44d6a06ed', '[\"*\"]', '2024-08-14 02:09:14', '2024-08-13 11:13:54', '2024-08-14 02:09:14', NULL),
-(45, 'App\\User', 4, 'API Token', 'bd0c12415ec69e8fefcb592d4295867f9d2d2d4dee1baec30361a027715f4af4', '[\"*\"]', '2024-08-14 02:23:26', '2024-08-14 02:18:57', '2024-08-14 02:23:26', NULL),
-(46, 'App\\User', 4, 'API Token', '5d486e1aca8bf53c807f05b6fd13c517e171b8e3373d8bf34829296a64c8ceb3', '[\"*\"]', '2024-08-14 03:14:48', '2024-08-14 02:55:24', '2024-08-14 03:14:48', NULL),
-(47, 'App\\User', 4, 'API Token', '326315f589ff9bb05b2fa6b53d081719eb45b118bf9cebc9ad7a6f9cd151c427', '[\"*\"]', NULL, '2024-08-14 03:24:56', '2024-08-14 03:24:56', NULL),
-(48, 'App\\User', 4, 'API Token', '6f90d5df506f50baca8261afd5d1ab6f18720b16b82784566a9083b02477260b', '[\"*\"]', NULL, '2024-08-14 03:32:43', '2024-08-14 03:32:43', NULL),
-(49, 'App\\User', 4, 'API Token', '523bbce3e11c840e7fcc7f89888ca1212fbc0aaa58c4ace00862786fc2d77e3f', '[\"*\"]', '2024-08-14 04:17:23', '2024-08-14 04:07:19', '2024-08-14 04:17:23', NULL),
-(50, 'App\\User', 4, 'API Token', '785a62f076f08eaa9e7b53e4d0f5fef01a8b6473920ae3162b9b7e6673d3247a', '[\"*\"]', '2024-08-14 04:47:47', '2024-08-14 04:47:13', '2024-08-14 04:47:47', NULL),
-(51, 'App\\User', 4, 'API Token', '21bd3ef1965c92172dadc75415a721a0a87d43ee48f5b5eb611209dca894d8d1', '[\"*\"]', '2024-08-14 04:57:54', '2024-08-14 04:57:25', '2024-08-14 04:57:54', NULL),
-(52, 'App\\User', 4, 'API Token', '166292ce85c9b6f53e50ac2cac1f230f48ab46d69496412a6b83b602d8420326', '[\"*\"]', '2024-08-14 05:07:53', '2024-08-14 05:07:18', '2024-08-14 05:07:53', NULL),
-(53, 'App\\User', 4, 'API Token', 'c0052496a5e484bdf7265c6bab0e8caad5178f2cc138400b27834a870d4c5363', '[\"*\"]', NULL, '2024-08-14 05:18:03', '2024-08-14 05:18:03', NULL),
-(54, 'App\\User', 4, 'API Token', '89d0cfdae6fa5562629b6f75ac3066711ea60d9a3f7773685cd094d6ed1a7fc8', '[\"*\"]', NULL, '2024-08-14 06:53:02', '2024-08-14 06:53:02', NULL),
-(55, 'App\\User', 4, 'API Token', 'b17d6d8832ed0b093b79b3f6f289f187a5342c136a66ab9bd9e6b32cd083ea59', '[\"*\"]', NULL, '2024-08-14 07:26:25', '2024-08-14 07:26:25', NULL),
-(56, 'App\\User', 4, 'API Token', 'd368ef6dc887bb548b16907eaafec1c84b7994817e7b47435c08d00fe6e19a23', '[\"*\"]', '2024-08-14 08:29:21', '2024-08-14 08:28:51', '2024-08-14 08:29:21', NULL),
-(57, 'App\\User', 4, 'API Token', 'a8c2054eefd6e00643e02e5e5cac7d3ed7f8db6e8381cdc897e434064e4cd5d1', '[\"*\"]', '2024-08-14 10:21:07', '2024-08-14 08:48:22', '2024-08-14 10:21:07', NULL),
-(58, 'App\\User', 4, 'API Token', '973ca93a1a2b412a1fda17037b5cac2e724ed62ce5e2babcd7fdd1e10eaf4ad3', '[\"*\"]', '2024-08-21 01:43:47', '2024-08-14 10:01:39', '2024-08-21 01:43:47', NULL),
-(59, 'App\\User', 4, 'API Token', 'b402f4005e2c82606a4d95acdae9033306cf9ed7a3955cff2475a38770f27d29', '[\"*\"]', NULL, '2024-08-14 10:30:26', '2024-08-14 10:30:26', NULL),
-(60, 'App\\User', 4, 'API Token', '7b9fc3687b770264775cbe0b327e3b67bdf5f1777efd82bd826b62513f08e9de', '[\"*\"]', NULL, '2024-08-14 10:31:47', '2024-08-14 10:31:47', NULL),
-(61, 'App\\User', 4, 'API Token', '2c23a72fcb3d88ab254f1e963a588851a1c2e84b3c8fd6d07ef58acbedc4b4d4', '[\"*\"]', NULL, '2024-08-14 10:34:11', '2024-08-14 10:34:11', NULL),
-(62, 'App\\User', 4, 'API Token', '85a7f2855ea6739bceca8c61e104f185f3fe7676882785a9bbaa46c846371abe', '[\"*\"]', '2024-08-14 11:07:07', '2024-08-14 11:06:41', '2024-08-14 11:07:07', NULL),
-(63, 'App\\User', 4, 'API Token', '6986e141141b24028c5322e291bb6e3fcb2f838f597671623dce639ea0fce8dd', '[\"*\"]', '2024-08-14 11:11:06', '2024-08-14 11:10:45', '2024-08-14 11:11:06', NULL),
-(64, 'App\\User', 4, 'API Token', '569d491c763e6778a583ee4ac77bff41782b8424b5ebf54385769aa322e64ced', '[\"*\"]', '2024-08-14 11:33:37', '2024-08-14 11:33:19', '2024-08-14 11:33:37', NULL),
-(65, 'App\\User', 4, 'API Token', '2d22437c7d58522493686d480c12d6473f81e81f7fedb56c53b8e5be93a817c9', '[\"*\"]', '2024-08-14 11:58:30', '2024-08-14 11:38:24', '2024-08-14 11:58:30', NULL),
-(66, 'App\\User', 4, 'API Token', '3ecec8e964dc9c7f5ef065c69749e951e5d330757f8320bdc191bd08f2b5cb94', '[\"*\"]', '2024-08-14 12:53:30', '2024-08-14 12:14:42', '2024-08-14 12:53:30', NULL),
-(67, 'App\\User', 4, 'API Token', '724fab0116aa6e09baf71c08fc53dea87460751c906e91feab1f1b73b570bf1a', '[\"*\"]', '2024-08-14 13:35:23', '2024-08-14 12:55:59', '2024-08-14 13:35:23', NULL),
-(68, 'App\\User', 4, 'API Token', '77903001446e36a760ab8f2ed509e524911d8e79b216a9846ef3495bcf6fc07c', '[\"*\"]', '2024-08-14 13:48:06', '2024-08-14 13:36:56', '2024-08-14 13:48:06', NULL),
-(69, 'App\\User', 4, 'API Token', '4eaf4ecf2791781fb1b6ed622b3df7053bda4718344c497375265bdb43d8f22a', '[\"*\"]', '2024-08-15 07:19:16', '2024-08-15 05:53:34', '2024-08-15 07:19:16', NULL),
-(70, 'App\\User', 4, 'API Token', 'b3c1d507a87debdc7f660007c85fe55b75a6a7e8fc01742f5dd7ce85cea21824', '[\"*\"]', '2024-08-15 07:45:10', '2024-08-15 07:21:16', '2024-08-15 07:45:10', NULL),
-(71, 'App\\User', 4, 'API Token', '5d31d0b602ad98fcd6d4f385b933108f490ec973e2f25e5af375aa884a2d12cb', '[\"*\"]', '2024-08-15 07:55:19', '2024-08-15 07:52:48', '2024-08-15 07:55:19', NULL),
-(72, 'App\\User', 4, 'API Token', 'e250c66fe374f163855fb3a15d694060f7e3405e25f8636f20aaab36517ed84c', '[\"*\"]', '2024-08-15 08:49:19', '2024-08-15 07:59:02', '2024-08-15 08:49:19', NULL),
-(73, 'App\\User', 4, 'API Token', '96490b9b16e1f56fe03e90136eeff76395ec3534b8a12c3912e8f63759007408', '[\"*\"]', '2024-08-15 09:15:46', '2024-08-15 08:56:27', '2024-08-15 09:15:46', NULL),
-(74, 'App\\User', 4, 'API Token', '09bb92455b6f4271e714851f68300a37cfb659ba393277bcf860d8cf48695754', '[\"*\"]', '2024-08-15 09:39:50', '2024-08-15 09:21:51', '2024-08-15 09:39:50', NULL),
-(75, 'App\\User', 4, 'API Token', 'a240ffd75b010518a125a72cf6c6e9db6a0040b13cdffe7400f7d4c5feae0780', '[\"*\"]', NULL, '2024-08-19 06:35:00', '2024-08-19 06:35:00', NULL),
-(76, 'App\\User', 4, 'API Token', '418fb4e17ea84d8fec71cba4188dc8d3052262070e8a3eebf28a8f2a352aa960', '[\"*\"]', '2024-08-19 06:54:38', '2024-08-19 06:53:08', '2024-08-19 06:54:38', NULL),
-(77, 'App\\User', 4, 'API Token', 'c7ee5a0d86289dd6f76a0e35e5ac06c182f38216e8f3ccdaf48c17a1f6b2f358', '[\"*\"]', '2024-08-19 08:16:09', '2024-08-19 08:15:16', '2024-08-19 08:16:09', NULL),
-(78, 'App\\User', 4, 'API Token', '47b7bb072da13a88016092a1d492ea759198ad50d59fade990d144c007610187', '[\"*\"]', NULL, '2024-08-19 08:35:55', '2024-08-19 08:35:55', NULL),
-(79, 'App\\User', 4, 'API Token', '77b4906b8008c52d005fefafc8f2ec747fbe0d67c7805caf4ff003b4efa5143f', '[\"*\"]', NULL, '2024-08-19 08:53:32', '2024-08-19 08:53:32', NULL),
-(80, 'App\\User', 4, 'API Token', 'b935f968e9421a07523511778fd1687a3d6ce79dcfc3903d797378d999e46bb2', '[\"*\"]', NULL, '2024-08-19 09:29:27', '2024-08-19 09:29:27', NULL),
-(81, 'App\\User', 4, 'API Token', 'ee8431fbdd97eebdcc42a1c9c0664a1fbb454a8ac52b9cda400b93268eabeaef', '[\"*\"]', '2024-08-19 10:50:24', '2024-08-19 09:57:19', '2024-08-19 10:50:24', NULL),
-(82, 'App\\User', 4, 'API Token', '86cfd69632b283e813ce5245fe5708fe247677e9fa82181fa1e210ab1ecc613a', '[\"*\"]', NULL, '2024-08-21 01:42:28', '2024-08-21 01:42:28', NULL),
-(83, 'App\\User', 4, 'API Token', '2431ffcd0c820c93ec23dfa2c46f142048f33513f10ad5f157c061b5a66f8540', '[\"*\"]', NULL, '2024-08-22 01:56:03', '2024-08-22 01:56:03', NULL),
-(84, 'App\\User', 4, 'API Token', 'dd78c9c28077c9b2969610e0ec9724a4a49a2cd7d0b13b18dd6559ef64b27a22', '[\"*\"]', NULL, '2024-08-22 09:28:38', '2024-08-22 09:28:38', NULL),
-(85, 'App\\User', 4, 'API Token', 'af79180f7a3fad54dc89f3c4d10f94a04b4e7224e3a6f672d6436976e1cabc0d', '[\"*\"]', NULL, '2024-08-22 10:53:13', '2024-08-22 10:53:13', NULL),
-(86, 'App\\User', 4, 'API Token', 'c2b8f38b2f977af7b6975837923d86cacec714d7e0a15403b4dee198c093898c', '[\"*\"]', NULL, '2024-08-23 02:09:53', '2024-08-23 02:09:53', NULL),
-(87, 'App\\User', 4, 'API Token', '3c4c9a2fe4065647bf9f03743c38149377c615e0096d177a0d946e73a04de7f6', '[\"*\"]', NULL, '2024-08-23 02:10:35', '2024-08-23 02:10:35', NULL);
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `posts`
 --
 
-CREATE TABLE `posts` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `text` longtext DEFAULT NULL,
-  `price` double(8,2) NOT NULL DEFAULT 0.00,
-  `status` int(11) NOT NULL DEFAULT 1,
+DROP TABLE IF EXISTS `posts`;
+CREATE TABLE IF NOT EXISTS `posts` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `text` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `price` double(8,2) NOT NULL DEFAULT '0.00',
+  `status` int NOT NULL DEFAULT '1',
   `release_date` timestamp NULL DEFAULT NULL,
   `expire_date` timestamp NULL DEFAULT NULL,
-  `is_pinned` tinyint(1) NOT NULL DEFAULT 0,
+  `is_pinned` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `posts_user_id_foreign` (`user_id`),
+  KEY `posts_status_index` (`status`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `posts`
 --
 
 INSERT INTO `posts` (`id`, `user_id`, `text`, `price`, `status`, `release_date`, `expire_date`, `is_pinned`, `created_at`, `updated_at`) VALUES
-(1, 3, 'Hi Check this', 2.00, 1, NULL, NULL, 0, '2024-07-05 07:36:41', '2024-07-05 07:37:09'),
-(2, 4, 'test 1 test 1 test 1', 20.00, 1, NULL, NULL, 0, '2024-07-16 07:58:46', '2024-07-16 07:58:46'),
-(3, 4, 'jkjkjkjkjkj jkjjkjkj kki', 10.00, 1, NULL, NULL, 0, '2024-07-16 09:03:21', '2024-07-16 09:03:21'),
-(5, 7, 'How are you guys???', 10.00, 1, NULL, NULL, 0, '2024-07-20 01:59:38', '2024-07-20 01:59:38');
+(1, 3, 'Hi Check this', 2.00, 1, NULL, NULL, 0, '2024-07-05 07:36:41', '2024-07-05 07:37:09');
 
 -- --------------------------------------------------------
 
@@ -1705,22 +1620,18 @@ INSERT INTO `posts` (`id`, `user_id`, `text`, `price`, `status`, `release_date`,
 -- Table structure for table `post_comments`
 --
 
-CREATE TABLE `post_comments` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `post_id` bigint(20) UNSIGNED NOT NULL,
-  `message` text NOT NULL,
+DROP TABLE IF EXISTS `post_comments`;
+CREATE TABLE IF NOT EXISTS `post_comments` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `post_id` bigint UNSIGNED NOT NULL,
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `post_comments_user_id_foreign` (`user_id`),
+  KEY `post_comments_post_id_foreign` (`post_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `post_comments`
---
-
-INSERT INTO `post_comments` (`id`, `user_id`, `post_id`, `message`, `created_at`, `updated_at`) VALUES
-(1, 4, 5, 'test comment 1\n☺️', '2024-07-23 06:28:13', '2024-07-23 06:28:13'),
-(2, 7, 5, '@u1721127400 Hi Hello', '2024-07-23 06:29:57', '2024-07-23 06:29:57');
 
 -- --------------------------------------------------------
 
@@ -1728,19 +1639,22 @@ INSERT INTO `post_comments` (`id`, `user_id`, `post_id`, `message`, `created_at`
 -- Table structure for table `public_pages`
 --
 
-CREATE TABLE `public_pages` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `slug` varchar(191) NOT NULL,
-  `title` varchar(191) NOT NULL,
-  `short_title` varchar(191) DEFAULT '',
-  `content` longtext NOT NULL,
+DROP TABLE IF EXISTS `public_pages`;
+CREATE TABLE IF NOT EXISTS `public_pages` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `short_title` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT '',
+  `content` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `page_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `page_order` int UNSIGNED NOT NULL DEFAULT '0',
   `shown_in_footer` tinyint(1) DEFAULT NULL,
-  `is_tos` tinyint(1) DEFAULT 0,
-  `is_privacy` tinyint(1) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `is_tos` tinyint(1) DEFAULT '0',
+  `is_privacy` tinyint(1) DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `public_pages_slug_index` (`slug`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `public_pages`
@@ -1750,8 +1664,7 @@ INSERT INTO `public_pages` (`id`, `slug`, `title`, `short_title`, `content`, `cr
 (3, 'terms-and-conditions', 'Terms and conditions', 'Terms', '<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Overview</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">This website is operated by Qdev Techs. Throughout the site, the terms &ldquo;we&rdquo;, &ldquo;us&rdquo; and &ldquo;our&rdquo; refer to Qdev Techs. Qdev Techs offers this website, including all information, tools and services available from this site to you, the user, conditioned upon your acceptance of all terms, conditions, policies and notices stated here.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">By visiting our site and/ or purchasing something from us, you engage in our &ldquo;Service&rdquo; and agree to be bound by the following terms and conditions (&ldquo;Terms of Service&rdquo;, &ldquo;Terms&rdquo;), including those additional terms and conditions and policies referenced herein and/or available by hyperlink. These Terms of Service apply&nbsp; to all users of the site, including without limitation users who are browsers, vendors, customers, merchants, and/ or contributors of content.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Please read these Terms of Service carefully before accessing or using our website. By accessing or using any part of the site, you agree to be bound by these Terms of Service. If you do not agree to all the terms and conditions of this agreement, then you may not access the website or use any services. If these Terms of Service are considered an offer, acceptance is expressly limited to these Terms of Service.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Any new features or tools which are added to the current store shall also be subject to the Terms of Service. You can review the most current version of the Terms of Service at any time on this page. We reserve the right to update, change or replace any part of these Terms of Service by posting updates and/or changes to our website. It is your responsibility to check this page periodically for changes. Your continued use of or access to the website following the posting of any changes constitutes acceptance of those changes.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Platform Terms</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">By agreeing to these Terms of Service, you represent that you are at least the age of majority in your state or province of residence, or that you are the age of majority in your state or province of residence and you have given us your consent to allow any of your minor dependents to use this site.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You may not use our products for any illegal or unauthorized purpose nor may you, in the use of the Service, violate any laws in your jurisdiction (including but not limited to copyright laws).</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You must not transmit any worms or viruses or any code of a destructive nature.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">A breach or violation of any of the Terms will result in an immediate termination of your Services.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">General Conditions</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We reserve the right to refuse service to anyone for any reason at any time.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You understand that your content (not including credit card information), may be transferred unencrypted and involve (a) transmissions over various networks; and (b) changes to conform and adapt to technical requirements of connecting networks or devices. Credit card information is always encrypted during transfer over networks.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You agree not to reproduce, duplicate, copy, sell, resell or exploit any portion of the Service, use of the Service, or access to the Service or any contact on the website through which the service is provided, without express written permission by us.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">The headings used in this agreement are included for convenience only and will not limit or otherwise affect these Terms.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Accuracy, Completeness And Timeliness Of Information</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We are not responsible if information made available on this site is not accurate, complete or current. The material on this site is provided for general information only and should not be relied upon or used as the sole basis for making decisions without consulting primary, more accurate, more complete or more timely sources of information. Any reliance on the material on this site is at your own risk.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">This site may contain certain historical information. Historical information, necessarily, is not current and is provided for your reference only. We reserve the right to modify the contents of this site at any time, but we have no obligation to update any information on our site. You agree that it is your responsibility to monitor changes to our site.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Modifications To The Service And Prices</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Prices for our products are subject to change without notice.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We reserve the right at any time to modify or discontinue the Service (or any part or content thereof) without notice at any time.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We shall not be liable to you or to any third-party for any modification, price change, suspension or discontinuance of the Service.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\"><span style=\" font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;\"><span style=\"font-size: 24px; font-weight: 500;\">Products And Services</span></span></h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Certain products or services may be available exclusively online through the website. These products or services may have limited quantities and are subject to return or exchange only according to our Return Policy.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We have made every effort to display as accurately as possible the colors and images of our products that appear at the store. We cannot guarantee that your computer monitor\'s display of any color will be accurate.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We reserve the right, but are not obligated, to limit the sales of our products or Services to any person, geographic region or jurisdiction. We may exercise this right on a case-by-case basis. We reserve the right to limit the quantities of any products or services that we offer. All descriptions of products or product pricing are subject to change at anytime without notice, at the sole discretion of our users. Users reserve the right to discontinue any product at any time. Any offer for any product or service made on this site is void where prohibited.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We do not warrant that the quality of any products, services, information, or other material purchased or obtained by you will meet your expectations, or that any errors in the Service will be corrected.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\"><span style=\" font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;\"><span style=\"font-size: 24px; font-weight: 500;\">Accuracy Of Billing And Account Information</span></span></h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We reserve the right to refuse any order you place with us. We may, in our sole discretion, limit or cancel quantities purchased per person, per household or per order. These restrictions may include orders placed by or under the same customer account, the same credit card, and/or orders that use the same billing and/or shipping address. In the event that we make a change to or cancel an order, we may attempt to notify you by contacting the e-mail and/or billing address/phone number provided at the time the order was made. We reserve the right to limit or prohibit orders that, in our sole judgment, appear to be placed by dealers, resellers or distributors.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You agree to provide current, complete and accurate purchase and account information for all purchases made at our store.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">For more detail, please review our Returns Policy.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Optional Tools</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We may provide you with access to third-party tools over which we neither monitor nor have any control nor input.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You acknowledge and agree that we provide access to such tools &rdquo;as is&rdquo; and &ldquo;as available&rdquo; without any warranties, representations or conditions of any kind and without any endorsement. We shall have no liability whatsoever arising from or relating to your use of optional third-party tools.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Any use by you of optional tools offered through the site is entirely at your own risk and discretion and you should ensure that you are familiar with and approve of the terms on which tools are provided by the relevant third-party provider(s).</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We may also, in the future, offer new services and/or features through the website (including, the release of new tools and resources). Such new features and/or services shall also be subject to these Terms of Service.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Third-party Links</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Certain content, products and services available via our Service may include materials from third-parties.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Third-party links on this site may direct you to third-party websites that are not affiliated with us. We are not responsible for examining or evaluating the content or accuracy and we do not warrant and will not have any liability or responsibility for any third-party materials or websites, or for any other materials, products, or services of third-parties.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We are not liable for any harm or damages related to the purchase or use of goods, services, resources, content, or any other transactions made in connection with any third-party websites. Please review carefully the third-party\'s policies and practices and make sure you understand them before you engage in any transaction. Complaints, claims, concerns, or questions regarding third-party products should be directed to the third-party.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">User Comments, Feedback And Other Submissions</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">If, at our request, you send certain specific submissions (for example contest entries) or without a request from us you send creative ideas, suggestions, proposals, plans, or other materials, whether online, by email, by postal mail, or otherwise (collectively, \'comments\'), you agree that we may, at any time, without restriction, edit, copy, publish, distribute, translate and otherwise use in any medium any comments that you forward to us. We are and shall be under no obligation (1) to maintain any comments in confidence; (2) to pay compensation for any comments; or (3) to respond to any comments.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We may, but have no obligation to, monitor, edit or remove content that we determine in our sole discretion are unlawful, offensive, threatening, libelous, defamatory, pornographic, obscene or otherwise objectionable or violates any party&rsquo;s intellectual property or these Terms of Service.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You agree that your comments will not violate any right of any third-party, including copyright, trademark, privacy, personality or other personal or proprietary right. You further agree that your comments will not contain libelous or otherwise unlawful, abusive or obscene material, or contain any computer virus or other malware that could in any way affect the operation of the Service or any related website. You may not use a false e-mail address, pretend to be someone other than yourself, or otherwise mislead us or third-parties as to the origin of any comments. You are solely responsible for any comments you make and their accuracy. We take no responsibility and assume no liability for any comments posted by you or any third-party.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Your submission of personal information through the store is governed by our Privacy Policy. To view our Privacy Policy.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Errors, Inaccuracies And Omissions</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Occasionally there may be information on our site or in the Service that contains typographical errors, inaccuracies or omissions that may relate to product descriptions, pricing, promotions, offers, product shipping charges, transit times and availability. We reserve the right to correct any errors, inaccuracies or omissions, and to change or update information or cancel orders if any information in the Service or on any related website is inaccurate at any time without prior notice (including after you have submitted your order).</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We undertake no obligation to update, amend or clarify information in the Service or on any related website, including without limitation, pricing information, except as required by law. No specified update or refresh date applied in the Service or on any related website, should be taken to indicate that all information in the Service or on any related website has been modified or updated.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Prohibited Uses</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">In addition to other prohibitions as set forth in the Terms of Service, you are prohibited from using the site or its content: (a) for any unlawful purpose; (b) to solicit others to perform or participate in any unlawful acts; (c) to violate any international, federal, provincial or state regulations, rules, laws, or local ordinances; (d) to infringe upon or violate our intellectual property rights or the intellectual property rights of others; (e) to harass, abuse, insult, harm, defame, slander, disparage, intimidate, or discriminate based on gender, sexual orientation, religion, ethnicity, race, age, national origin, or disability; (f) to submit false or misleading information; (g) to upload or transmit viruses or any other type of malicious code that will or may be used in any way that will affect the functionality or operation of the Service or of any related website, other websites, or the Internet; (h) to collect or track the personal information of others; (i) to spam, phish, pharm, pretext, spider, crawl, or scrape; (j) for any obscene or immoral purpose; or (k) to interfere with or circumvent the security features of the Service or any related website, other websites, or the Internet. We reserve the right to terminate your use of the Service or any related website for violating any of the prohibited uses.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Disclaimer Of Warranties; Limitation Of Liability</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We do not guarantee, represent or warrant that your use of our service will be uninterrupted, timely, secure or error-free.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We do not warrant that the results that may be obtained from the use of the service will be accurate or reliable.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You agree that from time to time we may remove the service for indefinite periods of time or cancel the service at any time, without notice to you.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You expressly agree that your use of, or inability to use, the service is at your sole risk. The service and all products and services delivered to you through the service are (except as expressly stated by us) provided \'as is\' and \'as available\' for your use, without any representation, warranties or conditions of any kind, either express or implied, including all implied warranties or conditions of merchantability, merchantable quality, fitness for a particular purpose, durability, title, and non-infringement.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">In no case shall Qdev Techs, our directors, officers, employees, affiliates, agents, contractors, interns, suppliers, service providers or licensors be liable for any injury, loss, claim, or any direct, indirect, incidental, punitive, special, or consequential damages of any kind, including, without limitation lost profits, lost revenue, lost savings, loss of data, replacement costs, or any similar damages, whether based in contract, tort (including negligence), strict liability or otherwise, arising from your use of any of the service or any products procured using the service, or for any other claim related in any way to your use of the service or any product, including, but not limited to, any errors or omissions in any content, or any loss or damage of any kind incurred as a result of the use of the service or any content (or product) posted, transmitted, or otherwise made available via the service, even if advised of their possibility. Because some states or jurisdictions do not allow the exclusion or the limitation of liability for consequential or incidental damages, in such states or jurisdictions, our liability shall be limited to the maximum extent permitted by law.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Indemnification</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You agree to indemnify, defend and hold harmless Qdev Techs and our parent, subsidiaries, affiliates, partners, officers, directors, agents, contractors, licensors, service providers, subcontractors, suppliers, interns and employees, harmless from any claim or demand, including reasonable attorneys&rsquo; fees, made by any third-party due to or arising out of your breach of these Terms of Service or the documents they incorporate by reference, or your violation of any law or the rights of a third-party.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Severability</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">In the event that any provision of these Terms of Service is determined to be unlawful, void or unenforceable, such provision shall nonetheless be enforceable to the fullest extent permitted by applicable law, and the unenforceable portion shall be deemed to be severed from these Terms of Service, such determination shall not affect the validity and enforceability of any other remaining provisions.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Termination</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">The obligations and liabilities of the parties incurred prior to the termination date shall survive the termination of this agreement for all purposes.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">These Terms of Service are effective unless and until terminated by either you or us. You may terminate these Terms of Service at any time by notifying us that you no longer wish to use our Services, or when you cease using our site.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">If in our sole judgment you fail, or we suspect that you have failed, to comply with any term or provision of these Terms of Service, we also may terminate this agreement at any time without notice and you will remain liable for all amounts due up to and including the date of termination; and/or accordingly may deny you access to our Services (or any part thereof).</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Entire Agreement</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">The failure of us to exercise or enforce any right or provision of these Terms of Service shall not constitute a waiver of such right or provision.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">These Terms of Service and any policies or operating rules posted by us on this site or in respect to The Service constitutes the entire agreement and understanding between you and us and govern your use of the Service, superseding any prior or contemporaneous agreements, communications and proposals, whether oral or written, between you and us (including, but not limited to, any prior versions of the Terms of Service).</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Any ambiguities in the interpretation of these Terms of Service shall not be construed against the drafting party.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Governing Law</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">These Terms of Service and any separate agreements whereby we provide you Services shall be governed by and construed in accordance with the laws Prahova &ndash; Romania.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Changes To Terms Of Service</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">You can review the most current version of the Terms of Service at any time at this page.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We reserve the right, at our sole discretion, to update, change or replace any part of these Terms of Service by posting updates and changes to our website. It is your responsibility to check our website periodically for changes. Your continued use of or access to our website or the Service following the posting of any changes to these Terms of Service constitutes acceptance of those changes.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Contact Information</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem;  font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Questions about the Terms of Service should be sent to us over the <a href=\"../contact\">contact page</a>.</p>', '2021-09-30 06:37:35', '2021-09-30 06:37:35', 3, 1, 1, 0);
 INSERT INTO `public_pages` (`id`, `slug`, `title`, `short_title`, `content`, `created_at`, `updated_at`, `page_order`, `shown_in_footer`, `is_tos`, `is_privacy`) VALUES
 (4, 'privacy', 'Privacy Policy', 'Privacy', '<p class=\"MsoNormal\" style=\"margin-bottom: 0in; line-height: normal; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;\"><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from https://your-domain.com (the &ldquo;Site&rdquo;). Continuing using this site means you agree to all of the mentions below.</span></p>\n<p class=\"MsoNormal\" style=\"margin-bottom: 0in; line-height: normal; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;\">&nbsp;</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Personal information we collect</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">When you visit the Site, we automatically collect certain information about your device, including information about your web browser, IP address, time zone, and some of the cookies that are installed on your device. Additionally, as you browse the Site, we collect information about the individual web pages or products that you view, what websites or search terms referred you to the Site, and information about how you interact with the Site. We refer to this automatically-collected information as &ldquo;Device Information.&rdquo;</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We collect Device Information using the following technologies:</p>\n<ul style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">\n<li style=\"box-sizing: border-box;\">&ldquo;Cookies&rdquo; are data files that are placed on your device or computer and often include an anonymous unique identifier. For more information about cookies, and how to disable cookies, visit <a href=\"https://www.cookiesandyou.com/\" target=\"_blank\" rel=\"noopener\">cookiesandyou.com</a>.</li>\n<li style=\"box-sizing: border-box;\">&ldquo;Log files&rdquo; track actions occurring on the Site, and collect data including your IP address, browser type, Internet service provider, referring/exit pages, and date/time stamps.</li>\n</ul>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">The payments on our marketplace are made via Paypal, so we do not store any transactions related information, like credit card number, billing information etc. We do however store the Paypal transaction ID for easier reference in case of any disputes. We refer to this information as &ldquo;Order Information.&rdquo;</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">When we talk about &ldquo;Personal Information&rdquo; in this Privacy Policy, we are talking both about Device Information and Order Information.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">How do we use your personal information?</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We use the Order Information that we collect generally to fulfill any orders placed through the Site). Additionally, we use this Order Information to:</p>\n<ul style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">\n<li style=\"box-sizing: border-box;\">Communicate with you;</li>\n<li style=\"box-sizing: border-box;\">Screen our orders for potential risk or fraud; and</li>\n<li style=\"box-sizing: border-box;\">When in line with the preferences you have shared with us, provide you with information or advertising relating to our products or services.</li>\n<li style=\"box-sizing: border-box;\">We use the Device Information that we collect to help us screen for potential risk and fraud (in particular, your IP address), and more generally to improve and optimize our Site (for example, by generating analytics about how our customers browse and interact with the Site, and to assess the success of our marketing and advertising campaigns).</li>\n</ul>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Sharing your personal information</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We do not share your Personal Information with third parties.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We use Google Analytics to help us understand how our customers use the Site. You can read more about how Google uses your Personal Information&nbsp;<a style=\"box-sizing: border-box; text-decoration-line: none; background-color: transparent;\" href=\"https://www.google.com/intl/en/policies/privacy/\" target=\"_blank\" rel=\"noopener\">Here</a>. You can also opt-out of Google Analytics&nbsp;<a style=\"box-sizing: border-box; text-decoration-line: none; background-color: transparent;\" href=\"https://tools.google.com/dlpage/gaoptout\" target=\"_blank\" rel=\"noopener\">Here</a>&nbsp;.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Finally, we may also share&nbsp;<span style=\"box-sizing: border-box; font-weight: bolder;\">limited</span>&nbsp;Personal Information to comply with applicable laws and regulations, to respond to a subpoena, search warrant or other lawful request for information we receive, or to otherwise protect our rights.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Do not track</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Please note that we do not alter our Site&rsquo;s data collection and use practices when we see a Do Not Track signal from your browser.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Your rights</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">If you are a European resident, you have the right to access personal information we hold about you and to ask that your personal information be corrected, updated, or deleted. If you would like to exercise this right, please contact us through the contact information below.</p>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">Additionally, if you are a European resident we note that we are processing your information in order to fulfill contracts we might have with you (for example if you make an order through the Site), or otherwise to pursue our legitimate business interests listed above.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Data retention</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">When you place an order through the Site, we will maintain your Order Information for our records unless and until you ask us to delete this information.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Minors</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">The Site is not intended for individuals under the age of 18.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Changes</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">We may update this privacy policy from time to time in order to reflect, for example, changes to our practices or for other operational, legal or regulatory reasons.</p>\n<h4 class=\"tosHeadLine\" style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; font-size: 1.5rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\';\">Contact us</h4>\n<p style=\"box-sizing: border-box; margin-top: 0px; margin-bottom: 1rem; font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 16px;\">For more information about our privacy practices, if you have questions, or if you would like to make a complaint, please contact us by e-mail at contact@website.com or by sending us a&nbsp;<a style=\"box-sizing: border-box; text-decoration-line: none; background-color: transparent;\" href=\"../contact\">contact message</a>.</p>', '2021-09-30 06:39:39', '2021-09-30 06:39:39', 2, 1, 0, 1),
-(5, 'help', 'Help & FAQ', 'Help', '<p style=\"margin: 0px 0px 15px; padding: 0px; text-align: justify; font-family: \'Open Sans\', Arial, sans-serif;\"><strong style=\"box-sizing: border-box; font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\">JustFans &ndash; Premium Content Creators SaaS</strong><span style=\"font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\"> is a fully-featured PHP platform that allows you to start your own premium content-based social media platform in no time. It allows your users to post premium content, which can only be unlocked by other viewers when purchasing a monthly subscription. On top of that, creators can earn more money from tips and paid posts, on top of of the regular subscription content.<br></span><br style=\"box-sizing: border-box; font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\"><span style=\"font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\">The experience is powered by a mobile-first, clean and easy-to-use design, with De themes, RTL, and localization capabilities. It allows your creators to sell their premium content via monthly subscriptions, offers, bundles, tips, and pay to unlock posts.</span></p>\n<p style=\"text-align: start;\"><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;\"><span style=\"font-size: 24px; letter-spacing: -0.8px;\">Posting content</span></span></p>\n<p style=\"text-align: start;\"><span style=\"font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px;\">In order to be able to start posting content and earn money, you will need to create an account, deppending on the platform settings you might have to verify it, then you will be able to create posts by accessing the <a href=\"http://localhost/only-fuck/public/admin/custom-pages/posts/create\">Create post</a> page, where you can upload any kind of media you want, by either drag and dropping your files onto the text area, or by clicking on the file icon bellow the text area.</span></p>\n<p style=\"text-align: start;\">&nbsp;</p>\n<p style=\"text-align: start;\"><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Subscriptions</span></p>\n<p style=\"text-align: start;\"><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">Once you get an account rolling, you will be able to purchase user subscriptions, send tips and unlock posts with your PayPal account or a credit/debit card, via Stripe. Once you have valid subscription to a user, you will then also be able to chat with him via the live messenger. Subscriptions can be cancelled at any given time.<br></span></span></p>\n<p style=\"text-align: start;\">&nbsp;</p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Taxes &amp; Rates</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">Taxes can be set over the admin side by the site administrator. Generally, platform taxes can be set as an exclusive tax or custom set &amp; applied at withdrawal.&nbsp;</span></span></p>\n<p>&nbsp;</p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Withdrawals&nbsp;</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">Withdrawals can be requested by authors at any given time. We allow Paypal &amp; Bank Transfer and the transfer are manuall made by the administrator, as a two factor check.</span></span></p>\n<p>&nbsp;</p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Reporting a user or a post</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">In order to report a user or it\'s content, you can go to that user\'s profile or post, click on the three dots icon and select report. Our admins will analyze and take action&nbsp;accordingly. You can also block a certain user from seeing your profile or messaging you again.<br><br></span></span></p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Got questions?</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">If you have any questions whatsoever, do not heistate to send us a message via the <a href=\"http://localhost/only-fuck/public/admin/custom-pages/contact\">Contact Page</a>.</span></span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">&nbsp;</span></span></p>', '2021-09-30 06:40:09', '2023-11-27 17:39:52', 1, 1, 0, 0),
-(6, 'about', 'About Us', 'About', '<p>With knife and gun crime on the rise, assaults on the increase, road rage on the up, bullying, sexual assaults and the world becoming a much more dangerous place, we decided that we had to make a stand to educate and help those that wanted to learn how to protect themselves and their loved ones.</p>', '2024-07-09 02:38:47', '2024-07-09 06:29:46', 4, 0, 1, 1);
+(5, 'help', 'Help & FAQ', 'Help', '<p style=\"margin: 0px 0px 15px; padding: 0px; text-align: justify; font-family: \'Open Sans\', Arial, sans-serif;\"><strong style=\"box-sizing: border-box; font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\">JustFans &ndash; Premium Content Creators SaaS</strong><span style=\"font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\"> is a fully-featured PHP platform that allows you to start your own premium content-based social media platform in no time. It allows your users to post premium content, which can only be unlocked by other viewers when purchasing a monthly subscription. On top of that, creators can earn more money from tips and paid posts, on top of of the regular subscription content.<br></span><br style=\"box-sizing: border-box; font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\"><span style=\"font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px; text-align: start;\">The experience is powered by a mobile-first, clean and easy-to-use design, with De themes, RTL, and localization capabilities. It allows your creators to sell their premium content via monthly subscriptions, offers, bundles, tips, and pay to unlock posts.</span></p>\n<p style=\"text-align: start;\"><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;\"><span style=\"font-size: 24px; letter-spacing: -0.8px;\">Posting content</span></span></p>\n<p style=\"text-align: start;\"><span style=\"font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; font-size: 16px;\">In order to be able to start posting content and earn money, you will need to create an account, deppending on the platform settings you might have to verify it, then you will be able to create posts by accessing the <a href=\"http://localhost/only-fuck/public/admin/custom-pages/posts/create\">Create post</a> page, where you can upload any kind of media you want, by either drag and dropping your files onto the text area, or by clicking on the file icon bellow the text area.</span></p>\n<p style=\"text-align: start;\">&nbsp;</p>\n<p style=\"text-align: start;\"><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Subscriptions</span></p>\n<p style=\"text-align: start;\"><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">Once you get an account rolling, you will be able to purchase user subscriptions, send tips and unlock posts with your PayPal account or a credit/debit card, via Stripe. Once you have valid subscription to a user, you will then also be able to chat with him via the live messenger. Subscriptions can be cancelled at any given time.<br></span></span></p>\n<p style=\"text-align: start;\">&nbsp;</p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Taxes &amp; Rates</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">Taxes can be set over the admin side by the site administrator. Generally, platform taxes can be set as an exclusive tax or custom set &amp; applied at withdrawal.&nbsp;</span></span></p>\n<p>&nbsp;</p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Withdrawals&nbsp;</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">Withdrawals can be requested by authors at any given time. We allow Paypal &amp; Bank Transfer and the transfer are manuall made by the administrator, as a two factor check.</span></span></p>\n<p>&nbsp;</p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Reporting a user or a post</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">In order to report a user or it\'s content, you can go to that user\'s profile or post, click on the three dots icon and select report. Our admins will analyze and take action&nbsp;accordingly. You can also block a certain user from seeing your profile or messaging you again.<br><br></span></span></p>\n<p><span style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans\', sans-serif, \'Apple Color Emoji\', \'Segoe UI Emoji\', \'Segoe UI Symbol\', \'Noto Color Emoji\'; font-size: 24px; letter-spacing: -0.8px;\">Got questions?</span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">If you have any questions whatsoever, do not heistate to send us a message via the <a href=\"http://localhost/only-fuck/public/admin/custom-pages/contact\">Contact Page</a>.</span></span></p>\n<p><span style=\"font-family: Helvetica Neue, Helvetica, Arial, sans-serif;\"><span style=\"font-size: 16px;\">&nbsp;</span></span></p>', '2021-09-30 06:40:09', '2023-11-27 17:39:52', 1, 1, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -1759,23 +1672,22 @@ INSERT INTO `public_pages` (`id`, `slug`, `title`, `short_title`, `content`, `cr
 -- Table structure for table `reactions`
 --
 
-CREATE TABLE `reactions` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `post_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `post_comment_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `reaction_type` varchar(191) DEFAULT NULL,
+DROP TABLE IF EXISTS `reactions`;
+CREATE TABLE IF NOT EXISTS `reactions` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED DEFAULT NULL,
+  `post_id` bigint UNSIGNED DEFAULT NULL,
+  `post_comment_id` bigint UNSIGNED DEFAULT NULL,
+  `reaction_type` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `reactions_user_id_post_id_unique` (`user_id`,`post_id`),
+  UNIQUE KEY `reactions_user_id_post_comment_id_unique` (`user_id`,`post_comment_id`),
+  KEY `reactions_post_id_foreign` (`post_id`),
+  KEY `reactions_post_comment_id_foreign` (`post_comment_id`),
+  KEY `reactions_reaction_type_index` (`reaction_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `reactions`
---
-
-INSERT INTO `reactions` (`id`, `user_id`, `post_id`, `post_comment_id`, `reaction_type`, `created_at`, `updated_at`) VALUES
-(1, 7, NULL, 1, 'like', '2024-07-23 06:30:04', '2024-07-23 06:30:04'),
-(4, 4, NULL, 2, 'like', '2024-07-23 11:41:52', '2024-07-23 11:41:52');
 
 -- --------------------------------------------------------
 
@@ -1783,12 +1695,16 @@ INSERT INTO `reactions` (`id`, `user_id`, `post_id`, `post_comment_id`, `reactio
 -- Table structure for table `referral_code_usages`
 --
 
-CREATE TABLE `referral_code_usages` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `used_by` bigint(20) UNSIGNED NOT NULL,
-  `referral_code` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `referral_code_usages`;
+CREATE TABLE IF NOT EXISTS `referral_code_usages` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `used_by` bigint UNSIGNED NOT NULL,
+  `referral_code` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `referral_code_usages_used_by_index` (`used_by`),
+  KEY `referral_code_usages_referral_code_index` (`referral_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1797,16 +1713,23 @@ CREATE TABLE `referral_code_usages` (
 -- Table structure for table `rewards`
 --
 
-CREATE TABLE `rewards` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `from_user_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `to_user_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `transaction_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `referral_code_usage_id` bigint(20) UNSIGNED DEFAULT NULL,
+DROP TABLE IF EXISTS `rewards`;
+CREATE TABLE IF NOT EXISTS `rewards` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `from_user_id` bigint UNSIGNED DEFAULT NULL,
+  `to_user_id` bigint UNSIGNED DEFAULT NULL,
+  `transaction_id` bigint UNSIGNED DEFAULT NULL,
+  `referral_code_usage_id` bigint UNSIGNED DEFAULT NULL,
   `amount` double(8,2) DEFAULT NULL,
-  `reward_type` int(11) NOT NULL,
+  `reward_type` int NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `rewards_from_user_id_index` (`from_user_id`),
+  KEY `rewards_to_user_id_index` (`to_user_id`),
+  KEY `rewards_reward_type_index` (`reward_type`),
+  KEY `rewards_transaction_id_index` (`transaction_id`),
+  KEY `rewards_referral_code_usage_id_index` (`referral_code_usage_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1815,13 +1738,16 @@ CREATE TABLE `rewards` (
 -- Table structure for table `roles`
 --
 
-CREATE TABLE `roles` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(191) NOT NULL,
-  `display_name` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `roles`;
+CREATE TABLE IF NOT EXISTS `roles` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `roles_name_unique` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `roles`
@@ -1838,16 +1764,19 @@ INSERT INTO `roles` (`id`, `name`, `display_name`, `created_at`, `updated_at`) V
 -- Table structure for table `settings`
 --
 
-CREATE TABLE `settings` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `key` varchar(191) NOT NULL,
-  `display_name` varchar(191) NOT NULL,
-  `value` text DEFAULT NULL,
-  `details` text DEFAULT NULL,
-  `type` varchar(191) NOT NULL,
-  `order` int(11) NOT NULL DEFAULT 1,
-  `group` varchar(191) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `settings`;
+CREATE TABLE IF NOT EXISTS `settings` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `key` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `details` text COLLATE utf8mb4_unicode_ci,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order` int NOT NULL DEFAULT '1',
+  `group` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `settings_key_unique` (`key`)
+) ENGINE=InnoDB AUTO_INCREMENT=345 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `settings`
@@ -1891,16 +1820,16 @@ INSERT INTO `settings` (`id`, `key`, `display_name`, `value`, `details`, `type`,
 (60, 'payments.paypal_client_id', 'Paypal Client Id', NULL, NULL, 'text', 40, 'Payments'),
 (61, 'payments.paypal_secret', 'Paypal Secret', NULL, NULL, 'text', 41, 'Payments'),
 (74, 'payments.paypal_live_mode', 'Paypal Live Mode', '1', '{\n\"true\" : \"On\",\n\"false\" : \"Off\",\n\"checked\" : true\n}', 'checkbox', 42, 'Payments'),
-(78, 'emails.driver', 'Email driver', 'smtp', '{\n\"default\" : \"log\",\n\"options\" : {\n\"log\": \"Log\",\n\"sendmail\": \"Sendmail\",\n\"smtp\": \"SMTP\",\n\"mailgun\": \"Mailgun\"\n}\n}', 'select_dropdown', 43, 'Emails'),
-(79, 'emails.from_name', 'Mail from name', 'Defence student', NULL, 'text', 44, 'Emails'),
-(80, 'emails.from_address', 'Mail from address', 'noreply@exaltedsolution.com', NULL, 'text', 45, 'Emails'),
+(78, 'emails.driver', 'Email driver', 'log', '{\n\"default\" : \"log\",\n\"options\" : {\n\"log\": \"Log\",\n\"sendmail\": \"Sendmail\",\n\"smtp\": \"SMTP\",\n\"mailgun\": \"Mailgun\"\n}\n}', 'select_dropdown', 43, 'Emails'),
+(79, 'emails.from_name', 'Mail from name', NULL, NULL, 'text', 44, 'Emails'),
+(80, 'emails.from_address', 'Mail from address', NULL, NULL, 'text', 45, 'Emails'),
 (81, 'emails.mailgun_domain', 'Mailgun domain', NULL, NULL, 'text', 46, 'Emails'),
 (82, 'emails.mailgun_secret', 'Mailgun secret', NULL, NULL, 'text', 47, 'Emails'),
-(83, 'emails.smtp_host', 'SMTP Host', 'server.pixelseoservices.com', NULL, 'text', 49, 'Emails'),
-(84, 'emails.smtp_port', 'SMTP Port', '465', NULL, 'text', 50, 'Emails'),
+(83, 'emails.smtp_host', 'SMTP Host', NULL, NULL, 'text', 49, 'Emails'),
+(84, 'emails.smtp_port', 'SMTP Port', NULL, NULL, 'text', 50, 'Emails'),
 (85, 'emails.smtp_encryption', 'SMTP Encryption', 'tls', '{\n\"default\" : \"tls\",\n\"options\" : {\n\"tls\": \"TLS\",\n\"ssl\": \"SSL\"\n}\n}', 'radio_btn', 51, 'Emails'),
-(86, 'emails.smtp_username', 'SMTP Username', 'noreply@exaltedsolution.com', NULL, 'text', 52, 'Emails'),
-(87, 'emails.smtp_password', 'SMTP Password', '0GCEkILzGwJl', NULL, 'text', 53, 'Emails'),
+(86, 'emails.smtp_username', 'SMTP Username', NULL, NULL, 'text', 52, 'Emails'),
+(87, 'emails.smtp_password', 'SMTP Password', NULL, NULL, 'text', 53, 'Emails'),
 (88, 'emails.mailgun_endpoint', 'Mailgun endpoint', NULL, NULL, 'text', 48, 'Emails'),
 (95, 'storage.driver', 'Driver', 'public', '{\n\"default\" : \"public\",\n\"options\" : {\n\"public\": \"Local\",\n\"s3\": \"S3\",\n\"wasabi\": \"Wasabi\",\n\"do_spaces\": \"DigitalOcean Spaces\",\n\"minio\": \"Minio\",\n\"pushr\": \"Pushr\"\n}\n}', 'select_dropdown', 54, 'Storage'),
 (96, 'storage.aws_access_key', 'Aws Access Key', NULL, NULL, 'text', 55, 'Storage'),
@@ -1924,13 +1853,13 @@ INSERT INTO `settings` (`id`, `key`, `display_name`, `value`, `details`, `type`,
 (119, 'site.enforce_user_identity_checks', 'Enforce User Identity Check', '0', '{\n\"on\" : \"On\",\n\"off\" : \"Off\",\n\"checked\" : true,\n\"description\" : \"If enabled, users will only be able to post content & start streams if ID is verified.\"\n}', 'checkbox', 170, 'Site'),
 (120, 'payments.currency_code', 'Site Currency Code', 'USD', '{\n                        \"description\": \"Mandatory for payment providers\"\n                    }', 'text', 66, 'Payments'),
 (121, 'payments.currency_symbol', 'Site Currency Symbol', '$', '{\n                        \"description\": \"Can be a symbol or currency code and it`s shown everywhere in the website (if empty defaults to currency code)\"\n                    }', 'text', 67, 'Payments'),
-(123, 'site.app_url', 'Site url', 'https://exaltedsolution.com/defencestudent/public', NULL, 'text', 1, 'Site'),
+(123, 'site.app_url', 'Site url', 'http://local.defencestudent.com', NULL, 'text', 1, 'Site'),
 (124, 'site.allow_pwa_installs', 'Allow PWA Installs', '0', '{\n\"on\" : \"On\",\n\"off\" : \"Off\",\n\"checked\" : false,\n\"description\" : \"Turns the site into an installable PWA on all devices. Website must be server from a root domain.\"\n}', 'checkbox', 299, 'Site'),
-(126, 'social-links.facebook_url', 'Facebook', 'https://www.facebook.com/defencestudent', NULL, 'text', 80, 'Social links'),
-(127, 'social-links.instagram_url', 'Instagram', 'https://instagram.com/defencestudent?igshid=wrrpn74sm3qz', NULL, 'text', 81, 'Social links'),
-(128, 'social-links.twitter_url', 'Twitter', NULL, NULL, 'text', 82, 'Social links'),
+(126, 'social-links.facebook_url', 'Facebook', '#', NULL, 'text', 80, 'Social links'),
+(127, 'social-links.instagram_url', 'Instagram', '#', NULL, 'text', 81, 'Social links'),
+(128, 'social-links.twitter_url', 'Twitter', '#', NULL, 'text', 82, 'Social links'),
 (129, 'social-links.whatsapp_url', 'Whatsapp', NULL, NULL, 'text', 83, 'Social links'),
-(130, 'social-links.tiktok_url', 'Tik Tok', 'https://www.tiktok.com/@defencestudent?_t=8hDl8u0IRiT&_r=1', NULL, 'text', 84, 'Social links'),
+(130, 'social-links.tiktok_url', 'Tik Tok', '#', NULL, 'text', 84, 'Social links'),
 (131, 'social-links.youtube_url', 'Youtube', NULL, NULL, 'text', 85, 'Social links'),
 (138, 'payments.withdrawal_min_amount', 'Withdrawal request minimum amount', '20', '{\n\"description\": \"Default: 20\"\n}', 'text', 91, 'Payments'),
 (139, 'payments.withdrawal_max_amount', 'Withdrawal request maximum amount', '500', '{\n\"description\": \"Default: 500\"\n}', 'text', 92, 'Payments'),
@@ -1995,9 +1924,9 @@ INSERT INTO `settings` (`id`, `key`, `display_name`, `value`, `details`, `type`,
 (199, 'streams.allow_576p', 'Allow 576p', '0', '{\n                        \"true\" : \"On\",\n                        \"false\" : \"Off\",\n                        \"checked\" : false\n                        }', 'checkbox', 245, 'Streams'),
 (200, 'streams.allow_720p', 'Allow 720p', '0', '{\n                        \"true\" : \"On\",\n                        \"false\" : \"Off\",\n                        \"checked\" : false\n                        }', 'checkbox', 255, 'Streams'),
 (201, 'streams.allow_1080p', 'Allow 1080p', '1', '{\n                        \"true\" : \"On\",\n                        \"false\" : \"Off\",\n                        \"checked\" : false\n                        }', 'checkbox', 265, 'Streams'),
-(202, 'colors.theme_color_code', 'Theme color code', 'D10037', NULL, 'text', 210, 'Colors'),
-(203, 'colors.theme_gradient_from', 'Theme gradient from', 'E91E63', NULL, 'text', 220, 'Colors'),
-(204, 'colors.theme_gradient_to', 'Theme gradient to', 'D43A2E', NULL, 'text', 230, 'Colors'),
+(202, 'colors.theme_color_code', 'Theme color code', NULL, NULL, 'text', 210, 'Colors'),
+(203, 'colors.theme_gradient_from', 'Theme gradient from', NULL, NULL, 'text', 220, 'Colors'),
+(204, 'colors.theme_gradient_to', 'Theme gradient to', NULL, NULL, 'text', 230, 'Colors'),
 (205, 'payments.default_subscription_price', 'Default subscription price', '5', NULL, 'text', 75, 'Payments'),
 (206, 'payments.min_tip_value', 'Min tips value', '1', NULL, 'text', 85, 'Payments'),
 (207, 'payments.max_tip_value', 'Max tips value', '500', NULL, 'text', 86, 'Payments'),
@@ -2098,9 +2027,9 @@ INSERT INTO `settings` (`id`, `key`, `display_name`, `value`, `details`, `type`,
 (306, 'storage.pushr_access_key', 'Pushr Access Key', NULL, NULL, 'text', 130, 'Storage'),
 (307, 'storage.pushr_secret_key', 'Pushr Secret Key', NULL, NULL, 'text', 140, 'Storage'),
 (308, 'storage.pushr_cdn_hostname', 'Pushr CDN Hostname', NULL, '{\n                        \"description\" : \"This field must contain the https:// prefix.\"\n                        }', 'text', 180, 'Storage'),
-(309, 'storage.pushr_bucket_name', 'Pushr Bucket', NULL, NULL, 'text', 160, 'Storage');
+(309, 'storage.pushr_bucket_name', 'Pushr Bucket', NULL, NULL, 'text', 160, 'Storage'),
+(310, 'storage.pushr_endpoint', 'Pushr S3 Endpoint', NULL, NULL, 'text', 170, 'Storage');
 INSERT INTO `settings` (`id`, `key`, `display_name`, `value`, `details`, `type`, `order`, `group`) VALUES
-(310, 'storage.pushr_endpoint', 'Pushr S3 Endpoint', NULL, NULL, 'text', 170, 'Storage'),
 (311, 'payments.offline_payments_custom_message_box', 'Offline payments details box', NULL, '{\"description\":\"This field can be used to add a custom info box, where users can be informed on any alternative offline payments you may accept.\"}', 'code_editor', 100, 'Payments'),
 (312, 'payments.offline_payments_make_notes_field_mandatory', 'Make the notes field mandatory', '0', '{\n                        \"true\" : \"On\",\n                        \"false\" : \"Off\",\n                        \"checked\" : false\n                        }', 'checkbox', 110, 'Payments'),
 (313, 'payments.offline_payments_minimum_attachments_required', 'Minimum file attachments required', '1', NULL, 'text', 120, 'Payments'),
@@ -2142,26 +2071,34 @@ INSERT INTO `settings` (`id`, `key`, `display_name`, `value`, `details`, `type`,
 -- Table structure for table `streams`
 --
 
-CREATE TABLE `streams` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `status` varchar(191) NOT NULL,
-  `name` varchar(191) DEFAULT NULL,
-  `slug` varchar(191) DEFAULT NULL,
-  `poster` varchar(191) DEFAULT NULL,
-  `price` double(8,2) NOT NULL DEFAULT 0.00,
-  `requires_subscription` tinyint(1) DEFAULT 0,
-  `sent_expiring_reminder` tinyint(1) DEFAULT 0,
-  `is_public` tinyint(1) DEFAULT 1,
-  `pushr_id` bigint(20) UNSIGNED NOT NULL,
-  `rtmp_key` varchar(191) DEFAULT NULL,
-  `rtmp_server` varchar(191) DEFAULT NULL,
-  `hls_link` varchar(191) DEFAULT NULL,
-  `vod_link` varchar(191) DEFAULT NULL,
-  `settings` text DEFAULT NULL,
+DROP TABLE IF EXISTS `streams`;
+CREATE TABLE IF NOT EXISTS `streams` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `slug` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `poster` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `price` double(8,2) NOT NULL DEFAULT '0.00',
+  `requires_subscription` tinyint(1) DEFAULT '0',
+  `sent_expiring_reminder` tinyint(1) DEFAULT '0',
+  `is_public` tinyint(1) DEFAULT '1',
+  `pushr_id` bigint UNSIGNED NOT NULL,
+  `rtmp_key` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `rtmp_server` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `hls_link` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `vod_link` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `settings` text COLLATE utf8mb4_unicode_ci,
   `ended_at` datetime DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `streams_pushr_id_unique` (`pushr_id`),
+  KEY `streams_user_id_foreign` (`user_id`),
+  KEY `streams_status_index` (`status`),
+  KEY `streams_slug_index` (`slug`),
+  KEY `streams_is_public_index` (`is_public`),
+  KEY `streams_requires_subscription_index` (`requires_subscription`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2170,13 +2107,17 @@ CREATE TABLE `streams` (
 -- Table structure for table `stream_messages`
 --
 
-CREATE TABLE `stream_messages` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `stream_id` bigint(20) UNSIGNED NOT NULL,
-  `message` longtext NOT NULL,
+DROP TABLE IF EXISTS `stream_messages`;
+CREATE TABLE IF NOT EXISTS `stream_messages` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `stream_id` bigint UNSIGNED NOT NULL,
+  `message` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `stream_messages_user_id_foreign` (`user_id`),
+  KEY `stream_messages_stream_id_foreign` (`stream_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2185,30 +2126,34 @@ CREATE TABLE `stream_messages` (
 -- Table structure for table `subscriptions`
 --
 
-CREATE TABLE `subscriptions` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `sender_user_id` bigint(20) UNSIGNED NOT NULL,
-  `recipient_user_id` bigint(20) UNSIGNED NOT NULL,
-  `paypal_agreement_id` varchar(191) DEFAULT NULL,
-  `stripe_subscription_id` varchar(191) DEFAULT NULL,
-  `paypal_plan_id` varchar(191) DEFAULT NULL,
-  `ccbill_subscription_id` varchar(191) DEFAULT NULL,
-  `type` varchar(191) NOT NULL,
-  `provider` varchar(191) NOT NULL,
-  `status` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `subscriptions`;
+CREATE TABLE IF NOT EXISTS `subscriptions` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `sender_user_id` bigint UNSIGNED NOT NULL,
+  `recipient_user_id` bigint UNSIGNED NOT NULL,
+  `paypal_agreement_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stripe_subscription_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `paypal_plan_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ccbill_subscription_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `provider` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `expires_at` datetime DEFAULT NULL,
   `canceled_at` datetime DEFAULT NULL,
   `amount` double(8,2) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `subscriptions_paypal_agreement_id_index` (`paypal_agreement_id`),
+  KEY `subscriptions_stripe_subscription_id_index` (`stripe_subscription_id`),
+  KEY `subscriptions_type_index` (`type`),
+  KEY `subscriptions_provider_index` (`provider`),
+  KEY `subscriptions_status_index` (`status`),
+  KEY `subscriptions_sender_user_id_foreign` (`sender_user_id`),
+  KEY `subscriptions_recipient_user_id_foreign` (`recipient_user_id`),
+  KEY `subscriptions_paypal_plan_id_index` (`paypal_plan_id`),
+  KEY `subscriptions_ccbill_subscription_id_index` (`ccbill_subscription_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `subscriptions`
---
-
-INSERT INTO `subscriptions` (`id`, `sender_user_id`, `recipient_user_id`, `paypal_agreement_id`, `stripe_subscription_id`, `paypal_plan_id`, `ccbill_subscription_id`, `type`, `provider`, `status`, `expires_at`, `canceled_at`, `amount`, `created_at`, `updated_at`) VALUES
-(1, 4, 4, NULL, NULL, NULL, NULL, 'one-month-subscription', 'credit', 'completed', NULL, NULL, 20.00, '2024-08-09 03:02:22', '2024-08-09 03:02:22');
 
 -- --------------------------------------------------------
 
@@ -2216,14 +2161,16 @@ INSERT INTO `subscriptions` (`id`, `sender_user_id`, `recipient_user_id`, `paypa
 -- Table structure for table `taxes`
 --
 
-CREATE TABLE `taxes` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `taxes`;
+CREATE TABLE IF NOT EXISTS `taxes` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `percentage` double(8,2) NOT NULL,
-  `type` varchar(191) NOT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `hidden` tinyint(1) NOT NULL DEFAULT 0
+  `hidden` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2232,46 +2179,65 @@ CREATE TABLE `taxes` (
 -- Table structure for table `transactions`
 --
 
-CREATE TABLE `transactions` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `sender_user_id` bigint(20) UNSIGNED NOT NULL,
-  `recipient_user_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `subscription_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `post_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `stream_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `invoice_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `user_message_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `stripe_transaction_id` varchar(191) DEFAULT NULL,
-  `stripe_session_id` varchar(191) DEFAULT NULL,
-  `paypal_transaction_id` varchar(191) DEFAULT NULL,
-  `paypal_transaction_token` varchar(191) DEFAULT NULL,
-  `coinbase_charge_id` varchar(191) DEFAULT NULL,
-  `coinbase_transaction_token` varchar(191) DEFAULT NULL,
-  `nowpayments_payment_id` varchar(191) DEFAULT NULL,
-  `nowpayments_order_id` varchar(191) DEFAULT NULL,
-  `ccbill_payment_token` varchar(191) DEFAULT NULL,
-  `ccbill_transaction_id` varchar(191) DEFAULT NULL,
-  `ccbill_subscription_id` varchar(191) DEFAULT NULL,
-  `paystack_payment_token` varchar(191) DEFAULT NULL,
-  `mercado_payment_token` varchar(191) DEFAULT NULL,
-  `mercado_payment_id` varchar(191) DEFAULT NULL,
-  `status` varchar(191) NOT NULL,
-  `type` varchar(191) NOT NULL,
-  `payment_provider` varchar(191) NOT NULL,
-  `currency` varchar(191) NOT NULL,
-  `paypal_payer_id` varchar(191) DEFAULT NULL,
+DROP TABLE IF EXISTS `transactions`;
+CREATE TABLE IF NOT EXISTS `transactions` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `sender_user_id` bigint UNSIGNED NOT NULL,
+  `recipient_user_id` bigint UNSIGNED DEFAULT NULL,
+  `subscription_id` bigint UNSIGNED DEFAULT NULL,
+  `post_id` bigint UNSIGNED DEFAULT NULL,
+  `stream_id` bigint UNSIGNED DEFAULT NULL,
+  `invoice_id` bigint UNSIGNED DEFAULT NULL,
+  `user_message_id` bigint UNSIGNED DEFAULT NULL,
+  `stripe_transaction_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stripe_session_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `paypal_transaction_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `paypal_transaction_token` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `coinbase_charge_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `coinbase_transaction_token` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `nowpayments_payment_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `nowpayments_order_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ccbill_payment_token` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ccbill_transaction_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ccbill_subscription_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `paystack_payment_token` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `mercado_payment_token` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `mercado_payment_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payment_provider` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `currency` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `paypal_payer_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `amount` double(8,2) NOT NULL,
-  `taxes` text DEFAULT NULL,
+  `taxes` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `transactions_sender_user_id_foreign` (`sender_user_id`),
+  KEY `transactions_recipient_user_id_foreign` (`recipient_user_id`),
+  KEY `transactions_subscription_id_foreign` (`subscription_id`),
+  KEY `transactions_post_id_foreign` (`post_id`),
+  KEY `transactions_stream_id_foreign` (`stream_id`),
+  KEY `transactions_stripe_transaction_id_index` (`stripe_transaction_id`),
+  KEY `transactions_stripe_session_id_index` (`stripe_session_id`),
+  KEY `transactions_paypal_payer_id_index` (`paypal_payer_id`),
+  KEY `transactions_paypal_transaction_id_index` (`paypal_transaction_id`),
+  KEY `transactions_paypal_transaction_token_index` (`paypal_transaction_token`),
+  KEY `transactions_coinbase_charge_id_index` (`coinbase_charge_id`),
+  KEY `transactions_coinbase_transaction_token_index` (`coinbase_transaction_token`),
+  KEY `transactions_nowpayments_payment_id_index` (`nowpayments_payment_id`),
+  KEY `transactions_nowpayments_order_id_index` (`nowpayments_order_id`),
+  KEY `transactions_ccbill_payment_token_index` (`ccbill_payment_token`),
+  KEY `transactions_ccbill_transaction_id_index` (`ccbill_transaction_id`),
+  KEY `transactions_ccbill_subscription_id_index` (`ccbill_subscription_id`),
+  KEY `transactions_status_index` (`status`),
+  KEY `transactions_type_index` (`type`),
+  KEY `transactions_invoice_id_foreign` (`invoice_id`),
+  KEY `transactions_paystack_payment_token_index` (`paystack_payment_token`),
+  KEY `transactions_user_message_id_foreign` (`user_message_id`),
+  KEY `transactions_mercado_payment_token_index` (`mercado_payment_token`),
+  KEY `transactions_mercado_payment_id_index` (`mercado_payment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `transactions`
---
-
-INSERT INTO `transactions` (`id`, `sender_user_id`, `recipient_user_id`, `subscription_id`, `post_id`, `stream_id`, `invoice_id`, `user_message_id`, `stripe_transaction_id`, `stripe_session_id`, `paypal_transaction_id`, `paypal_transaction_token`, `coinbase_charge_id`, `coinbase_transaction_token`, `nowpayments_payment_id`, `nowpayments_order_id`, `ccbill_payment_token`, `ccbill_transaction_id`, `ccbill_subscription_id`, `paystack_payment_token`, `mercado_payment_token`, `mercado_payment_id`, `status`, `type`, `payment_provider`, `currency`, `paypal_payer_id`, `amount`, `taxes`, `created_at`, `updated_at`) VALUES
-(2, 4, 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'approved', 'withdrawal', 'Other', 'USD', NULL, 20.00, NULL, '2024-08-09 03:11:35', '2024-08-09 03:11:35');
 
 -- --------------------------------------------------------
 
@@ -2279,15 +2245,18 @@ INSERT INTO `transactions` (`id`, `sender_user_id`, `recipient_user_id`, `subscr
 -- Table structure for table `translations`
 --
 
-CREATE TABLE `translations` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `table_name` varchar(191) NOT NULL,
-  `column_name` varchar(191) NOT NULL,
-  `foreign_key` int(10) UNSIGNED NOT NULL,
-  `locale` varchar(191) NOT NULL,
-  `value` text NOT NULL,
+DROP TABLE IF EXISTS `translations`;
+CREATE TABLE IF NOT EXISTS `translations` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `table_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `column_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `foreign_key` int UNSIGNED NOT NULL,
+  `locale` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `translations_table_name_column_name_foreign_key_locale_unique` (`table_name`,`column_name`,`foreign_key`,`locale`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2296,65 +2265,74 @@ CREATE TABLE `translations` (
 -- Table structure for table `users`
 --
 
-CREATE TABLE `users` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `role_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `name` varchar(191) NOT NULL,
-  `email` varchar(191) NOT NULL,
-  `username` varchar(191) NOT NULL,
-  `referral_code` varchar(191) DEFAULT NULL,
-  `bio` text DEFAULT NULL,
+DROP TABLE IF EXISTS `users`;
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `role_id` bigint UNSIGNED DEFAULT NULL,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `referral_code` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` text COLLATE utf8mb4_unicode_ci,
   `birthdate` date DEFAULT NULL,
-  `location` varchar(191) DEFAULT NULL,
-  `website` varchar(191) DEFAULT NULL,
-  `avatar` varchar(191) DEFAULT NULL,
-  `cover` varchar(191) DEFAULT NULL,
+  `location` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `website` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cover` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `identity_verified_at` timestamp NULL DEFAULT NULL,
-  `password` varchar(191) NOT NULL,
-  `gender_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `gender_pronoun` varchar(191) DEFAULT NULL,
-  `public_profile` tinyint(1) NOT NULL DEFAULT 1,
-  `paid_profile` tinyint(1) NOT NULL DEFAULT 1,
-  `profile_access_price` double(8,2) NOT NULL DEFAULT 5.00,
-  `profile_access_price_6_months` double DEFAULT 5,
-  `profile_access_price_3_months` double(8,2) DEFAULT 5.00,
-  `profile_access_price_12_months` double DEFAULT 5,
-  `billing_address` varchar(191) DEFAULT NULL,
-  `first_name` varchar(191) DEFAULT NULL,
-  `last_name` varchar(191) DEFAULT NULL,
-  `city` varchar(191) DEFAULT NULL,
-  `country` varchar(191) DEFAULT NULL,
-  `state` varchar(191) DEFAULT NULL,
-  `postcode` varchar(191) DEFAULT NULL,
-  `remember_token` varchar(100) DEFAULT NULL,
-  `auth_provider` varchar(191) DEFAULT NULL,
-  `auth_provider_id` varchar(191) DEFAULT NULL,
-  `stripe_account_id` varchar(191) DEFAULT NULL,
-  `stripe_onboarding_verified` tinyint(1) DEFAULT 0,
+  `password` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `gender_id` bigint UNSIGNED DEFAULT NULL,
+  `gender_pronoun` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `public_profile` tinyint(1) NOT NULL DEFAULT '1',
+  `paid_profile` tinyint(1) NOT NULL DEFAULT '1',
+  `profile_access_price` double(8,2) NOT NULL DEFAULT '5.00',
+  `profile_access_price_6_months` double DEFAULT '5',
+  `profile_access_price_3_months` double(8,2) DEFAULT '5.00',
+  `profile_access_price_12_months` double DEFAULT '5',
+  `billing_address` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `first_name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `last_name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `city` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `country` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `state` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `postcode` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `auth_provider` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `auth_provider_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stripe_account_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stripe_onboarding_verified` tinyint(1) DEFAULT '0',
   `enable_2fa` tinyint(1) DEFAULT NULL,
   `enable_geoblocking` tinyint(1) DEFAULT NULL,
-  `open_profile` tinyint(1) DEFAULT 0,
-  `country_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `settings` text DEFAULT NULL,
-  `otp` int(25) DEFAULT NULL,
+  `open_profile` tinyint(1) DEFAULT '0',
+  `country_id` bigint UNSIGNED DEFAULT NULL,
+  `settings` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `users_email_unique` (`email`),
+  UNIQUE KEY `users_username_unique` (`username`),
+  UNIQUE KEY `users_referral_code_unique` (`referral_code`),
+  KEY `users_role_id_foreign` (`role_id`),
+  KEY `users_auth_provider_index` (`auth_provider`),
+  KEY `users_auth_provider_id_index` (`auth_provider_id`),
+  KEY `users_gender_id_foreign` (`gender_id`),
+  KEY `users_birthdate_index` (`birthdate`),
+  KEY `users_location_index` (`location`),
+  KEY `users_enable_2fa_index` (`enable_2fa`),
+  KEY `users_enable_geoblocking_index` (`enable_geoblocking`),
+  KEY `users_open_profile_index` (`open_profile`),
+  KEY `users_country_id_foreign` (`country_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `role_id`, `name`, `email`, `username`, `referral_code`, `bio`, `birthdate`, `location`, `website`, `avatar`, `cover`, `email_verified_at`, `identity_verified_at`, `password`, `gender_id`, `gender_pronoun`, `public_profile`, `paid_profile`, `profile_access_price`, `profile_access_price_6_months`, `profile_access_price_3_months`, `profile_access_price_12_months`, `billing_address`, `first_name`, `last_name`, `city`, `country`, `state`, `postcode`, `remember_token`, `auth_provider`, `auth_provider_id`, `stripe_account_id`, `stripe_onboarding_verified`, `enable_2fa`, `enable_geoblocking`, `open_profile`, `country_id`, `settings`, `otp`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Admin', 'admin@defencestudent.com', 'u1720162874', '7MNHH336', NULL, NULL, NULL, NULL, NULL, NULL, '2024-07-05 01:31:14', NULL, '$2y$10$jp9qauh9xNQKh4qMG38xheIussOpW4A2WKlcmzhyEzPBJ6gXpHw6m', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', NULL, '2024-07-05 01:31:14', '2024-07-05 01:31:14'),
-(2, 2, 'Chandra Outlook', 'chandranath@gmail.com', 'u1720181458', 'X0RWTKAV', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '$2y$10$puerB36yq.6tDM8D4KZVBeXtjGaVbEvavjd3uklwn4wO5W2ULEwXK', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', NULL, '2024-07-05 06:40:58', '2024-07-05 06:40:58'),
-(3, 2, 'CD', 'chandra@test.com', 'u1720184754', 'MXW76G99', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '$2y$10$Oeb5F7x/3w8f456rqVYnr..5Zf/WdyDA9VHk908.maFZ6wdaIMcv6', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', NULL, '2024-07-05 07:35:54', '2024-07-05 07:35:54'),
-(4, 2, 'kkkk', 'exaltedsol06@gmail.com', 'u123456', '16WGHW7K', 'tttttttttttttttttt', '2024-08-05', 'ASDFGHJKL', 'https://www.google.com/ggfhjfghjfghj', '', 'users/cover/4a8b5a65c2574c98abd1eb8ba7a7f691.jpg', '2024-07-19 11:07:26', NULL, '$2y$10$cDEYP7ewMCl1g5BDMSOvL.mL09AgTyNPHN3pemxrPurgP1xNCOLZq', 1, 'asdfghjkl', 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, 1, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', 167172, '2024-07-16 07:56:40', '2024-08-21 01:43:47'),
-(6, 2, 'Test', 'exaltedsol02@gmail.com', 'u1721396649', 'PKKTNG55', NULL, NULL, NULL, NULL, NULL, NULL, '2024-07-19 10:45:18', NULL, '$2y$10$fMSq8TT16nOkgSKLEIPNve4NjzdHNT76MXCY00Wzf3mAw7WtAxyYq', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', NULL, '2024-07-19 10:44:09', '2024-07-19 10:45:18'),
-(7, 2, 'Chandranath Dan', 'chandranathdan@outlook.com', 'u1721450021', '868MREEQ', NULL, '1998-01-20', NULL, NULL, 'users/avatar/2b8420fc038f4de095f517cbda1c2789.png', 'users/cover/a62995f3156a4a6d94caa9169dacfb5d.png', '2024-07-20 01:35:00', NULL, '$2y$10$Ro9tUNOsdehH49KoU52HReMzRvLS06CiWoNy2FU0fOLodg0wLPjDi', NULL, NULL, 1, 0, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', NULL, '2024-07-20 01:33:41', '2024-07-23 05:44:33'),
-(8, 2, 'DM2', 'exaltedsol01@gmail.com', 'u1721735208', '27946MV1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '$2y$10$Fu6pFc2Ysdox./ZpefThau3C2kRiPKbgXxfCBNGIKRWLIvDIwTugS', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', NULL, '2024-07-23 08:46:48', '2024-07-23 08:46:48'),
-(12, 2, 'fdhdfghdf', 'exaltedsol@gmail.com', 'u1723043759', '11Y9KDV0', NULL, NULL, NULL, NULL, NULL, NULL, '2024-08-07 12:17:59', NULL, '$2y$10$frllwEnqWd2lYVuEKUwPAuIr9GpuD1Rz9SYkYQChFxq8QTp5HUJbS', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', NULL, '2024-08-07 12:15:59', '2024-08-07 12:17:59');
+INSERT INTO `users` (`id`, `role_id`, `name`, `email`, `username`, `referral_code`, `bio`, `birthdate`, `location`, `website`, `avatar`, `cover`, `email_verified_at`, `identity_verified_at`, `password`, `gender_id`, `gender_pronoun`, `public_profile`, `paid_profile`, `profile_access_price`, `profile_access_price_6_months`, `profile_access_price_3_months`, `profile_access_price_12_months`, `billing_address`, `first_name`, `last_name`, `city`, `country`, `state`, `postcode`, `remember_token`, `auth_provider`, `auth_provider_id`, `stripe_account_id`, `stripe_onboarding_verified`, `enable_2fa`, `enable_geoblocking`, `open_profile`, `country_id`, `settings`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Admin', 'admin@defencestudent.com', 'u1720162874', '7MNHH336', NULL, NULL, NULL, NULL, NULL, NULL, '2024-07-05 01:31:14', NULL, '$2y$10$jp9qauh9xNQKh4qMG38xheIussOpW4A2WKlcmzhyEzPBJ6gXpHw6m', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', '2024-07-05 01:31:14', '2024-07-05 01:31:14'),
+(2, 2, 'Chandra Outlook', 'chandranath@gmail.com', 'u1720181458', 'X0RWTKAV', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '$2y$10$puerB36yq.6tDM8D4KZVBeXtjGaVbEvavjd3uklwn4wO5W2ULEwXK', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', '2024-07-05 06:40:58', '2024-07-05 06:40:58'),
+(3, 2, 'CD', 'chandra@test.com', 'u1720184754', 'MXW76G99', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '$2y$10$Oeb5F7x/3w8f456rqVYnr..5Zf/WdyDA9VHk908.maFZ6wdaIMcv6', NULL, NULL, 1, 1, 5.00, 5, 5.00, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, '{\"notification_email_new_sub\":\"true\",\"notification_email_new_message\":\"false\",\"notification_email_expiring_subs\":\"true\",\"notification_email_renewals\":\"false\",\"notification_email_new_tip\":\"true\",\"notification_email_new_comment\":\"false\",\"notification_email_new_post_created\":\"false\",\"locale\":\"en\",\"notification_email_new_ppv_unlock\":\"true\",\"notification_email_creator_went_live\":\"false\"}', '2024-07-05 07:35:54', '2024-07-05 07:35:54');
 
 -- --------------------------------------------------------
 
@@ -2362,12 +2340,16 @@ INSERT INTO `users` (`id`, `role_id`, `name`, `email`, `username`, `referral_cod
 -- Table structure for table `user_bookmarks`
 --
 
-CREATE TABLE `user_bookmarks` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `post_id` bigint(20) UNSIGNED NOT NULL,
+DROP TABLE IF EXISTS `user_bookmarks`;
+CREATE TABLE IF NOT EXISTS `user_bookmarks` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `post_id` bigint UNSIGNED NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_bookmarks_user_id_foreign` (`user_id`),
+  KEY `user_bookmarks_post_id_foreign` (`post_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2376,12 +2358,16 @@ CREATE TABLE `user_bookmarks` (
 -- Table structure for table `user_codes`
 --
 
-CREATE TABLE `user_codes` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `code` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `user_codes`;
+CREATE TABLE IF NOT EXISTS `user_codes` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `code` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_codes_user_id_foreign` (`user_id`),
+  KEY `user_codes_code_index` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2390,23 +2376,20 @@ CREATE TABLE `user_codes` (
 -- Table structure for table `user_devices`
 --
 
-CREATE TABLE `user_devices` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `address` varchar(191) NOT NULL,
-  `agent` text DEFAULT NULL,
-  `signature` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `user_devices`;
+CREATE TABLE IF NOT EXISTS `user_devices` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `address` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `agent` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `signature` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_devices_user_id_foreign` (`user_id`),
+  KEY `user_devices_signature_index` (`signature`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `user_devices`
---
-
-INSERT INTO `user_devices` (`id`, `user_id`, `address`, `agent`, `signature`, `verified_at`, `created_at`, `updated_at`) VALUES
-(1, 4, '160.238.92.167', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36', '9d541559ba4c65f0c5581ac90d3dcbaf605e364b', '2024-07-19 09:12:59', '2024-07-19 09:12:59', '2024-07-19 09:12:59');
 
 -- --------------------------------------------------------
 
@@ -2414,12 +2397,15 @@ INSERT INTO `user_devices` (`id`, `user_id`, `address`, `agent`, `signature`, `v
 -- Table structure for table `user_genders`
 --
 
-CREATE TABLE `user_genders` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `gender_name` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `user_genders`;
+CREATE TABLE IF NOT EXISTS `user_genders` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `gender_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_genders_gender_name_index` (`gender_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `user_genders`
@@ -2437,14 +2423,18 @@ INSERT INTO `user_genders` (`id`, `gender_name`, `created_at`, `updated_at`) VAL
 -- Table structure for table `user_lists`
 --
 
-CREATE TABLE `user_lists` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `name` text NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `type` varchar(191) NOT NULL DEFAULT 'custom',
+DROP TABLE IF EXISTS `user_lists`;
+CREATE TABLE IF NOT EXISTS `user_lists` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'custom',
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_lists_user_id_foreign` (`user_id`),
+  KEY `user_lists_type_index` (`type`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `user_lists`
@@ -2456,17 +2446,7 @@ INSERT INTO `user_lists` (`id`, `name`, `user_id`, `type`, `created_at`, `update
 (3, 'Following', 2, 'following', '2024-07-05 06:40:58', '2024-07-05 06:40:58'),
 (4, 'Blocked', 2, 'blocked', '2024-07-05 06:40:58', '2024-07-05 06:40:58'),
 (5, 'Following', 3, 'following', '2024-07-05 07:35:56', '2024-07-05 07:35:56'),
-(6, 'Blocked', 3, 'blocked', '2024-07-05 07:35:56', '2024-07-05 07:35:56'),
-(7, 'Following', 4, 'following', '2024-07-16 07:56:40', '2024-07-16 07:56:40'),
-(8, 'Blocked', 4, 'blocked', '2024-07-16 07:56:40', '2024-07-16 07:56:40'),
-(11, 'Following', 6, 'following', '2024-07-19 10:44:09', '2024-07-19 10:44:09'),
-(12, 'Blocked', 6, 'blocked', '2024-07-19 10:44:09', '2024-07-19 10:44:09'),
-(13, 'Following', 7, 'following', '2024-07-20 01:33:42', '2024-07-20 01:33:42'),
-(14, 'Blocked', 7, 'blocked', '2024-07-20 01:33:42', '2024-07-20 01:33:42'),
-(15, 'Following', 8, 'following', '2024-07-23 08:46:48', '2024-07-23 08:46:48'),
-(16, 'Blocked', 8, 'blocked', '2024-07-23 08:46:48', '2024-07-23 08:46:48'),
-(23, 'Following', 12, 'following', '2024-08-07 12:15:59', '2024-08-07 12:15:59'),
-(24, 'Blocked', 12, 'blocked', '2024-08-07 12:15:59', '2024-08-07 12:15:59');
+(6, 'Blocked', 3, 'blocked', '2024-07-05 07:35:56', '2024-07-05 07:35:56');
 
 -- --------------------------------------------------------
 
@@ -2474,20 +2454,17 @@ INSERT INTO `user_lists` (`id`, `name`, `user_id`, `type`, `created_at`, `update
 -- Table structure for table `user_list_members`
 --
 
-CREATE TABLE `user_list_members` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `list_id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
+DROP TABLE IF EXISTS `user_list_members`;
+CREATE TABLE IF NOT EXISTS `user_list_members` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `list_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `list_id_user_id` (`list_id`,`user_id`),
+  KEY `user_list_members_user_id_foreign` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `user_list_members`
---
-
-INSERT INTO `user_list_members` (`id`, `list_id`, `user_id`, `created_at`, `updated_at`) VALUES
-(2, 7, 7, '2024-07-25 09:36:11', '2024-07-25 09:36:11');
 
 -- --------------------------------------------------------
 
@@ -2495,25 +2472,22 @@ INSERT INTO `user_list_members` (`id`, `list_id`, `user_id`, `created_at`, `upda
 -- Table structure for table `user_messages`
 --
 
-CREATE TABLE `user_messages` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `sender_id` bigint(20) UNSIGNED NOT NULL,
-  `receiver_id` bigint(20) UNSIGNED NOT NULL,
-  `replyTo` int(11) NOT NULL DEFAULT 0,
-  `message` longtext DEFAULT NULL,
-  `isSeen` tinyint(1) NOT NULL DEFAULT 0,
+DROP TABLE IF EXISTS `user_messages`;
+CREATE TABLE IF NOT EXISTS `user_messages` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `sender_id` bigint UNSIGNED NOT NULL,
+  `receiver_id` bigint UNSIGNED NOT NULL,
+  `replyTo` int NOT NULL DEFAULT '0',
+  `message` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `isSeen` tinyint(1) NOT NULL DEFAULT '0',
   `price` double(8,2) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_messages_sender_id_foreign` (`sender_id`),
+  KEY `user_messages_receiver_id_foreign` (`receiver_id`),
+  KEY `user_messages_isseen_index` (`isSeen`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `user_messages`
---
-
-INSERT INTO `user_messages` (`id`, `sender_id`, `receiver_id`, `replyTo`, `message`, `isSeen`, `price`, `created_at`, `updated_at`) VALUES
-(1, 4, 7, 0, 'hello', 0, NULL, '2024-07-29 07:11:48', '2024-07-29 07:11:48'),
-(2, 4, 7, 0, 'hello', 0, NULL, '2024-07-29 07:11:53', '2024-07-29 07:11:53');
 
 -- --------------------------------------------------------
 
@@ -2521,18 +2495,27 @@ INSERT INTO `user_messages` (`id`, `sender_id`, `receiver_id`, `replyTo`, `messa
 -- Table structure for table `user_reports`
 --
 
-CREATE TABLE `user_reports` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `from_user_id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `post_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `message_id` bigint(20) DEFAULT NULL,
-  `stream_id` bigint(20) DEFAULT NULL,
-  `details` text DEFAULT NULL,
-  `type` varchar(191) NOT NULL,
-  `status` varchar(191) NOT NULL,
+DROP TABLE IF EXISTS `user_reports`;
+CREATE TABLE IF NOT EXISTS `user_reports` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `from_user_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `post_id` bigint UNSIGNED DEFAULT NULL,
+  `message_id` bigint DEFAULT NULL,
+  `stream_id` bigint DEFAULT NULL,
+  `details` text COLLATE utf8mb4_unicode_ci,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_reports_from_user_id_foreign` (`from_user_id`),
+  KEY `user_reports_post_id_index` (`post_id`),
+  KEY `user_reports_type_index` (`type`),
+  KEY `user_reports_status_index` (`status`),
+  KEY `user_reports_user_id_foreign` (`user_id`),
+  KEY `user_reports_message_id_index` (`message_id`),
+  KEY `user_reports_stream_id_index` (`stream_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2541,9 +2524,13 @@ CREATE TABLE `user_reports` (
 -- Table structure for table `user_roles`
 --
 
-CREATE TABLE `user_roles` (
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `role_id` bigint(20) UNSIGNED NOT NULL
+DROP TABLE IF EXISTS `user_roles`;
+CREATE TABLE IF NOT EXISTS `user_roles` (
+  `user_id` bigint UNSIGNED NOT NULL,
+  `role_id` bigint UNSIGNED NOT NULL,
+  PRIMARY KEY (`user_id`,`role_id`),
+  KEY `user_roles_user_id_index` (`user_id`),
+  KEY `user_roles_role_id_index` (`role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -2552,22 +2539,19 @@ CREATE TABLE `user_roles` (
 -- Table structure for table `user_verifies`
 --
 
-CREATE TABLE `user_verifies` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
-  `files` text DEFAULT NULL,
-  `status` varchar(191) NOT NULL DEFAULT 'pending',
-  `rejectionReason` varchar(191) DEFAULT NULL,
+DROP TABLE IF EXISTS `user_verifies`;
+CREATE TABLE IF NOT EXISTS `user_verifies` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `files` text COLLATE utf8mb4_unicode_ci,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `rejectionReason` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_verifies_user_id_foreign` (`user_id`),
+  KEY `user_verifies_status_index` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `user_verifies`
---
-
-INSERT INTO `user_verifies` (`id`, `user_id`, `files`, `status`, `rejectionReason`, `created_at`, `updated_at`) VALUES
-(1, 4, '[\"users\\/verifications\\/65550e868d97494ba89240c646acfacd.jpg\"]', 'verified', NULL, '2024-08-07 02:56:00', '2024-08-07 03:15:50');
 
 -- --------------------------------------------------------
 
@@ -2575,12 +2559,15 @@ INSERT INTO `user_verifies` (`id`, `user_id`, `files`, `status`, `rejectionReaso
 -- Table structure for table `wallets`
 --
 
-CREATE TABLE `wallets` (
-  `id` char(36) NOT NULL,
-  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
+DROP TABLE IF EXISTS `wallets`;
+CREATE TABLE IF NOT EXISTS `wallets` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` bigint UNSIGNED DEFAULT NULL,
   `total` double(8,2) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `wallets_user_id_foreign` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2588,14 +2575,9 @@ CREATE TABLE `wallets` (
 --
 
 INSERT INTO `wallets` (`id`, `user_id`, `total`, `created_at`, `updated_at`) VALUES
-('098fe7fc8af04bcebba1da3284c2f615', 7, 0.00, '2024-07-20 01:33:42', '2024-07-20 01:33:42'),
 ('1a0c027048e746a096da48e86a368c5d', 2, 0.00, '2024-07-05 06:40:58', '2024-07-05 06:40:58'),
 ('27370846529e444fbddbc301f04ae4e4', 1, 0.00, '2024-07-05 01:31:16', '2024-07-05 01:31:16'),
-('325586946c7f4ce58ac23b14b3bb2380', 12, 0.00, '2024-08-07 12:15:59', '2024-08-07 12:15:59'),
-('55512517e80045f2a8a027bcf5854c5b', 3, 0.00, '2024-07-05 07:35:56', '2024-07-05 07:35:56'),
-('b296744dbc184ad8a5bbd43e5d8c742f', 6, 0.00, '2024-07-19 10:44:09', '2024-07-19 10:44:09'),
-('b41703eebd77498fb5fbfecff7263187', 4, 30.00, '2024-07-16 07:56:00', '2024-08-09 03:13:02'),
-('ec5adc09c19549c98d378c8b615591ec', 8, 0.00, '2024-07-23 08:46:48', '2024-07-23 08:46:48');
+('55512517e80045f2a8a027bcf5854c5b', 3, 0.00, '2024-07-05 07:35:56', '2024-07-05 07:35:56');
 
 -- --------------------------------------------------------
 
@@ -2603,714 +2585,25 @@ INSERT INTO `wallets` (`id`, `user_id`, `total`, `created_at`, `updated_at`) VAL
 -- Table structure for table `withdrawals`
 --
 
-CREATE TABLE `withdrawals` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` bigint(20) UNSIGNED NOT NULL,
+DROP TABLE IF EXISTS `withdrawals`;
+CREATE TABLE IF NOT EXISTS `withdrawals` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint UNSIGNED NOT NULL,
   `amount` double(8,2) NOT NULL,
-  `status` varchar(191) NOT NULL,
-  `message` text DEFAULT NULL,
-  `fee` double(8,2) DEFAULT 0.00,
+  `status` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message` text COLLATE utf8mb4_unicode_ci,
+  `fee` double(8,2) DEFAULT '0.00',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `processed` tinyint(1) NOT NULL DEFAULT 0,
-  `payment_method` varchar(191) DEFAULT NULL,
-  `payment_identifier` varchar(191) DEFAULT NULL,
-  `stripe_payout_id` varchar(191) DEFAULT NULL,
-  `stripe_transfer_id` varchar(191) DEFAULT NULL
+  `processed` tinyint(1) NOT NULL DEFAULT '0',
+  `payment_method` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `payment_identifier` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stripe_payout_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stripe_transfer_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `withdrawals_user_id_foreign` (`user_id`),
+  KEY `withdrawals_status_index` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `withdrawals`
---
-
-INSERT INTO `withdrawals` (`id`, `user_id`, `amount`, `status`, `message`, `fee`, `created_at`, `updated_at`, `processed`, `payment_method`, `payment_identifier`, `stripe_payout_id`, `stripe_transfer_id`) VALUES
-(1, 4, 50.00, 'approved', 'msg 2', 10.00, '2024-08-09 03:06:07', '2024-08-09 03:06:07', 1, 'pm 2', 'pi 2', NULL, NULL),
-(2, 4, 20.00, 'approved', NULL, 0.00, '2024-08-09 03:10:00', '2024-08-09 03:11:35', 1, 'Other', 'test', NULL, NULL),
-(3, 4, 25.00, 'rejected', NULL, 0.00, '2024-08-09 03:12:41', '2024-08-09 03:13:02', 1, 'Other', 'test 25', NULL, NULL);
-
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `attachments`
---
-ALTER TABLE `attachments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `attachments_user_id_foreign` (`user_id`),
-  ADD KEY `attachments_post_id_foreign` (`post_id`),
-  ADD KEY `attachments_message_id_foreign` (`message_id`),
-  ADD KEY `attachments_type_index` (`type`),
-  ADD KEY `attachments_payment_request_id_foreign` (`payment_request_id`),
-  ADD KEY `attachments_coconut_id_index` (`coconut_id`);
-
---
--- Indexes for table `contact_messages`
---
-ALTER TABLE `contact_messages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `contact_messages_email_index` (`email`);
-
---
--- Indexes for table `countries`
---
-ALTER TABLE `countries`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `countries_name_unique` (`name`),
-  ADD KEY `countries_country_code_index` (`country_code`),
-  ADD KEY `countries_phone_code_index` (`phone_code`);
-
---
--- Indexes for table `country_taxes`
---
-ALTER TABLE `country_taxes`
-  ADD KEY `country_taxes_tax_id_foreign` (`tax_id`),
-  ADD KEY `country_taxes_country_id_foreign` (`country_id`);
-
---
--- Indexes for table `creator_offers`
---
-ALTER TABLE `creator_offers`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `creator_offers_user_id_foreign` (`user_id`);
-
---
--- Indexes for table `data_rows`
---
-ALTER TABLE `data_rows`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `data_rows_data_type_id_foreign` (`data_type_id`);
-
---
--- Indexes for table `data_types`
---
-ALTER TABLE `data_types`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `data_types_name_unique` (`name`),
-  ADD UNIQUE KEY `data_types_slug_unique` (`slug`);
-
---
--- Indexes for table `email_management`
---
-ALTER TABLE `email_management`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `failed_jobs`
---
-ALTER TABLE `failed_jobs`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `featured_users`
---
-ALTER TABLE `featured_users`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `featured_users_user_id_foreign` (`user_id`);
-
---
--- Indexes for table `invoices`
---
-ALTER TABLE `invoices`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `invoices_invoice_id_unique` (`invoice_id`);
-
---
--- Indexes for table `jobs`
---
-ALTER TABLE `jobs`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `jobs_queue_index` (`queue`);
-
---
--- Indexes for table `menus`
---
-ALTER TABLE `menus`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `menus_name_unique` (`name`);
-
---
--- Indexes for table `menu_items`
---
-ALTER TABLE `menu_items`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `menu_items_menu_id_foreign` (`menu_id`);
-
---
--- Indexes for table `migrations`
---
-ALTER TABLE `migrations`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `notifications`
---
-ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `notifications_from_user_id_foreign` (`from_user_id`),
-  ADD KEY `notifications_to_user_id_foreign` (`to_user_id`),
-  ADD KEY `notifications_post_id_foreign` (`post_id`),
-  ADD KEY `notifications_post_comment_id_foreign` (`post_comment_id`),
-  ADD KEY `notifications_subscription_id_foreign` (`subscription_id`),
-  ADD KEY `notifications_transaction_id_foreign` (`transaction_id`),
-  ADD KEY `notifications_reaction_id_foreign` (`reaction_id`),
-  ADD KEY `notifications_withdrawal_id_foreign` (`withdrawal_id`),
-  ADD KEY `notifications_type_index` (`type`),
-  ADD KEY `notifications_user_message_id_index` (`user_message_id`),
-  ADD KEY `notifications_stream_id_foreign` (`stream_id`);
-
---
--- Indexes for table `password_resets`
---
-ALTER TABLE `password_resets`
-  ADD KEY `password_resets_email_index` (`email`);
-
---
--- Indexes for table `payment_requests`
---
-ALTER TABLE `payment_requests`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `payment_requests_user_id_foreign` (`user_id`),
-  ADD KEY `payment_requests_transaction_id_foreign` (`transaction_id`),
-  ADD KEY `payment_requests_status_index` (`status`),
-  ADD KEY `payment_requests_type_index` (`type`);
-
---
--- Indexes for table `permissions`
---
-ALTER TABLE `permissions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `permissions_key_index` (`key`);
-
---
--- Indexes for table `permission_role`
---
-ALTER TABLE `permission_role`
-  ADD PRIMARY KEY (`permission_id`,`role_id`),
-  ADD KEY `permission_role_permission_id_index` (`permission_id`),
-  ADD KEY `permission_role_role_id_index` (`role_id`);
-
---
--- Indexes for table `personal_access_tokens`
---
-ALTER TABLE `personal_access_tokens`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
-  ADD KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`);
-
---
--- Indexes for table `posts`
---
-ALTER TABLE `posts`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `posts_user_id_foreign` (`user_id`),
-  ADD KEY `posts_status_index` (`status`);
-
---
--- Indexes for table `post_comments`
---
-ALTER TABLE `post_comments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `post_comments_user_id_foreign` (`user_id`),
-  ADD KEY `post_comments_post_id_foreign` (`post_id`);
-
---
--- Indexes for table `public_pages`
---
-ALTER TABLE `public_pages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `public_pages_slug_index` (`slug`);
-
---
--- Indexes for table `reactions`
---
-ALTER TABLE `reactions`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `reactions_user_id_post_id_unique` (`user_id`,`post_id`),
-  ADD UNIQUE KEY `reactions_user_id_post_comment_id_unique` (`user_id`,`post_comment_id`),
-  ADD KEY `reactions_post_id_foreign` (`post_id`),
-  ADD KEY `reactions_post_comment_id_foreign` (`post_comment_id`),
-  ADD KEY `reactions_reaction_type_index` (`reaction_type`);
-
---
--- Indexes for table `referral_code_usages`
---
-ALTER TABLE `referral_code_usages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `referral_code_usages_used_by_index` (`used_by`),
-  ADD KEY `referral_code_usages_referral_code_index` (`referral_code`);
-
---
--- Indexes for table `rewards`
---
-ALTER TABLE `rewards`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `rewards_from_user_id_index` (`from_user_id`),
-  ADD KEY `rewards_to_user_id_index` (`to_user_id`),
-  ADD KEY `rewards_reward_type_index` (`reward_type`),
-  ADD KEY `rewards_transaction_id_index` (`transaction_id`),
-  ADD KEY `rewards_referral_code_usage_id_index` (`referral_code_usage_id`);
-
---
--- Indexes for table `roles`
---
-ALTER TABLE `roles`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `roles_name_unique` (`name`);
-
---
--- Indexes for table `settings`
---
-ALTER TABLE `settings`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `settings_key_unique` (`key`);
-
---
--- Indexes for table `streams`
---
-ALTER TABLE `streams`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `streams_pushr_id_unique` (`pushr_id`),
-  ADD KEY `streams_user_id_foreign` (`user_id`),
-  ADD KEY `streams_status_index` (`status`),
-  ADD KEY `streams_slug_index` (`slug`),
-  ADD KEY `streams_is_public_index` (`is_public`),
-  ADD KEY `streams_requires_subscription_index` (`requires_subscription`);
-
---
--- Indexes for table `stream_messages`
---
-ALTER TABLE `stream_messages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `stream_messages_user_id_foreign` (`user_id`),
-  ADD KEY `stream_messages_stream_id_foreign` (`stream_id`);
-
---
--- Indexes for table `subscriptions`
---
-ALTER TABLE `subscriptions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `subscriptions_paypal_agreement_id_index` (`paypal_agreement_id`),
-  ADD KEY `subscriptions_stripe_subscription_id_index` (`stripe_subscription_id`),
-  ADD KEY `subscriptions_type_index` (`type`),
-  ADD KEY `subscriptions_provider_index` (`provider`),
-  ADD KEY `subscriptions_status_index` (`status`),
-  ADD KEY `subscriptions_sender_user_id_foreign` (`sender_user_id`),
-  ADD KEY `subscriptions_recipient_user_id_foreign` (`recipient_user_id`),
-  ADD KEY `subscriptions_paypal_plan_id_index` (`paypal_plan_id`),
-  ADD KEY `subscriptions_ccbill_subscription_id_index` (`ccbill_subscription_id`);
-
---
--- Indexes for table `taxes`
---
-ALTER TABLE `taxes`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `transactions`
---
-ALTER TABLE `transactions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `transactions_sender_user_id_foreign` (`sender_user_id`),
-  ADD KEY `transactions_recipient_user_id_foreign` (`recipient_user_id`),
-  ADD KEY `transactions_subscription_id_foreign` (`subscription_id`),
-  ADD KEY `transactions_post_id_foreign` (`post_id`),
-  ADD KEY `transactions_stream_id_foreign` (`stream_id`),
-  ADD KEY `transactions_stripe_transaction_id_index` (`stripe_transaction_id`),
-  ADD KEY `transactions_stripe_session_id_index` (`stripe_session_id`),
-  ADD KEY `transactions_paypal_payer_id_index` (`paypal_payer_id`),
-  ADD KEY `transactions_paypal_transaction_id_index` (`paypal_transaction_id`),
-  ADD KEY `transactions_paypal_transaction_token_index` (`paypal_transaction_token`),
-  ADD KEY `transactions_coinbase_charge_id_index` (`coinbase_charge_id`),
-  ADD KEY `transactions_coinbase_transaction_token_index` (`coinbase_transaction_token`),
-  ADD KEY `transactions_nowpayments_payment_id_index` (`nowpayments_payment_id`),
-  ADD KEY `transactions_nowpayments_order_id_index` (`nowpayments_order_id`),
-  ADD KEY `transactions_ccbill_payment_token_index` (`ccbill_payment_token`),
-  ADD KEY `transactions_ccbill_transaction_id_index` (`ccbill_transaction_id`),
-  ADD KEY `transactions_ccbill_subscription_id_index` (`ccbill_subscription_id`),
-  ADD KEY `transactions_status_index` (`status`),
-  ADD KEY `transactions_type_index` (`type`),
-  ADD KEY `transactions_invoice_id_foreign` (`invoice_id`),
-  ADD KEY `transactions_paystack_payment_token_index` (`paystack_payment_token`),
-  ADD KEY `transactions_user_message_id_foreign` (`user_message_id`),
-  ADD KEY `transactions_mercado_payment_token_index` (`mercado_payment_token`),
-  ADD KEY `transactions_mercado_payment_id_index` (`mercado_payment_id`);
-
---
--- Indexes for table `translations`
---
-ALTER TABLE `translations`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `translations_table_name_column_name_foreign_key_locale_unique` (`table_name`,`column_name`,`foreign_key`,`locale`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `users_email_unique` (`email`),
-  ADD UNIQUE KEY `users_username_unique` (`username`),
-  ADD UNIQUE KEY `users_referral_code_unique` (`referral_code`),
-  ADD KEY `users_role_id_foreign` (`role_id`),
-  ADD KEY `users_auth_provider_index` (`auth_provider`),
-  ADD KEY `users_auth_provider_id_index` (`auth_provider_id`),
-  ADD KEY `users_gender_id_foreign` (`gender_id`),
-  ADD KEY `users_birthdate_index` (`birthdate`),
-  ADD KEY `users_location_index` (`location`),
-  ADD KEY `users_enable_2fa_index` (`enable_2fa`),
-  ADD KEY `users_enable_geoblocking_index` (`enable_geoblocking`),
-  ADD KEY `users_open_profile_index` (`open_profile`),
-  ADD KEY `users_country_id_foreign` (`country_id`);
-
---
--- Indexes for table `user_bookmarks`
---
-ALTER TABLE `user_bookmarks`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_bookmarks_user_id_foreign` (`user_id`),
-  ADD KEY `user_bookmarks_post_id_foreign` (`post_id`);
-
---
--- Indexes for table `user_codes`
---
-ALTER TABLE `user_codes`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_codes_user_id_foreign` (`user_id`),
-  ADD KEY `user_codes_code_index` (`code`);
-
---
--- Indexes for table `user_devices`
---
-ALTER TABLE `user_devices`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_devices_user_id_foreign` (`user_id`),
-  ADD KEY `user_devices_signature_index` (`signature`);
-
---
--- Indexes for table `user_genders`
---
-ALTER TABLE `user_genders`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_genders_gender_name_index` (`gender_name`);
-
---
--- Indexes for table `user_lists`
---
-ALTER TABLE `user_lists`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_lists_user_id_foreign` (`user_id`),
-  ADD KEY `user_lists_type_index` (`type`);
-
---
--- Indexes for table `user_list_members`
---
-ALTER TABLE `user_list_members`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `list_id_user_id` (`list_id`,`user_id`),
-  ADD KEY `user_list_members_user_id_foreign` (`user_id`);
-
---
--- Indexes for table `user_messages`
---
-ALTER TABLE `user_messages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_messages_sender_id_foreign` (`sender_id`),
-  ADD KEY `user_messages_receiver_id_foreign` (`receiver_id`),
-  ADD KEY `user_messages_isseen_index` (`isSeen`);
-
---
--- Indexes for table `user_reports`
---
-ALTER TABLE `user_reports`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_reports_from_user_id_foreign` (`from_user_id`),
-  ADD KEY `user_reports_post_id_index` (`post_id`),
-  ADD KEY `user_reports_type_index` (`type`),
-  ADD KEY `user_reports_status_index` (`status`),
-  ADD KEY `user_reports_user_id_foreign` (`user_id`),
-  ADD KEY `user_reports_message_id_index` (`message_id`),
-  ADD KEY `user_reports_stream_id_index` (`stream_id`);
-
---
--- Indexes for table `user_roles`
---
-ALTER TABLE `user_roles`
-  ADD PRIMARY KEY (`user_id`,`role_id`),
-  ADD KEY `user_roles_user_id_index` (`user_id`),
-  ADD KEY `user_roles_role_id_index` (`role_id`);
-
---
--- Indexes for table `user_verifies`
---
-ALTER TABLE `user_verifies`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_verifies_user_id_foreign` (`user_id`),
-  ADD KEY `user_verifies_status_index` (`status`);
-
---
--- Indexes for table `wallets`
---
-ALTER TABLE `wallets`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `wallets_user_id_foreign` (`user_id`);
-
---
--- Indexes for table `withdrawals`
---
-ALTER TABLE `withdrawals`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `withdrawals_user_id_foreign` (`user_id`),
-  ADD KEY `withdrawals_status_index` (`status`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `contact_messages`
---
-ALTER TABLE `contact_messages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `countries`
---
-ALTER TABLE `countries`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=251;
-
---
--- AUTO_INCREMENT for table `creator_offers`
---
-ALTER TABLE `creator_offers`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `data_rows`
---
-ALTER TABLE `data_rows`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=387;
-
---
--- AUTO_INCREMENT for table `data_types`
---
-ALTER TABLE `data_types`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
-
---
--- AUTO_INCREMENT for table `email_management`
---
-ALTER TABLE `email_management`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `failed_jobs`
---
-ALTER TABLE `failed_jobs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `featured_users`
---
-ALTER TABLE `featured_users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `invoices`
---
-ALTER TABLE `invoices`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `jobs`
---
-ALTER TABLE `jobs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `menus`
---
-ALTER TABLE `menus`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `menu_items`
---
-ALTER TABLE `menu_items`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
-
---
--- AUTO_INCREMENT for table `migrations`
---
-ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
-
---
--- AUTO_INCREMENT for table `payment_requests`
---
-ALTER TABLE `payment_requests`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `permissions`
---
-ALTER TABLE `permissions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=162;
-
---
--- AUTO_INCREMENT for table `personal_access_tokens`
---
-ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
-
---
--- AUTO_INCREMENT for table `posts`
---
-ALTER TABLE `posts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- AUTO_INCREMENT for table `post_comments`
---
-ALTER TABLE `post_comments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `public_pages`
---
-ALTER TABLE `public_pages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
---
--- AUTO_INCREMENT for table `reactions`
---
-ALTER TABLE `reactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- AUTO_INCREMENT for table `referral_code_usages`
---
-ALTER TABLE `referral_code_usages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `rewards`
---
-ALTER TABLE `rewards`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `roles`
---
-ALTER TABLE `roles`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `settings`
---
-ALTER TABLE `settings`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=345;
-
---
--- AUTO_INCREMENT for table `streams`
---
-ALTER TABLE `streams`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `stream_messages`
---
-ALTER TABLE `stream_messages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `subscriptions`
---
-ALTER TABLE `subscriptions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `taxes`
---
-ALTER TABLE `taxes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `transactions`
---
-ALTER TABLE `transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `translations`
---
-ALTER TABLE `translations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
-
---
--- AUTO_INCREMENT for table `user_bookmarks`
---
-ALTER TABLE `user_bookmarks`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `user_codes`
---
-ALTER TABLE `user_codes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `user_devices`
---
-ALTER TABLE `user_devices`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `user_genders`
---
-ALTER TABLE `user_genders`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- AUTO_INCREMENT for table `user_lists`
---
-ALTER TABLE `user_lists`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
-
---
--- AUTO_INCREMENT for table `user_list_members`
---
-ALTER TABLE `user_list_members`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `user_messages`
---
-ALTER TABLE `user_messages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `user_reports`
---
-ALTER TABLE `user_reports`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `user_verifies`
---
-ALTER TABLE `user_verifies`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `withdrawals`
---
-ALTER TABLE `withdrawals`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
