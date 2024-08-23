@@ -13,6 +13,7 @@ use App\Http\Requests\VerifyProfileAssetsRequest;
 use App\Http\Requests\VerifyTwoFactorCodeRequest;
 use App\Model\Attachment;
 use App\Model\UserList;
+use App\Model\UserListMember;
 use App\Model\Country;
 use App\Model\CreatorOffer;
 use App\Model\ReferralCodeUsage;
@@ -307,10 +308,11 @@ class SettingsController extends Controller
         // Extract integer parameters from the request
         $fetchUser = (int) $request->post('user');
         $fetchverify = (int) $request->post('UserVerify');
-        $fetchPosts = (int) $request->post('posts');
+        $fetcfollowlist = (int) $request->post('UserListMemberfollow');
+        $fetchPosts = (int) $request->post('feeds');
         $fetchPostsWithAttachments = (int) $request->post('posts_with_attachments');
         $fetchGenders = (int) $request->post('genders');
-        $fetchPricingData = (int) $request->post('pricingData');
+        $fetchPricingData = (int) $request->post('Subscriptions');
         $fetchCountries = (int) $request->post('countries');
         
         $response = [
@@ -338,8 +340,11 @@ class SettingsController extends Controller
         if ($fetchverify === 1) {
             $response['data']['UserVerify'] = UserVerify::all(['id','user_id', 'status']);
         }
+        if ($fetcfollowlist === 1) {
+            $response['data']['UserListMemberfollow'] = UserListMember::all('id','user_id','list_id');
+        }
         if ($fetchPosts === 1) {
-            $response['data']['posts'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
+            $response['data']['feeds'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
                 ->with([
                     'attachments' => function ($query) {
                         $query->select('filename', 'post_id', 'driver');
@@ -384,7 +389,7 @@ class SettingsController extends Controller
         }
     
         if ($fetchPricingData === 1) {
-            $response['data']['pricingData'] = [
+            $response['data']['Subscriptions'] = [
                 '1_month' => [
                     'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
                     'duration' => trans_choice('days', 30, ['number' => 30]),

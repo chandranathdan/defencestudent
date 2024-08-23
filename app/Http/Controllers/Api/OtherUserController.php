@@ -22,6 +22,7 @@ use App\Http\Requests\UpdateReactionRequest;
 use App\Model\Attachment;
 use App\Model\Post;
 use App\Model\PostComment;
+use App\Model\UserListMember;
 use App\Model\Reaction;
 use App\Providers\PostsHelperServiceProvider;
 use App\Providers\SettingsServiceProvider;
@@ -40,7 +41,10 @@ class OtherUserController extends Controller
         ]);
         $id = $request->input('id');
         $user = User::find($id);
-        $user = [
+        if (!$user) {
+            return response()->json(['status' => '404', 'message' => 'User not found'], 404);
+        }
+        $user_data = [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
@@ -54,13 +58,47 @@ class OtherUserController extends Controller
             'country_id' => $user->country_id,
             'gender_id' => $user->gender_id,
         ];
-
-        if (!$user) {
-            return response()->json(['status' => '400', 'message' => 'User not found']);
-        }
+        $Subscriptions = [
+            '1_month' => [
+                'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
+                'duration' => trans_choice('days', 30, ['number' => 30]),
+            ],
+            '3_months' => [
+                'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_3_months * 3),
+                'duration' => trans_choice('months', 3, ['number' => 3]),
+            ],
+            '6_months' => [
+                'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_6_months * 6),
+                'duration' => trans_choice('months', 6, ['number' => 6]),
+            ],
+            '12_months' => [
+                'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_12_months * 12),
+                'duration' => trans_choice('months', 12, ['number' => 12]),
+            ],
+        ];
+        $posts = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
+            ->with([
+                'attachments' => function ($query) {
+                    $query->select('filename', 'post_id', 'driver');
+                },
+                'user' => function ($query) {
+                    $query->select('id', 'name', 'username');
+                },
+                'comments' => function ($query) {
+                    $query->select('id', 'post_id', 'message', 'user_id');
+                },
+                'reactions' => function ($query) {
+                    $query->select('post_id', 'reaction_type');
+                }
+            ])
+            ->where('user_id', $id)
+            ->get();
         return response()->json([
             'status' => '200',
-            'user' => $user,
+            'user_data' => $user_data,
+            'UserListMemberfollow' => UserListMember::where('user_id', $id)->get(['id', 'user_id', 'list_id']),
+            'feed' => $posts,
+            'Subscriptions' => $Subscriptions,
         ]);
     }
     public function profile_another_user_subscriptions_fetcher(Request $request)
@@ -76,7 +114,7 @@ class OtherUserController extends Controller
         }
 
         // Define subscription durations and prices
-        $pricingData = [
+        $Subscriptions = [
             '1_month' => [
                 'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
                 'duration' => trans_choice('days', 30, ['number' => 30]),
@@ -98,7 +136,7 @@ class OtherUserController extends Controller
         // Return the data as a JSON response
         return response()->json([
             'status' => '200',
-            'data' => $pricingData,
+            'data' => $Subscriptions,
         ]);
     }
     public function profile_another_user_subscriptions_submit(Request $request)
