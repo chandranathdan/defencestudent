@@ -76,7 +76,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/search', [SearchTopController::class, 'search']); // search url
 		Route::get('/search_top', [SearchTopController::class, 'search_top']); // search_top url
 		Route::get('/search_people/{id}', [SearchTopController::class, 'search_people']); // search_people url
-		Route::get('/search_latest', [SearchTopController::class, 'search_latest']); // search_latest url
+		Route::get('/search_latest/{id}', [SearchTopController::class, 'search_latest']); // search_latest url
 	
 	
 	});

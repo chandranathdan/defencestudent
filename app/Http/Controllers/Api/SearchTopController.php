@@ -134,36 +134,37 @@ class SearchTopController extends Controller
             'has_posts' => $hasPosts
         ]);
     }
-    public function search_latest()
+    public function search_latest($id)
     {
-        $query = User::query();
-        if ($request->filled('gender') && $request->input('gender') !== 'all') {
-            $query->where('gender', $request->input('gender'));
-        }
-        if ($request->filled('min_age')) {
-            $query->where('age', '>=', $request->input('min_age'));
-        }
-        if ($request->filled('max_age')) {
-            $query->where('age', '<=', $request->input('max_age'));
-        }
-        if ($request->filled('location')) {
-            $query->where('location', 'like', '%' . $request->input('location') . '%');
-        }
-        if ($request->filled('query')) {
-            $query->where(function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->input('query') . '%')
-                  ->orWhere('username', 'like', '%' . $request->input('query') . '%');
-            });
-        }
-        if ($request->input('filter') === 'top') {
-            $query->orderBy('relevance_score', 'desc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-        $users = $query->get();
-        return response()->json([
-            'status' => '200',
-            'data' => $users,
-        ]);
+        $post = Post::with(['user', 'attachments', 'reactions', 'comments', 'bookmarks', 'postPurchases'])
+            ->findOrFail($postId);
+        $isSubbed = Auth::check() && (Auth::user()->subscribedTo($post->user) || $post->user->open_profile);
+        $canViewPost = $isSubbed || $post->price <= 0 || (Auth::check() && Auth::user()->hasUnlockedPost($post));
+        $postData = [
+            'id' => $post->id,
+            'user' => [
+                'id' => $post->user->id,
+                'name' => $post->user->name,
+                'username' => $post->user->username,
+                'avatar' => $post->user->avatar,
+            ],
+            'text' => $canViewPost ? $post->text : null,
+            'attachments' => $canViewPost ? $post->attachments : [],
+            'created_at' => $post->created_at->toDateTimeString(),
+            'expire_date' => $post->expire_date ? $post->expire_date->toDateTimeString() : null,
+            'release_date' => $post->release_date ? $post->release_date->toDateTimeString() : null,
+            'price' => $post->price,
+            'is_pinned' => $post->is_pinned,
+            'reactions_count' => $post->reactions->count(),
+            'comments_count' => $post->comments->count(),
+            'tips_count' => $post->tips_count,
+            'is_expired' => $post->is_expired,
+            'is_scheduled' => $post->is_scheduled,
+            'is_bookmarked' => Auth::check() ? $post->bookmarks->contains(Auth::user()->id) : false,
+            'is_liked' => Auth::check() ? $post->reactions->contains('user_id', Auth::user()->id) : false,
+            'comments' => $canViewPost ? $post->comments : [],
+        ];
+
+        return response()->json($postData);
     }
 }

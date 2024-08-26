@@ -23,6 +23,7 @@ use App\Model\UserDevice;
 use App\Model\UserGender;
 use App\Model\UserVerify;
 use App\Providers\AttachmentServiceProvider;
+use App\Providers\ListsHelperServiceProvider; 
 use App\Providers\AuthServiceProvider;
 use App\Providers\EmailsServiceProvider;
 use App\Providers\GenericHelperServiceProvider;
@@ -304,11 +305,16 @@ class SettingsController extends Controller
     public function profile(Request $request)
     {
         $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'status' => '400',
+                'message' => __('User not found.'),
+            ]);
+        }
         
-        // Extract integer parameters from the request
         $fetchUser = (int) $request->post('user');
         $fetchverify = (int) $request->post('user_verify');
-        $fetcfollowlist = (int) $request->post('user_list_member_follow');
+        $fetcfollowinglist = (int) $request->post('social_user');
         $fetchPosts = (int) $request->post('feeds');
         $fetchPostsWithAttachments = (int) $request->post('posts_with_attachments');
         $fetchGenders = (int) $request->post('genders');
@@ -340,8 +346,30 @@ class SettingsController extends Controller
         if ($fetchverify === 1) {
             $response['data']['user_verify'] = UserVerify::all(['id','user_id', 'status']);
         }
-        if ($fetcfollowlist === 1) {
-            $response['data']['user_list_member_follow'] = UserListMember::all('id','user_id','list_id');
+        if ($fetcfollowinglist === 1) {
+            $authUserId = Auth::id();
+            $followers = ListsHelperServiceProvider::getUserFollowers($authUserId);
+            $followerIds = collect($followers)->pluck('user_id');
+            $followersCount = $followerIds->count();
+        
+            $following = UserListMember::all('id','user_id','list_id');
+            $followingCount = $following->count();
+            $post=post::all();
+            $posts = $post->count();
+            function formatNumber($number) {
+                if ($number >= 1000000) {
+                    return number_format($number / 1000000, 1) . 'm';
+                } elseif ($number >= 1000) {
+                    return number_format($number / 1000, 1) . 'k';
+                } else {
+                    return $number;
+                }
+            }
+            $response['data']['social_user'] = [
+                        'total_followers' => $followersCount,
+                        'total_following' => $followingCount,
+                        'total_post' => $posts,
+                    ];
         }
         if ($fetchPosts === 1) {
             $response['data']['feeds'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')

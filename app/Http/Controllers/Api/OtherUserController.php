@@ -26,6 +26,7 @@ use App\Model\UserVerify;
 use App\Model\UserListMember;
 use App\Model\Reaction;
 use App\Providers\PostsHelperServiceProvider;
+use App\Providers\ListsHelperServiceProvider; 
 use App\Providers\SettingsServiceProvider;
 use App\Providers\AuthServiceProvider;
 use Cookie;
@@ -37,17 +38,12 @@ class OtherUserController extends Controller
 {
     public function profile_another_user(Request $request)
     {
-        // Validate the request
         $request->validate([
             'id' => 'required|integer|exists:users,id',
         ]);
     
         $id = $request->input('id');
-    
-        // Retrieve user data
         $user = User::findOrFail($id);
-    
-        // User data to be returned
         $user_data = [
             'id' => $user->id,
             'name' => $user->name,
@@ -62,8 +58,31 @@ class OtherUserController extends Controller
             'country_id' => $user->country_id,
             'gender_id' => $user->gender_id,
         ];
+        // Define formatNumber function
     
-        // Define subscription options
+        $social_user_data = [];
+            $authUserId = Auth::id();
+            $followers = ListsHelperServiceProvider::getUserFollowers($authUserId);
+            $followerIds = collect($followers)->pluck('user_id');
+            $followersCount = $followerIds->count();
+
+            $followingCount = UserListMember::where('user_id', $id)->count();
+            $postsCount = Post::where('user_id', $id)->count();
+            function formatNumber($number)
+            {
+                if ($number >= 1000000) {
+                    return number_format($number / 1000000, 1) . 'm';
+                } elseif ($number >= 1000) {
+                    return number_format($number / 1000, 1) . 'k';
+                } else {
+                    return $number;
+                }
+            }
+            $social_user_data = [
+                'total_followers' => $followersCount,
+                'total_following' => $followingCount,
+                'total_post' => $postsCount,
+            ];
         $subscriptions = [
             '1_month' => [
                 'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
@@ -82,8 +101,6 @@ class OtherUserController extends Controller
                 'duration' => trans_choice('months', 12, ['number' => 12]),
             ],
         ];
-    
-        // Retrieve posts and associated data
         $posts = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
             ->with([
                 'attachments' => function ($query) {
@@ -101,13 +118,11 @@ class OtherUserController extends Controller
             ])
             ->where('user_id', $id)
             ->get();
-    
-        // Prepare the response
         return response()->json([
             'status' => '200',
             'user_data' => $user_data,
+            'social_user'=> $social_user_data,
             'user_verify' => UserVerify::all(['id', 'user_id', 'status']),
-            'user_list_member_follow' => UserListMember::where('user_id', $id)->get(['id', 'user_id', 'list_id']),
             'feed' => $posts,
             'subscriptions' => $subscriptions,
         ]);
@@ -144,7 +159,6 @@ class OtherUserController extends Controller
             ],
         ];
 
-        // Return the data as a JSON response
         return response()->json([
             'status' => '200',
             'data' => $Subscriptions,
