@@ -522,51 +522,64 @@ class SettingsController extends Controller
             'message' => __('Profile saved.'),
         ]);
     }
-    public function profile_cover_image_upload(ProfileUploadRequest $request)
-    {   
-        $data=[];
+    public function profile_cover_image_upload(Request $request)
+    {    
         $file = $request->file('file');
-        $type = 'cover';
+        if ($file == null) {
+            return response()->json([
+                'status' => '400',
+                'message' => 'No file was uploaded.'
+            ]);
+        }
+            $data=[]; 
+            $type = 'cover';
 
-        try {
-            $directory = 'users/'.$type;
-            $s3 = Storage::disk(config('filesystems.defaultFilesystemDriver'));
-            $fileId = Uuid::uuid4()->getHex();
-            $filePath = $directory.'/'.$fileId.'.'.$file->guessClientExtension();
+            try {
+                $directory = 'users/'.$type;
+                $s3 = Storage::disk(config('filesystems.defaultFilesystemDriver'));
+                $fileId = Uuid::uuid4()->getHex();
+                $filePath = $directory.'/'.$fileId.'.'.$file->guessClientExtension();
 
-            $img = Image::make($file);
-            if ($type == 'cover') {
-                $coverWidth = 599;
-                $coverHeight = 180;
-                if(getSetting('media.users_covers_size')){
-                    $coverSizes = explode('x',getSetting('media.users_covers_size'));
-                    if(isset($coverSizes[0])){
-                        $coverWidth = (int)$coverSizes[0];
+                $img = Image::make($file);
+                if ($type == 'cover') {
+                    $coverWidth = 599;
+                    $coverHeight = 180;
+                    if(getSetting('media.users_covers_size')){
+                        $coverSizes = explode('x',getSetting('media.users_covers_size'));
+                        if(isset($coverSizes[0])){
+                            $coverWidth = (int)$coverSizes[0];
+                        }
+                        if(isset($coverSizes[1])){
+                            $coverHeight = (int)$coverSizes[1];
+                        }
                     }
-                    if(isset($coverSizes[1])){
-                        $coverHeight = (int)$coverSizes[1];
-                    }
+                    $img->fit($coverWidth, $coverHeight)->orientate();
+                    $data = ['cover' => $filePath];
                 }
-                $img->fit($coverWidth, $coverHeight)->orientate();
-                $data = ['cover' => $filePath];
+                $img->encode('jpg', 100);
+                Auth()->user()->update($data);
+                $s3->put($filePath, $img, 'public');
+            } catch (\Exception $exception) {
+                return response()->json(['status' => '400','errors' => ['file'=>$exception->getMessage()]]);
             }
-            $img->encode('jpg', 100);
-            Auth()->user()->update($data);
-            $s3->put($filePath, $img, 'public');
-        } catch (\Exception $exception) {
-            return response()->json(['status' => '400','errors' => ['file'=>$exception->getMessage()]]);
-        }
 
-        $assetPath = GenericHelperServiceProvider::getStorageAvatarPath($filePath);
-        if($type == 'cover'){
-            $assetPath = GenericHelperServiceProvider::getStorageCoverPath($filePath);
-        }
-        return response()->json(['status' => '200', 'message' => __('Cover image uploaded successfully!'),'assetSrc' => $assetPath]);
+            $assetPath = GenericHelperServiceProvider::getStorageAvatarPath($filePath);
+            if($type == 'cover'){
+                $assetPath = GenericHelperServiceProvider::getStorageCoverPath($filePath);
+            }
+            return response()->json(['status' => '200', 'message' => __('Cover image uploaded successfully!'),'assetSrc' => $assetPath]);
+            
     }
-    public function profile_avatar_image_upload(ProfileUploadRequest $request)
-   {    
+    public function profile_avatar_image_upload(Request $request)
+   {   
+    $file = $request->file('file');
+        if ($file == null) {
+            return response()->json([
+                'status' => '400',
+                'message' => 'No file was uploaded.'
+            ]);
+        } 
         $data=[];
-        $file = $request->file('file');
         $type = 'avatar';
         try {
             $directory = 'users/'.$type;
