@@ -340,7 +340,18 @@ class SettingsController extends Controller
             if($imageCName=='default-cover.png') {
                 $default_cover = 1;
             }
-
+            $userVerify = UserVerify::where('user_id', $user->id)->first();
+            if ($userVerify) {
+                if ($userVerify->status == 'rejected') {
+                    $status = '1';
+                } elseif ($userVerify->status == 'pending') {
+                    $status = '2';
+                } elseif ($userVerify->status == 'verified') {
+                    $status = '3';
+                } else {
+                    $status = 'pending';
+                }
+            }
             $response['data']['user'] = [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -356,11 +367,9 @@ class SettingsController extends Controller
                 'website' => $user->website,
                 'country_id' => $user->country_id,
                 'gender_id' => $user->gender_id,
-                'created_at' => $user->created_at,
+                'created_at' =>Carbon::parse($user->created_at)->format('F j'),
+                'user_verify' =>$status,
             ];
-        }
-        if ($fetchverify === 1) {
-            $response['data']['user_verify'] = UserVerify::all(['id','user_id', 'status']);
         }
         if ($fetcfollowinglist === 1) {
             $authUserId = Auth::id();
