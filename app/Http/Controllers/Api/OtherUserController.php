@@ -44,12 +44,41 @@ class OtherUserController extends Controller
     
         $id = $request->input('id');
         $user = User::findOrFail($id);
+        $parsedAUrl = parse_url($user->avatar);
+            $imageAPath = $parsedAUrl['path'];
+            $imageAName = basename($imageAPath);
+            $default_avatar = 0;
+            if($imageAName=='default-avatar.jpg') {
+                $default_avatar = 1;
+            }
+            $parsedCUrl = parse_url($user->cover);
+            $imageCPath = $parsedCUrl['path'];
+            $imageCName = basename($imageCPath);
+            $default_cover = 0;
+            if($imageCName=='default-cover.png') {
+                $default_cover = 1;
+            }
+            $status = '0'; 
+            $userVerify = UserVerify::where('user_id', $user->id)->first(); 
+            if ($userVerify) {
+                if ($userVerify->status == 'rejected') {
+                    $status = '1';
+                } elseif ($userVerify->status == 'pending') {
+                    $status = '2';
+                } elseif ($userVerify->status == 'verified') {
+                    $status = '3';
+                } else {
+                    $status = 'pending';
+                }
+            }
         $user_data = [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
             'avatar' => $user->avatar,
             'cover' => $user->cover,
+            'default_avatar' => $default_avatar,
+            'default_cover' => $default_cover,
             'bio' => $user->bio,
             'birthdate' => $user->birthdate,
             'gender_pronoun' => $user->gender_pronoun,
@@ -57,6 +86,8 @@ class OtherUserController extends Controller
             'website' => $user->website,
             'country_id' => $user->country_id,
             'gender_id' => $user->gender_id,
+            'created_at' =>Carbon::parse($user->created_at)->format('F j'),
+            'user_verify' =>$status,
         ];
         // Define formatNumber function
     
