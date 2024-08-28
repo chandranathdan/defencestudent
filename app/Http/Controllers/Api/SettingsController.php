@@ -311,7 +311,6 @@ class SettingsController extends Controller
                 'message' => __('User not found.'),
             ]);
         }
-        
         $fetchUser = (int) $request->post('user');
         $fetchverify = (int) $request->post('user_verify');
         $fetcfollowinglist = (int) $request->post('social_user');
@@ -327,12 +326,29 @@ class SettingsController extends Controller
         ];
         
         if ($fetchUser === 1) {
+            $parsedAUrl = parse_url($user->avatar);
+            $imageAPath = $parsedAUrl['path'];
+            $imageAName = basename($imageAPath);
+            $default_avatar = 0;
+            if($imageAName=='default-avatar.jpg') {
+                $default_avatar = 1;
+            }
+            $parsedCUrl = parse_url($user->cover);
+            $imageCPath = $parsedCUrl['path'];
+            $imageCName = basename($imageCPath);
+            $default_cover = 0;
+            if($imageCName=='default-cover.png') {
+                $default_cover = 1;
+            }
+
             $response['data']['user'] = [
                 'id' => $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
                 'avatar' => $user->avatar,
                 'cover' => $user->cover,
+                'default_avatar' => $default_avatar,
+                'default_cover' => $default_cover,
                 'bio' => $user->bio,
                 'birthdate' => $user->birthdate,
                 'gender_pronoun' => $user->gender_pronoun,

@@ -8,7 +8,10 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\Homecontroller;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\OtherUserController;
-use App\Http\Controllers\Api\SearchTopController;
+use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\NotificationsController;
+use App\Http\Controllers\Api\BookmarksController;
+use App\Http\Controllers\Api\MessengerController;
 
 
 /*
@@ -73,11 +76,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/profile_another_user', [OtherUserController::class, 'profile_another_user']); // profile_another_user url
 		Route::post('/profile_another_user_subscriptions_submit', [OtherUserController::class, 'profile_another_user_subscriptions_submit']); // profile_another_user_subscriptions_submit url
 		Route::get('/profile_another_user_subscriptions_fetch', [OtherUserController::class, 'profile_another_user_subscriptions_fetch']); // profile_another_user_subscriptions_fetch url
-		Route::get('/search', [SearchTopController::class, 'search']); // search url
-		Route::get('/search_top', [SearchTopController::class, 'search_top']); // search_top url
-		Route::get('/search_people/{id}', [SearchTopController::class, 'search_people']); // search_people url
-		Route::get('/search_latest/{id}', [SearchTopController::class, 'search_latest']); // search_latest url
-	
+		Route::get('/search', [SearchController::class, 'search']); // search url
+		Route::get('/search_top', [SearchController::class, 'search_top']); // search_top url
+		Route::get('/search_people/{id}', [SearchController::class, 'search_people']); // search_people url
+		Route::get('/search_latest', [SearchController::class, 'search_latest']); // search_latest url
+		Route::get('/search_videos/{id}', [SearchController::class, 'search_videos']); // search_videos url
+		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
+		Route::get('/bookmarks_all', [BookmarksController::class, 'bookmarks_all']); // bookmarks_all url
+		Route::get('/notifications/{type?}', [NotificationsController::class, 'notifications']); // notifications url
+		Route::get('/messenger', [MessengerController::class, 'messenger']); // notifications url
 	
 	});
 });

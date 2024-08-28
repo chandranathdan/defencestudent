@@ -27,6 +27,7 @@ use App\Providers\EmailsServiceProvider;
 use App\Providers\GenericHelperServiceProvider;
 use App\Providers\SettingsServiceProvider; 
 use App\Providers\StreamsServiceProvider;
+use App\Providers\PostsHelperServiceProvider;
 use App\Model\UserCode;
 use App\Model\Post;
 use App\Model\UserGender;
@@ -45,7 +46,7 @@ use JavaScript;
 use Jenssegers\Agent\Agent;
 use Ramsey\Uuid\Uuid;
 
-class SearchTopController extends Controller
+class SearchController extends Controller
 {
     public function search(Request $request)
     {
@@ -134,37 +135,31 @@ class SearchTopController extends Controller
             'has_posts' => $hasPosts
         ]);
     }
-    public function search_latest($id)
+    public function search_latest(Request $request)
     {
-        $post = Post::with(['user', 'attachments', 'reactions', 'comments', 'bookmarks', 'postPurchases'])
-            ->findOrFail($postId);
-        $isSubbed = Auth::check() && (Auth::user()->subscribedTo($post->user) || $post->user->open_profile);
-        $canViewPost = $isSubbed || $post->price <= 0 || (Auth::check() && Auth::user()->hasUnlockedPost($post));
-        $postData = [
-            'id' => $post->id,
-            'user' => [
-                'id' => $post->user->id,
-                'name' => $post->user->name,
-                'username' => $post->user->username,
-                'avatar' => $post->user->avatar,
+        $sortOrder = $request->query('sortOrder', 'desc');
+        $searchTerm = $request->query('searchTerm', ''); 
+
+        $startPage = PostsHelperServiceProvider::getFeedStartPage(PostsHelperServiceProvider::getPrevPage($request));
+        $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage, false, $sortOrder, $searchTerm);
+        PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
+
+        $jsData = [
+            'paginatorConfig' => [
+                'next_page_url' => str_replace('/search', '/search/posts', $posts->nextPageUrl()),
+                'prev_page_url' => str_replace('/search', '/search/posts', $posts->previousPageUrl()),
+                'current_page' => $posts->currentPage(),
+                'total' => $posts->total(),
+                'per_page' => $posts->perPage(),
+                'hasMore' => $posts->hasMorePages(),
             ],
-            'text' => $canViewPost ? $post->text : null,
-            'attachments' => $canViewPost ? $post->attachments : [],
-            'created_at' => $post->created_at->toDateTimeString(),
-            'expire_date' => $post->expire_date ? $post->expire_date->toDateTimeString() : null,
-            'release_date' => $post->release_date ? $post->release_date->toDateTimeString() : null,
-            'price' => $post->price,
-            'is_pinned' => $post->is_pinned,
-            'reactions_count' => $post->reactions->count(),
-            'comments_count' => $post->comments->count(),
-            'tips_count' => $post->tips_count,
-            'is_expired' => $post->is_expired,
-            'is_scheduled' => $post->is_scheduled,
-            'is_bookmarked' => Auth::check() ? $post->bookmarks->contains(Auth::user()->id) : false,
-            'is_liked' => Auth::check() ? $post->reactions->contains('user_id', Auth::user()->id) : false,
-            'comments' => $canViewPost ? $post->comments : [],
+            'initialPostIDs' => $posts->pluck('id')->toArray(),
+            'searchType' => 'feed'
         ];
 
-        return response()->json($postData);
+        return response()->json([
+            'posts' => $posts,
+            'jsData' => $jsData
+        ]);
     }
 }
