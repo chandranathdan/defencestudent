@@ -58,19 +58,14 @@ class OtherUserController extends Controller
             if($imageCName=='default-cover.png') {
                 $default_cover = 1;
             }
-            $status = '0'; 
-            $userVerify = UserVerify::where('user_id', $user->id)->first(); 
-            if ($userVerify) {
-                if ($userVerify->status == 'rejected') {
-                    $status = '1';
-                } elseif ($userVerify->status == 'pending') {
-                    $status = '2';
-                } elseif ($userVerify->status == 'verified') {
-                    $status = '3';
-                } else {
-                    $status = 'pending';
-                }
-            }
+            $userVerify = $user->email_verified_at && $user->birthdate && 
+            ($user->verification && $user->verification->status == 'verified');
+              $status = 0;
+              if ($userVerify) {
+                  $status = 1;
+              }else{
+                  $status = 0;
+              }
         $user_data = [
             'id' => $user->id,
             'name' => $user->name,
@@ -89,7 +84,6 @@ class OtherUserController extends Controller
             'created_at' =>Carbon::parse($user->created_at)->format('F j'),
             'user_verify' =>$status,
         ];
-        // Define formatNumber function
     
         $social_user_data = [];
             $authUserId = Auth::id();
@@ -153,7 +147,6 @@ class OtherUserController extends Controller
             'status' => '200',
             'user_data' => $user_data,
             'social_user'=> $social_user_data,
-            'user_verify' => UserVerify::all(['id', 'user_id', 'status']),
             'feed' => $posts,
             'subscriptions' => $subscriptions,
         ]);

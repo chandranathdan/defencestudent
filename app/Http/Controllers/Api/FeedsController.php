@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use function App\Helpers\getSetting;
 use App\Model\UserList;
 use App\User;
+use Carbon\Carbon;
 
 class FeedsController extends Controller
 {
@@ -66,7 +67,7 @@ class FeedsController extends Controller
         ]);
     }
     //feed
-    public function feed_data()
+    public function feed_data(Request $request)
     {
         $user = User::with(['attachments' => function ($query) {
             $query->select('filename', 'post_id', 'driver');
@@ -79,5 +80,29 @@ class FeedsController extends Controller
             'user' => $user,
         ]);
     }
-    
+    public function feeds_post_like(Request $request)
+    {
+        $userId = $request->input('user_id');
+        
+        if (!$userId) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'User ID is required'
+            ]);
+        }
+        
+        $user = User::select('id', 'name', 'username', 'avatar')
+            ->where('id', $userId)
+            ->first();
+        if (!$user) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'User not found'
+            ]);
+        } 
+        return response()->json([
+            'status' => 200,
+            'user' => $user,
+        ]);
+    }
 }

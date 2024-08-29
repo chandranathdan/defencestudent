@@ -11,7 +11,6 @@ use App\Http\Controllers\Api\OtherUserController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\NotificationsController;
 use App\Http\Controllers\Api\BookmarksController;
-use App\Http\Controllers\Api\MessengerController;
 
 
 /*
@@ -34,8 +33,7 @@ Route::post('/register', [UserController::class, 'register']); // REGISTER url
 Route::post('/forgot-password', [UserController::class, 'forgotpassword']); // FORGOTPASSWORD url
 Route::post('/forgot-password/verify-otp', [UserController::class, 'forget_password_verify_otp']); // Verify otp
 Route::post('/reset-password', [UserController::class, 'resetpassword']); // RESETPASSWORD url
-Route::post('/feed', [UserController::class, 'feed']); // feed url
-
+Route::get('/home_slider', [Homecontroller::class, 'home_slider']); // home_slider url
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 	Route::post('/register/verify-otp', [UserController::class, 'register_verify_otp']);
@@ -44,9 +42,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 	Route::group(['middleware' => ['api_email_verified']], function () {
 		Route::get('/feeds_indivisual/{id}', [FeedsController::class, 'feeds_indivisual']); // feeds-indivisual URL
 		Route::get('/feeds_indivisual_filter_image/{id}', [FeedsController::class, 'feeds_indivisual_filter_image']); // feeds_indivisual_filter_image URL
-		Route::get('/feed-alldata', [FeedsController::class, 'feed_data']); // feed URL
-		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url
-		
+		Route::post('/feed', [FeedsController::class, 'feed_data']); // feed URL
+		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url		
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
 		Route::get('/privacy', [SettingsController::class, 'privacy']); // privacy url
 		Route::post('/privacy_delete', [SettingsController::class, 'privacy_delete']); // privacy_delete url
@@ -63,7 +60,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/profile_avatar_image_delete', [SettingsController::class, 'profile_avatar_image_delete']); // profile_avatar_image_delete url
 		Route::get('/verify_email_birthdate', [SettingsController::class, 'verify_email_birthdate']); // verify_email_birthdate url
 		Route::post('/verify_Identity_check', [SettingsController::class, 'verify_Identity_check']); // verify_Identity_check url
-		Route::get('/home_slider', [Homecontroller::class, 'home_slider']); // home_slider url
 		Route::get('/wallet_available_pending_balance', [WalletController::class, 'wallet_available_pending_balance']); // wallet_available_pending_balance url
 		Route::post('/wallet_request_withdraw', [WalletController::class, 'wallet_request_withdraw']); // wallet_request_withdraw url
 		Route::post('/wallet_deposit', [WalletController::class, 'wallet_deposit']); // wallet_deposit url
@@ -82,9 +78,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/search_latest', [SearchController::class, 'search_latest']); // search_latest url
 		Route::get('/search_videos/{id}', [SearchController::class, 'search_videos']); // search_videos url
 		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
-		Route::get('/bookmarks_all', [BookmarksController::class, 'bookmarks_all']); // bookmarks_all url
 		Route::get('/notifications/{type?}', [NotificationsController::class, 'notifications']); // notifications url
-		Route::get('/messenger', [MessengerController::class, 'messenger']); // notifications url
+		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
 	
 	});
 });

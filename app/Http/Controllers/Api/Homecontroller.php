@@ -11,26 +11,26 @@ class Homecontroller extends Controller
     {
         $carouselItems = [
             [
-                'image' =>"{{asset('/img/static/slider2.png')}}",
+                'image' =>asset('/img/static/slider2.png'),
                 'alt' => 'First slide',
                 'title' => 'Learn Self Defence Online',
              
             ],
             [
-                'image' =>"{{asset('/img/static/slider3.png')}}",
+                'image' =>asset('/img/static/slider3.png'),
                 'alt' => 'Second slide',
                 'title' => 'Teach Self Defence Online',
             ],
             [
-                'image' =>"{{asset('/img/static/slider4.png')}}",
+                'image' =>asset('/img/static/slider4.png'),
                 'alt' => 'Third slide',
                 'title' => 'Onlyfans for Self Defence',
             ]
         ];
 
         return response()->json([
-            'status' => '200',
-            'user' => $carouselItems,
+            'status' => 200,
+            'data' => $carouselItems,
         ]);
     }
 }

@@ -340,18 +340,14 @@ class SettingsController extends Controller
             if($imageCName=='default-cover.png') {
                 $default_cover = 1;
             }
-            $userVerify = UserVerify::where('user_id', $user->id)->first();
-            if ($userVerify) {
-                if ($userVerify->status == 'rejected') {
-                    $status = '1';
-                } elseif ($userVerify->status == 'pending') {
-                    $status = '2';
-                } elseif ($userVerify->status == 'verified') {
-                    $status = '3';
-                } else {
-                    $status = 'pending';
+            $userVerify = $user->email_verified_at && $user->birthdate && 
+              ($user->verification && $user->verification->status == 'verified');
+                $status = 0;
+                if ($userVerify) {
+                    $status = 1;
+                }else{
+                    $status = 0;
                 }
-            }
             $response['data']['user'] = [
                 'id' => $user->id,
                 'name' => $user->name,
