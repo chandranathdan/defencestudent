@@ -25,8 +25,8 @@ class UpdateUserSettingsRequest extends FormRequest
     public function rules()
     {
         return [
-            'password' => ['required', 'min:8', new MatchOldPassword],
-            'new_password' => ['required', 'min:8', 'same:confirm_password'],
+            'password' => ['required', 'min:6', new MatchOldPassword],
+            'new_password' => ['required', 'min:6', 'same:confirm_password'],
             'confirm_password' => ['same:new_password'],
         ];
     }

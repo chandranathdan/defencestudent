@@ -277,22 +277,22 @@ class SettingsController extends Controller
     { 
         $validator = Validator::make($request->all(), [
             'password' => ['required', 'current_password'],
-            'new_password' => ['required', 'min:8'],
-            'confirm_password' => ['required_with:new_password', 'same:new_password','min:8']
+            'new_password' => ['required', 'min:6'],
+            'confirm_password' => ['required_with:new_password', 'same:new_password','min:6']
         ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 600,
-                'errors' => $validator->errors()
-            ],);
-        }
+        if($validator->fails()){
+			return response()->json([
+				'errors'=>$validator->errors(),
+				'status'=>600,
+			]);
+		}
     
         $user = Auth::user();
         if (!Hash::check($request->input('password'), $user->password)) {
             return response()->json([
                 'status' => 400,
                 'message' => 'Current password is incorrect'
-            ], 400);
+            ]);
         }
 
         $user->password = Hash::make($request->input('new_password'));
@@ -300,7 +300,7 @@ class SettingsController extends Controller
         return response()->json([
             'status' => 200,
             'message' => 'Password changed successfully'
-        ], 200);
+        ]);
     } 
     public function profile(Request $request)
     {

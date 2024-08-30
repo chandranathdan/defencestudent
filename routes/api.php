@@ -80,6 +80,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
 		Route::get('/notifications/{type?}', [NotificationsController::class, 'notifications']); // notifications url
 		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
+		Route::post('/feeds_post_comments', [FeedsController::class, 'feeds_post_comments']); // feeds_post_comments url
+		Route::post('/feeds_post_tips', [FeedsController::class, 'feeds_post_tips']); // feeds_post_tips url
 	
 	});
 });
