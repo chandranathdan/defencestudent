@@ -65,6 +65,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/wallet_deposit', [WalletController::class, 'wallet_deposit']); // wallet_deposit url
 		Route::get('/notifications', [WalletController::class, 'notifications']); // notifications url
 		Route::get('/payments_fetch', [WalletController::class, 'payments_fetch']); // payments_fetch url
+		Route::get('/invoices/{id}', [WalletController::class, 'invoices']); // invoices url
 		Route::get('/subscriptions_fetch', [WalletController::class, 'subscriptions_fetch']); // subscriptions_fatch url
 		Route::post('/subscriptions_canceled', [WalletController::class, 'subscriptions_canceled']); // subscriptions_Canceled url
 		Route::get('/subscribers_fetch', [WalletController::class, 'subscribers_fetch']); // subscribers_fetch url

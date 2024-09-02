@@ -308,70 +308,6 @@ class UserController extends Controller
 		$msg = 'Password updated successfully.';
 		return $this->authResponse($user, $msg);
     }
-	
-    public function feed(Request $request){
-        try {
-            // Ensure user is authenticated
-            if (!Auth::check()) {
-                return response()->json(['status' => '600', 'message' => 'Unauthorized']);
-            }
-
-            // Log request data
-            Log::info('Feed request received with parameters: ', $request->all());
-
-            // Fetch previous page and start page
-            $prevPage = PostsHelperServiceProvider::getPrevPage($request);
-            $startPage = PostsHelperServiceProvider::getFeedStartPage($prevPage);
-
-            // Fetch posts
-            $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage);
-
-            // Handle pagination cookie
-            PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
-
-            // Set up JavaScript variables
-            JavaScript::put([
-                'paginatorConfig' => [
-                    'next_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->nextPageUrl()),
-                    'prev_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->previousPageUrl()),
-                    'current_page' => $posts->currentPage(),
-                    'total' => $posts->total(),
-                    'per_page' => $posts->perPage(),
-                    'hasMore' => $posts->hasMorePages(), 
-                ],
-                'initialPostIDs' => $posts->pluck('id')->toArray(),
-                'sliderConfig' => [
-                    'autoslide' => getSetting('feed.feed_suggestions_autoplay') ? true : false,
-                ],
-                'user' => [
-                    'username' => Auth::user()->username,
-                    'user_id' => Auth::user()->id,
-                    'lists' => [
-                        'blocked' => Auth::user()->lists->firstWhere('type', 'blocked')->id,
-                        'following' => Auth::user()->lists->firstWhere('type', 'following')->id,
-                    ],
-                ],
-            ]);
-
-            // Return the view with headers
-            return Response::view('pages.feed', [
-                'posts' => $posts,
-                'suggestions' => MembersHelperServiceProvider::getSuggestedMembers(),
-            ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-              ->header('Pragma', 'no-cache')
-              ->header('Expires', '0');
-        } catch (\Exception $e) {
-            // Log the error message and stack trace
-            Log::error('Error in UserController@feed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-
-            // Return a user-friendly error response
-            return response()->json([
-                'status' => '400',
-                'message' => 'An error occurred while processing your request.'
-            ]);
-        }
-    }
-	
 	public function post_create(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -385,19 +321,17 @@ class UserController extends Controller
         if ($validator->fails()) {
             return response()->json([
 				'errors' => $validator->errors(),
-				'status' => '600',
+				'status' => 600,
 			]);
         }
         $post = $request->input('post_id') ? Post::find($request->input('post_id')) : new Post();
         if (!$post) {
-            return response()->json(['status' => '400', 'message' => 'Post not found']);
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
         }
 
         $post->user_id = Auth::id();
         $post->text = $request->input('text');
         $post->price = $request->input('price', 0);
-        $post->release_date = $request->input('release_date');
-        $post->expire_date = $request->input('expire_date');
         $post->save();
         if ($request->hasFile('attachments')) {
             $file = $request->file('attachments');
@@ -409,11 +343,11 @@ class UserController extends Controller
                 $attachment->post_id = $post->id;
                 $attachment->save();
             } else {
-                return response()->json(['status' => '400', 'message' => 'File upload failed.']);
+                return response()->json(['status' => 400, 'message' => 'File upload failed.']);
             }
         }
         return response()->json([
-            'status' => '200',
+            'status' => 200,
             'message' => 'post_create saved successfully'
         ], 200);
     }

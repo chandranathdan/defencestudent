@@ -262,4 +262,66 @@ class FeedsController extends Controller
             'message' => 'Tip sent successfully'
         ]);
     }
+    public function feeds(Request $request){
+        try {
+            // Ensure user is authenticated
+            if (!Auth::check()) {
+                return response()->json(['status' => '600', 'message' => 'Unauthorized']);
+            }
+
+            // Log request data
+            Log::info('Feed request received with parameters: ', $request->all());
+
+            // Fetch previous page and start page
+            $prevPage = PostsHelperServiceProvider::getPrevPage($request);
+            $startPage = PostsHelperServiceProvider::getFeedStartPage($prevPage);
+
+            // Fetch posts
+            $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage);
+
+            // Handle pagination cookie
+            PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
+
+            // Set up JavaScript variables
+            JavaScript::put([
+                'paginatorConfig' => [
+                    'next_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->nextPageUrl()),
+                    'prev_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->previousPageUrl()),
+                    'current_page' => $posts->currentPage(),
+                    'total' => $posts->total(),
+                    'per_page' => $posts->perPage(),
+                    'hasMore' => $posts->hasMorePages(), 
+                ],
+                'initialPostIDs' => $posts->pluck('id')->toArray(),
+                'sliderConfig' => [
+                    'autoslide' => getSetting('feed.feed_suggestions_autoplay') ? true : false,
+                ],
+                'user' => [
+                    'username' => Auth::user()->username,
+                    'user_id' => Auth::user()->id,
+                    'lists' => [
+                        'blocked' => Auth::user()->lists->firstWhere('type', 'blocked')->id,
+                        'following' => Auth::user()->lists->firstWhere('type', 'following')->id,
+                    ],
+                ],
+            ]);
+
+            // Return the view with headers
+            return Response::view('pages.feed', [
+                'posts' => $posts,
+                'suggestions' => MembersHelperServiceProvider::getSuggestedMembers(),
+            ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+              ->header('Pragma', 'no-cache')
+              ->header('Expires', '0');
+        } catch (\Exception $e) {
+            // Log the error message and stack trace
+            Log::error('Error in UserController@feed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
+            // Return a user-friendly error response
+            return response()->json([
+                'status' => '400',
+                'message' => 'An error occurred while processing your request.'
+            ]);
+        }
+    }
 }

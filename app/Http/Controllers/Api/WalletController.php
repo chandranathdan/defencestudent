@@ -18,6 +18,7 @@ use App\Model\Subscription;
 use App\Model\Transaction;
 use App\Model\UserDevice;
 use App\Model\UserGender;
+use App\Model\Invoice;
 use App\Model\UserVerify;
 use App\Providers\AttachmentServiceProvider;
 use App\Providers\AuthServiceProvider;
@@ -97,7 +98,7 @@ class WalletController extends Controller
         if ($validator->fails()) {
             return response()->json([
 				'errors' => $validator->errors(),
-				'status' => '600',
+				'status' => 600,
 			]);
         }
 
@@ -115,7 +116,7 @@ class WalletController extends Controller
 
                 if (floatval($amount) < floatval(\App\Providers\PaymentsServiceProvider::getWithdrawalMinimumAmount())) {
                     return response()->json([
-                        'status' => '400',
+                        'status' => 400,
                         'message' => __("You don't have enough credit to withdraw. Minimum amount is: :minAmount", ['minAmount' => PaymentsServiceProvider::getWithdrawalMinimumAmount()])
                     ], 400);
                 }
@@ -160,38 +161,40 @@ class WalletController extends Controller
                 }
 
                 return response()->json([
-                    'status' => '200',
+                    'status' => 200,
                     'message' => __('Successfully requested withdrawal'),
                     'totalAmount' => SettingsServiceProvider::getWebsiteFormattedAmount($totalAmount),
                     'pendingBalance' => SettingsServiceProvider::getWebsiteFormattedAmount($pendingBalance),
                 ]);
             }
         } catch (\Exception $exception) {
-            return response()->json(['status' => '400', 'message' => $exception->getMessage()]);
+            return response()->json(['status' => 400, 'message' => $exception->getMessage()]);
         }
 
-        return response()->json(['status' => '400', 'message' => __('Something went wrong, please try again')], 500);
+        return response()->json(['status' => 400, 'message' => __('Something went wrong, please try again')]);
     }
-    public function wallet_deposit(Request $request)
+    public function wallet_deposit(Request $request) 
     {
         $validator = Validator::make($request->all(), [
             'amount' => 'required|numeric|min:' . \App\Providers\PaymentsServiceProvider::getDepositMinimumAmount() . '|max:' . \App\Providers\PaymentsServiceProvider::getDepositMaximumAmount(),
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors(),
-                'status' => '600',
+                'status' => 600,
             ]);
         }
-            $deposit = new PaymentRequest();
-            $deposit->amount = $request->input('amount');
-            $deposit->user_id = auth()->id();
-            $deposit->save();
-            return response()->json([
-                'message' => 'Deposit successfully processed',
-                'status' => '200',
-                'deposit' => $deposit,
-            ]);
+        $deposit = new Wallet();
+        $deposit->id = rand(10,100);
+        $deposit->user_id = auth()->id();
+        $deposit->total = $request->input('amount');
+        $deposit->save();
+        return response()->json([
+            'message' => 'Deposit successfully processed',
+            'status' => 200,
+            'deposit' => $deposit,
+        ]);
     }
     public function notifications(Request $request)
     { 
@@ -228,24 +231,48 @@ class WalletController extends Controller
 
             return [
                 'id' => $payment->id,
+                'amount' => $payment->amount,
                 'formatted_amount' => $formattedAmount,
-                'sender' => [
+                'type' => $payment->type,
+                'status' => $payment->status,
+                'sender' => $payment->sender ? [
                     'name' => $payment->sender->name,
                     'profile_url' => route('profile', ['username' => $payment->sender->username])
-                ],
-                'receiver' => [
+                ] : null,
+                'receiver' => $payment->receiver ? [
                     'name' => $payment->receiver->name,
                     'profile_url' => route('profile', ['username' => $payment->receiver->username])
-                ],
-                'decoded_taxes' => $payment->decodedTaxes,
+                ] : null,
             ];
         });
         
         return response()->json([
-            'message' => 'Paymante fetch successfully',
-            'status' => '200',
-            'payments' => $payments,
+            'status' => 200,
+            'payments' => $formattedPayments,
         ]);
+    }
+    public function invoices($id)
+    {    
+        $invoice = Invoice::with('transaction')->find($id);
+        if (!$invoice) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Invoice not found',
+            ]);
+        }
+        if ($invoice->transaction && $invoice->transaction->sender_user_id !== Auth::id() && Auth::user()->role_id !== 1) {
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'Unauthorized',
+                ]); 
+        }
+        $logoUrl = asset('storage/settings/July2024/NpKPs2YR6YIZU4TlECV3.png');
+        return response()->json([
+            'status' => 200,
+            'invoice' => $invoice,
+            'logourl'=>$logoUrl,
+        ]);
+        
     }
 
     public function subscriptions_fetch(Request $request)
