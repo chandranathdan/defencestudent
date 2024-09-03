@@ -50,7 +50,6 @@ class SettingsController extends Controller
     {
         $userID = Auth::user()->id;
         $user = Auth::user(); 
-
         $devices = UserDevice::where('user_id', $userID)
             ->orderBy('created_at', 'DESC')
             ->get()
@@ -136,7 +135,7 @@ class SettingsController extends Controller
             'is_offer' => 'nullable|boolean',
             'paid_profile' => 'nullable|boolean',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => 422,
@@ -144,12 +143,19 @@ class SettingsController extends Controller
             ], 422);
         }
         $user = Auth::user();
+    
+        if (!$user) {
+            return response()->json([
+                'status' => 401,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+    
         $isOffer = $request->input('is_offer', false);
-
         if ($isOffer) {
             $offerExpireDate = $request->input('profile_access_offer_date');
             $currentOffer = CreatorOffer::where('user_id', $user->id)->first();
-
+    
             $data = [
                 'expires_at' => $offerExpireDate,
                 'old_profile_access_price' => $user->profile_access_price,
@@ -157,7 +163,7 @@ class SettingsController extends Controller
                 'old_profile_access_price_6_months' => $user->profile_access_price_6_months,
                 'old_profile_access_price_12_months' => $user->profile_access_price_12_months,
             ];
-
+    
             if ($currentOffer) {
                 $currentOffer->update($data);
             } else {
@@ -170,14 +176,15 @@ class SettingsController extends Controller
                 $currentOffer->delete();
             }
         }
+    
+        // Update the user's profile access prices and paid_profile status
         $user->update([
             'profile_access_price' => $request->input('profile_access_price'),
             'profile_access_price_3_months' => $request->input('profile_access_price_3_months'),
             'profile_access_price_6_months' => $request->input('profile_access_price_6_months'),
             'profile_access_price_12_months' => $request->input('profile_access_price_12_months'),
-            'paid_profile' => $request->input('paid_profile', false),
         ]);
-
+    
         return response()->json([
             'status' => 200,
             'message' => 'Rates saved successfully'
@@ -186,323 +193,88 @@ class SettingsController extends Controller
     public function rates_fetch(Request $request)
     {
         $user = Auth::user();
-    
+        
         if (!$user) {
             return response()->json([
-                'error' => 'User not authenticated'
-            ], 401);
-        }
-    
+                'status' => 400,
+                'message' => 'User not authenticated',
+            ]);
+        } 
         $currentOffer = CreatorOffer::where('user_id', $user->id)->first();
-    
-        if (!$currentOffer) {
-            return response()->json([
-                'profile_access_price' => $user->profile_access_price,
-                'profile_access_price_6_months' => $user->profile_access_price_6_months,
-                'profile_access_price_12_months' => $user->profile_access_price_12_months,
-                'profile_access_price_3_months' => $user->profile_access_price_3_months,
-                'paid_profile' => $user->paid_profile,
-                'is_offer' => $user->is_offer,
-                'message' => 'No current offer found'
-            ], 200);
-        }
-    
-        return response()->json([
+        
+        $response = [
             'profile_access_price' => $user->profile_access_price,
             'profile_access_price_6_months' => $user->profile_access_price_6_months,
             'profile_access_price_12_months' => $user->profile_access_price_12_months,
             'profile_access_price_3_months' => $user->profile_access_price_3_months,
             'paid_profile' => $user->paid_profile,
             'is_offer' => $user->is_offer,
-            'current_offer' => [
+        ];
+        
+        if ($currentOffer) {
+            $response['current_offer'] = [
                 'expires_at' => $currentOffer->expires_at,
                 'old_profile_access_price' => $currentOffer->old_profile_access_price,
                 'old_profile_access_price_6_months' => $currentOffer->old_profile_access_price_6_months,
                 'old_profile_access_price_12_months' => $currentOffer->old_profile_access_price_12_months,
                 'old_profile_access_price_3_months' => $currentOffer->old_profile_access_price_3_months,
-            ]
-        ], 200);
+            ];
+        } else {
+            $response['message'] = 'No current offer found';
+        }
+        return response()->json([
+            'status' => 200,
+            'data' => $response,
+        ]);
     }
 
     public function rates_type(Request $request)
     {
-    $validator = Validator::make($request->all(), [
-        'paid_profile' => 'nullable|boolean',
-        'is_offer' => 'nullable|boolean',
-        'profile_access_offer_date' => 'nullable|date'
-    ]);
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 600,
-            'errors' => $validator->errors()
-        ], 422);
-    }
-
-    $user = Auth::user();
-    $isOffer = $request->input('is_offer', false);
-    $profileAccessOfferDate = $request->input('profile_access_offer_date');
-    if ($isOffer) {
-        $data = [
-            'expires_at' => $profileAccessOfferDate,
-            'old_profile_access_price' => $user->profile_access_price,
-            'old_profile_access_price_3_months' => $user->profile_access_price_3_months,
-            'old_profile_access_price_6_months' => $user->profile_access_price_6_months,
-            'old_profile_access_price_12_months' => $user->profile_access_price_12_months,
-        ];
-
-        $currentOffer = CreatorOffer::where('user_id', $user->id)->first();
-
-        if ($currentOffer) {
-            $currentOffer->update($data);
-        } else {
-            $data['user_id'] = $user->id;
-            CreatorOffer::create($data);
-        }
-    } else {
-        $currentOffer = CreatorOffer::where('user_id', $user->id)->first();
-        if ($currentOffer) {
-            $currentOffer->delete();
-        }
-    }
-    $user->update([
-        'paid_profile' => $request->input('paid_profile', false),
-    ]);
-    return response()->json([
-        'status' => 200,
-        'message' => 'Rates type updated successfully'
-    ], 200);
-    }
-    
-    public function account_update(Request $request)
-    { 
         $validator = Validator::make($request->all(), [
-            'password' => ['required', 'current_password'],
-            'new_password' => ['required', 'min:6'],
-            'confirm_password' => ['required_with:new_password', 'same:new_password','min:6']
+            'paid_profile' => 'nullable|integer|in:0,1',
+            'is_offer' => 'nullable|boolean',
+            'profile_access_offer_date' => 'nullable|date',
         ]);
-        if($validator->fails()){
-			return response()->json([
-				'errors'=>$validator->errors(),
-				'status'=>600,
-			]);
-		}
-    
-        $user = Auth::user();
-        if (!Hash::check($request->input('password'), $user->password)) {
+        if ($validator->fails()) {
             return response()->json([
-                'status' => 400,
-                'message' => 'Current password is incorrect'
+                'status' => 600,
+                'errors' => $validator->errors(),
             ]);
         }
-
-        $user->password = Hash::make($request->input('new_password'));
-        $user->save();
+        $user = Auth::user();
+        $isOffer = $request->input('is_offer', false);
+        $profileAccessOfferDate = $request->input('profile_access_offer_date');
+        $paidProfile = (bool) $request->input('paid_profile', 0); 
+        if ($isOffer) {
+            $data = [
+                'expires_at' => $profileAccessOfferDate,
+                'old_profile_access_price' => $user->profile_access_price,
+                'old_profile_access_price_3_months' => $user->profile_access_price_3_months,
+                'old_profile_access_price_6_months' => $user->profile_access_price_6_months,
+                'old_profile_access_price_12_months' => $user->profile_access_price_12_months,
+                'paid_profile' => $user->paid_profile,
+            ];
+            CreatorOffer::updateOrCreate(
+                ['user_id' => $user->id],
+                $data
+            );
+        } else {
+            CreatorOffer::where('user_id', $user->id)->delete();
+        }
+        $updateResult = $user->update([
+            'paid_profile' => $paidProfile,
+        ]);
+        if (!$updateResult) {
+            return response()->json([
+                'status' => 500,
+                'message' => 'Failed to update paid profile',
+            ]);
+        }
         return response()->json([
             'status' => 200,
-            'message' => 'Password changed successfully'
+            'message' => 'Rates type updated successfully',
         ]);
-    } 
-    public function profile(Request $request)
-    {
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json([
-                'status' => '400',
-                'message' => __('User not found.'),
-            ]);
-        }
-        $fetchUser = (int) $request->post('user');
-        $fetchverify = (int) $request->post('user_verify');
-        $fetcfollowinglist = (int) $request->post('social_user');
-        $fetchPosts = (int) $request->post('feeds');
-        $fetchPostsWithAttachments = (int) $request->post('posts_with_attachments');
-        $fetchGenders = (int) $request->post('genders');
-        $fetchPricingData = (int) $request->post('subscriptions');
-        $fetchCountries = (int) $request->post('countries');
-        
-        $response = [
-            'status' => '200',
-            'data' => []
-        ];
-        
-        if ($fetchUser === 1) {
-            $parsedAUrl = parse_url($user->avatar);
-            $imageAPath = $parsedAUrl['path'];
-            $imageAName = basename($imageAPath);
-            $default_avatar = 0;
-            if($imageAName=='default-avatar.jpg') {
-                $default_avatar = 1;
-            }
-            $parsedCUrl = parse_url($user->cover);
-            $imageCPath = $parsedCUrl['path'];
-            $imageCName = basename($imageCPath);
-            $default_cover = 0;
-            if($imageCName=='default-cover.png') {
-                $default_cover = 1;
-            }
-            $userVerify = $user->email_verified_at && $user->birthdate && 
-              ($user->verification && $user->verification->status == 'verified');
-                $status = 0;
-                if ($userVerify) {
-                    $status = 1;
-                }else{
-                    $status = 0;
-                }
-            $response['data']['user'] = [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'avatar' => $user->avatar,
-                'cover' => $user->cover,
-                'default_avatar' => $default_avatar,
-                'default_cover' => $default_cover,
-                'bio' => $user->bio,
-                'birthdate' => $user->birthdate,
-                'gender_pronoun' => $user->gender_pronoun,
-                'location' => $user->location,
-                'website' => $user->website,
-                'country_id' => $user->country_id,
-                'gender_id' => $user->gender_id,
-                'created_at' =>Carbon::parse($user->created_at)->format('F j'),
-                'user_verify' =>$status,
-            ];
-        }
-        if ($fetcfollowinglist === 1) {
-            $authUserId = Auth::id();
-            $followers = ListsHelperServiceProvider::getUserFollowers($authUserId);
-            $followerIds = collect($followers)->pluck('user_id');
-            $followersCount = $followerIds->count();
-        
-            $following = UserListMember::all('id','user_id','list_id');
-            $followingCount = $following->count();
-            $post=post::all();
-            $posts = $post->count();
-            function formatNumber($number) {
-                if ($number >= 1000000) {
-                    return number_format($number / 1000000, 1) . 'm';
-                } elseif ($number >= 1000) {
-                    return number_format($number / 1000, 1) . 'k';
-                } else {
-                    return $number;
-                }
-            }
-            $response['data']['social_user'] = [
-                        'total_followers' => $followersCount,
-                        'total_following' => $followingCount,
-                        'total_post' => $posts,
-                    ];
-        }
-        if ($fetchPosts === 1) {
-            $response['data']['feeds'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
-                ->with([
-                    'attachments' => function ($query) {
-                        $query->select('filename', 'post_id', 'driver');
-                    },
-                    'user' => function ($query) {
-                        $query->select('id', 'name', 'username');
-                    },
-                    'comments' => function ($query) {
-                        $query->select('id', 'post_id', 'message', 'user_id');
-                    },
-                    'reactions' => function ($query) {
-                        $query->select('post_id', 'reaction_type');
-                    }
-                ])
-                ->where('user_id', $user->id)
-                ->get();
-        }
-    
-        if ($fetchPostsWithAttachments === 1) {
-            $response['data']['posts_with_attachments'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
-                ->with([
-                    'attachments' => function ($query) {
-                        $query->select('filename', 'post_id', 'driver');
-                    },
-                    'user' => function ($query) {
-                        $query->select('id', 'name', 'username');
-                    },
-                    'comments' => function ($query) {
-                        $query->select('id', 'post_id', 'message', 'user_id');
-                    },
-                    'reactions' => function ($query) {
-                        $query->select('post_id', 'reaction_type');
-                    }
-                ])
-                ->where('user_id', $user->id)
-                ->whereHas('attachments')
-                ->get();
-        }
-    
-        if ($fetchGenders === 1) {
-            $response['data']['genders'] = UserGender::all(['id', 'gender_name']);
-        }
-    
-        if ($fetchPricingData === 1) {
-            $response['data']['subscriptions'] = [
-                '1_month' => [
-                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
-                    'duration' => trans_choice('days', 30, ['number' => 30]),
-                ],
-                '3_months' => [
-                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_3_months * 3),
-                    'duration' => trans_choice('months', 3, ['number' => 3]),
-                ],
-                '6_months' => [
-                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_6_months * 6),
-                    'duration' => trans_choice('months', 6, ['number' => 6]),
-                ],
-                '12_months' => [
-                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_12_months * 12),
-                    'duration' => trans_choice('months', 12, ['number' => 12]),
-                ],
-            ];
-        }
-    
-        if ($fetchCountries === 1) {
-            $response['data']['countries'] = Country::all(['id', 'name']);
-        }
-        
-        if (empty($response['data'])) {
-            $response = [
-                'status' => '400',
-                'message' => 'No valid parameters provided.',
-            ];
-        }
-        
-        return response()->json($response);
     }
-   /* public function profile()
-    {
-        $user_data = [];
-        $user = Auth::user();
-        $user_data = [
-            'id' => $user->id,
-            'name' => $user->name,
-            'username' => $user->username,
-            'avatar' => $user->avatar,
-            'cover' => $user->cover,
-            'bio' => $user->bio,
-            'birthdate' => $user->birthdate,
-            'gender_pronoun' => $user->gender_pronoun,
-            'location' => $user->location,
-            'website' => $user->website,
-            'country_id' => $user->country_id,
-            'gender_id' => $user->gender_id,
-            'created_at ' => $user->created_at,
-        ];
-
-        if (!$user) {
-            return response()->json(['status' => '400', 'message' => 'User not found']);
-        }
-        return response()->json([
-            'status' => '200',
-            'user' => $user_data,
-            'gender' => UserGender::all(['id', 'gender_name']),
-            'country' => Country::all(['id', 'name']),
-
-        ]);
-        return response()->json($user);
-    } */
     public function profile_submit(Request $request)
     {
         $user = Auth::user();
@@ -768,5 +540,173 @@ class SettingsController extends Controller
         ]);
     }
     
+    public function profile(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'status' => '400',
+                'message' => __('User not found.'),
+            ]);
+        }
+        $fetchUser = (int) $request->post('user');
+        $fetchverify = (int) $request->post('user_verify');
+        $fetcfollowinglist = (int) $request->post('social_user');
+        $fetchPosts = (int) $request->post('feeds');
+        $fetchPostsWithAttachments = (int) $request->post('posts_with_attachments');
+        $fetchGenders = (int) $request->post('genders');
+        $fetchPricingData = (int) $request->post('subscriptions');
+        $fetchCountries = (int) $request->post('countries');
+        
+        $response = [
+            'status' => '200',
+            'data' => []
+        ];
+        
+        if ($fetchUser === 1) {
+            $parsedAUrl = parse_url($user->avatar);
+            $imageAPath = $parsedAUrl['path'];
+            $imageAName = basename($imageAPath);
+            $default_avatar = 0;
+            if($imageAName=='default-avatar.jpg') {
+                $default_avatar = 1;
+            }
+            $parsedCUrl = parse_url($user->cover);
+            $imageCPath = $parsedCUrl['path'];
+            $imageCName = basename($imageCPath);
+            $default_cover = 0;
+            if($imageCName=='default-cover.png') {
+                $default_cover = 1;
+            }
+            $userVerify = $user->email_verified_at && $user->birthdate && 
+              ($user->verification && $user->verification->status == 'verified');
+                $status = 0;
+                if ($userVerify) {
+                    $status = 1;
+                }else{
+                    $status = 0;
+                }
+            $response['data']['user'] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'avatar' => $user->avatar,
+                'cover' => $user->cover,
+                'default_avatar' => $default_avatar,
+                'default_cover' => $default_cover,
+                'bio' => $user->bio,
+                'birthdate' => $user->birthdate,
+                'gender_pronoun' => $user->gender_pronoun,
+                'location' => $user->location,
+                'website' => $user->website,
+                'country_id' => $user->country_id,
+                'gender_id' => $user->gender_id,
+                'created_at' =>Carbon::parse($user->created_at)->format('F j'),
+                'user_verify' =>$status,
+            ];
+        }
+        if ($fetcfollowinglist === 1) {
+            $authUserId = Auth::id();
+            $followers = ListsHelperServiceProvider::getUserFollowers($authUserId);
+            $followerIds = collect($followers)->pluck('user_id');
+            $followersCount = $followerIds->count();
+        
+            $following = UserListMember::all('id','user_id','list_id');
+            $followingCount = $following->count();
+            $post=post::all();
+            $posts = $post->count();
+            function formatNumber($number) {
+                if ($number >= 1000000) {
+                    return number_format($number / 1000000, 1) . 'm';
+                } elseif ($number >= 1000) {
+                    return number_format($number / 1000, 1) . 'k';
+                } else {
+                    return $number;
+                }
+            }
+            $response['data']['social_user'] = [
+                        'total_followers' => $followersCount,
+                        'total_following' => $followingCount,
+                        'total_post' => $posts,
+                    ];
+        }
+        if ($fetchPosts === 1) {
+            $response['data']['feeds'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
+                ->with([
+                    'attachments' => function ($query) {
+                        $query->select('filename', 'post_id', 'driver');
+                    },
+                    'user' => function ($query) {
+                        $query->select('id', 'name', 'username');
+                    },
+                    'comments' => function ($query) {
+                        $query->select('id', 'post_id', 'message', 'user_id');
+                    },
+                    'reactions' => function ($query) {
+                        $query->select('post_id', 'reaction_type');
+                    }
+                ])
+                ->where('user_id', $user->id)
+                ->get();
+        }
     
+        if ($fetchPostsWithAttachments === 1) {
+            $response['data']['posts_with_attachments'] = Post::select('id', 'user_id', 'text', 'release_date', 'expire_date')
+                ->with([
+                    'attachments' => function ($query) {
+                        $query->select('filename', 'post_id', 'driver');
+                    },
+                    'user' => function ($query) {
+                        $query->select('id', 'name', 'username');
+                    },
+                    'comments' => function ($query) {
+                        $query->select('id', 'post_id', 'message', 'user_id');
+                    },
+                    'reactions' => function ($query) {
+                        $query->select('post_id', 'reaction_type');
+                    }
+                ])
+                ->where('user_id', $user->id)
+                ->whereHas('attachments')
+                ->get();
+        }
+    
+        if ($fetchGenders === 1) {
+            $response['data']['genders'] = UserGender::all(['id', 'gender_name']);
+        }
+    
+        if ($fetchPricingData === 1) {
+            $response['data']['subscriptions'] = [
+                '1_month' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price),
+                    'duration' => trans_choice('days', 30, ['number' => 30]),
+                ],
+                '3_months' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_3_months * 3),
+                    'duration' => trans_choice('months', 3, ['number' => 3]),
+                ],
+                '6_months' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_6_months * 6),
+                    'duration' => trans_choice('months', 6, ['number' => 6]),
+                ],
+                '12_months' => [
+                    'price' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_12_months * 12),
+                    'duration' => trans_choice('months', 12, ['number' => 12]),
+                ],
+            ];
+        }
+    
+        if ($fetchCountries === 1) {
+            $response['data']['countries'] = Country::all(['id', 'name']);
+        }
+        
+        if (empty($response['data'])) {
+            $response = [
+                'status' => '400',
+                'message' => 'No valid parameters provided.',
+            ];
+        }
+        
+        return response()->json($response);
+    }
 }

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use function App\Helpers\getSetting;
 use App\Helpers\PostsHelper;
 use App\Providers\GenericHelperServiceProvider;
+use App\Providers\PostsHelperServiceProvider;
 use Carbon\Carbon;
 
 class FeedsController extends Controller
@@ -22,6 +23,48 @@ class FeedsController extends Controller
      //feeds-indivisual
     public function feeds_indivisual($id)
     {
+        if (!Auth::check()) {
+            return response()->json([
+                'status' => 401,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+        if (!is_numeric($id)) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Invalid user ID'
+            ]);
+        }
+        $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
+            ->with([
+                'posts' => function ($query) {
+                    $query->select('id', 'user_id', 'text', 'created_at')
+                          ->with([
+                              'comments:id,post_id,message,user_id',
+                              'user:id,name,username,avatar',
+                              'reactions:post_id,reaction_type'
+                          ]);
+                }
+            ])
+            ->find($id);
+        if (!$user) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'User not found'
+            ]);
+        }
+        $user->created_at_formatted = $user->created_at->format('F Y');
+        $user->posts->transform(function ($post) {
+            $post->created_at_formatted = $post->created_at->diffForHumans(); // e.g., "1 day ago"
+            return $post;
+        });
+    
+        return response()->json([
+            'status' => 200,
+            'data' => $user
+        ]);
+    }
+    /*{
         $post = Post::select('id', 'user_id','text', 'release_date', 'expire_date')->with([
             'attachments' => function ($query) {
                 $query->select('filename', 'post_id', 'driver');
@@ -44,7 +87,7 @@ class FeedsController extends Controller
             'status' => '200',
             'user' => $post,
         ]);
-    } 
+    } */
     //feeds_indivisual_filter_image
     public function feeds_indivisual_filter_image($id)
     {
@@ -68,32 +111,6 @@ class FeedsController extends Controller
         return response()->json([
             'status' => 200,
             'user' => $post,
-        ]);
-    }
-    //feed
-    public function feed_data(Request $request)
-    {
-        $userId = $request->input('user_id');
-        
-        if (!$userId) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'User ID is required'
-            ]);
-        }
-        
-        $user = User::select('id', 'name', 'username', 'avatar')
-            ->where('id', $userId)
-            ->first();
-        if (!$user) {
-            return response()->json([
-                'status' => 404,
-                'message' => 'User not found'
-            ]);
-        } 
-        return response()->json([
-            'status' => 200,
-            'user' => $user,
         ]);
     }
     public function feeds_post_like(Request $request)
@@ -218,110 +235,146 @@ class FeedsController extends Controller
             'post_id' => 'required|exists:posts,id',
             'amount' => 'required|numeric|min:1',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
+    
         $user = Auth::user();
         $post = Post::find($request->post_id);
-
+    
         if (!$post) {
             return response()->json([
                 'status' => 400,
                 'message' => 'Post not found'
             ]);
         }
+    
         if ($post->user_id == $user->id) {
             return response()->json([
-                'status' => 404,
+                'status' => 400,
                 'message' => 'You cannot tip yourself'
             ]);
         }
+    
         if (!GenericHelperServiceProvider::creatorCanEarnMoney($post->user)) {
             return response()->json([
                 'status' => 400,
                 'message' => 'This creator cannot earn money yet'
             ]);
         }
+    
         if ($user->wallet->total < $request->amount) {
             return response()->json([
                 'status' => 400,
                 'message' => 'Insufficient funds'
             ]);
         }
-        $user->$post->tips_count;
+    
+        // Increment the tips_count for the post
+        $post->price = ($post->tips_count ?? 0) + 1;
+        $post->save();
+    
         $user->wallet->total -= $request->amount;
         $user->wallet->save();
-        $tip = new  transactions();
+    
+        $tip = new Transaction();
         $tip->post_id = $request->post_id;
         $tip->user_id = $user->id;
-        $tip->amount = $request->amount;
+        $tip->price = $request->amount;
         $tip->save();
+    
         return response()->json([
             'status' => 200,
             'message' => 'Tip sent successfully'
         ]);
     }
-    public function feeds(Request $request){
-        try {
-            // Ensure user is authenticated
-            if (!Auth::check()) {
-                return response()->json(['status' => '600', 'message' => 'Unauthorized']);
-            }
-
-            // Log request data
-            Log::info('Feed request received with parameters: ', $request->all());
-
-            // Fetch previous page and start page
-            $prevPage = PostsHelperServiceProvider::getPrevPage($request);
-            $startPage = PostsHelperServiceProvider::getFeedStartPage($prevPage);
-
-            // Fetch posts
-            $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage);
-
-            // Handle pagination cookie
-            PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
-
-            // Set up JavaScript variables
-            JavaScript::put([
-                'paginatorConfig' => [
-                    'next_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->nextPageUrl()),
-                    'prev_page_url' => str_replace('/feed?page=', '/feed/posts?page=', $posts->previousPageUrl()),
-                    'current_page' => $posts->currentPage(),
-                    'total' => $posts->total(),
-                    'per_page' => $posts->perPage(),
-                    'hasMore' => $posts->hasMorePages(), 
-                ],
-                'initialPostIDs' => $posts->pluck('id')->toArray(),
-                'sliderConfig' => [
-                    'autoslide' => getSetting('feed.feed_suggestions_autoplay') ? true : false,
-                ],
-                'user' => [
-                    'username' => Auth::user()->username,
-                    'user_id' => Auth::user()->id,
-                    'lists' => [
-                        'blocked' => Auth::user()->lists->firstWhere('type', 'blocked')->id,
-                        'following' => Auth::user()->lists->firstWhere('type', 'following')->id,
-                    ],
-                ],
-            ]);
-
-            // Return the view with headers
-            return Response::view('pages.feed', [
-                'posts' => $posts,
-                'suggestions' => MembersHelperServiceProvider::getSuggestedMembers(),
-            ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-              ->header('Pragma', 'no-cache')
-              ->header('Expires', '0');
-        } catch (\Exception $e) {
-            // Log the error message and stack trace
-            Log::error('Error in UserController@feed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-
-            // Return a user-friendly error response
+    public function feed_all_user()
+    {
+        if (!Auth::check()) {
             return response()->json([
-                'status' => '400',
-                'message' => 'An error occurred while processing your request.'
-            ]);
+                'status' => 401,
+                'message' => 'Unauthorized'
+            ], 401);
         }
+        $users = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
+            ->with([
+                'posts' => function ($query) {
+                    $query->select('id', 'user_id', 'text', 'created_at')
+                          ->with([
+                              'comments:id,post_id,message,user_id',
+                              'user:id,name,username,avatar',
+                              'reactions:post_id,reaction_type'
+                          ]);
+                }
+            ])
+            ->get()
+            ->map(function ($user) {
+                $user->created_at_formatted = $user->created_at->format('F Y');
+                   $user->posts->map(function ($post) {
+                $post->created_at_formatted = $post->created_at->diffForHumans(); // e.g., "1 day ago"
+                return $post;
+            });
+                return $user;
+            });
+        if ($users->isEmpty()) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'No users found'
+            ], 404);
+        }
+        return response()->json([
+            'status' => 200,
+            'data' => $users
+        ]);
+    }
+    public function feed()
+    {
+        if (!Auth::check()) {
+            return response()->json(['status' => '600', 'message' => 'Unauthorized'], 401);
+        }
+    
+        $user = Auth::user();
+        $followingUserIds = $user->UserList()->pluck()->toArray();
+        $posts = Post::with(['user', 'attachments', 'reactions', 'comments'])
+            ->whereIn('user_id', $followingUserIds)
+            ->get();
+        $data = [
+            'status' => '200',
+            'data' => [
+                'posts' => $posts->map(function ($post) use ($user) {
+                    return [
+                        'id' => $post->id,
+                        'user' => [
+                            'username' => $post->user->username,
+                            'name' => $post->user->name,
+                            'avatar' => $post->user->avatar,
+                        ],
+                        'text' => $post->text,
+                        'created_at' => $post->created_at->toDateTimeString(),
+                        'is_pinned' => $post->is_pinned,
+                        'expire_date' => $post->expire_date ? $post->expire_date->toDateTimeString() : null,
+                        'release_date' => $post->release_date ? $post->release_date->toDateTimeString() : null,
+                        'price' => $post->price,
+                        'attachments' => $post->attachments->map(function ($attachment) {
+                            return [
+                                'url' => $attachment->url,
+                                'type' => $attachment->type,
+                            ];
+                        }),
+                        'reactions_count' => $post->reactions->count(),
+                        'comments_count' => $post->comments->count(),
+                        'tips_count' => $post->tips_count,
+                        'is_subbed' => $post->is_subbed,
+                        'is_expired' => $post->is_expired,
+                        'is_scheduled' => $post->is_scheduled,
+                        'is_own_post' => $user->id === $post->user_id,
+                    ];
+                }),
+            ],
+        ];
+    
+        return response()->json($data);
     }
 }
+  

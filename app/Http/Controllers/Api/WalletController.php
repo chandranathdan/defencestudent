@@ -243,6 +243,11 @@ class WalletController extends Controller
                     'name' => $payment->receiver->name,
                     'profile_url' => route('profile', ['username' => $payment->receiver->username])
                 ] : null,
+                'view_invoice' => [
+                    'invoice_exists' => $payment->invoice_id ? true : false,
+                    'receiver_id_diff' => $payment->receiver->id !== $user->id ? true : false,
+                    'status_approved' => $payment->status === \App\Model\Transaction::APPROVED_STATUS ? true : false
+                ]
             ];
         });
         
@@ -252,27 +257,74 @@ class WalletController extends Controller
         ]);
     }
     public function invoices($id)
-    {    
-        $invoice = Invoice::with('transaction')->find($id);
+    {
+        // Fetch the invoice along with its transaction
+        $invoice = Invoice::query()
+            ->where('id', $id)
+            ->with('transaction')
+            ->first();
+        
+        // If invoice not found, return error response
         if (!$invoice) {
             return response()->json([
                 'status' => 400,
                 'message' => 'Invoice not found',
             ]);
         }
+    
+        // Check authorization
         if ($invoice->transaction && $invoice->transaction->sender_user_id !== Auth::id() && Auth::user()->role_id !== 1) {
-                return response()->json([
-                    'status' => 400,
-                    'message' => 'Unauthorized',
-                ]); 
+            return response()->json([
+                'status' => 403,
+                'message' => 'Unauthorized',
+            ]);
         }
+    
+        // Get the logo URL
         $logoUrl = asset('storage/settings/July2024/NpKPs2YR6YIZU4TlECV3.png');
+    
+        // Prepare the data array
+        $data = [
+            'id' => $invoice->id,
+            'invoice' => $invoice->data['invoicePrefix'] . '_' . $invoice->invoice_id,
+            'subtotal' => $invoice->data['subtotal'],
+            'taxesTotalAmount' => $invoice->data['taxesTotalAmount'],
+            'totalAmount' => $invoice->data['totalAmount'],
+            'dueDate' => (new \DateTime($invoice->data['dueDate']))->format('Y-m-d'),
+            'invoiceDate' => $invoice->created_at->format('Y-m-d'),
+            'id' => $invoice->transaction->id,
+            'sender_user_id' => $invoice->transaction->sender_user_id,
+            'recipient_user_id' => $invoice->transaction->recipient_user_id,
+            'status' => $invoice->transaction->status,
+            'type' => $invoice->transaction->type,
+            'payment_provider' => $invoice->transaction->payment_provider,
+            'currency' => $invoice->transaction->currency,
+            'Invoiced' => [
+                'name' => $invoice->data['billingDetails']['receiverFirstName'] . ' ' . $invoice->data['billingDetails']['receiverLastName'],
+                'address' => $invoice->data['billingDetails']['receiverBillingAddress'] . ', ' .
+                            $invoice->data['billingDetails']['receiverState'] . ', ' .
+                            $invoice->data['billingDetails']['receiverPostcode'],
+                'city' => $invoice->data['billingDetails']['receiverCity'],
+                'country' => $invoice->data['billingDetails']['receiverCountryName'],
+            ],
+            'Invoice From' => [
+                'name' => $invoice->data['billingDetails']['senderName'],
+                'address' => $invoice->data['billingDetails']['senderAddress'] . ' ' .
+                            $invoice->data['billingDetails']['senderState'] . ' ' .
+                            $invoice->data['billingDetails']['senderPostcode'],
+                'city' => $invoice->data['billingDetails']['senderCity'],
+                'country' => $invoice->data['billingDetails']['senderCountry'],
+                'company_number' => $invoice->data['billingDetails']['senderCompanyNumber'],
+            ],
+            'Generated' => $invoice->created_at->format('d M Y'),
+            'logourl' => $logoUrl,
+        ];
+    
+        // Return JSON response
         return response()->json([
             'status' => 200,
-            'invoice' => $invoice,
-            'logourl'=>$logoUrl,
+            'data' => $data,
         ]);
-        
     }
 
     public function subscriptions_fetch(Request $request)

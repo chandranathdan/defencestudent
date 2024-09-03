@@ -42,7 +42,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 	Route::group(['middleware' => ['api_email_verified']], function () {
 		Route::get('/feeds_indivisual/{id}', [FeedsController::class, 'feeds_indivisual']); // feeds-indivisual URL
 		Route::get('/feeds_indivisual_filter_image/{id}', [FeedsController::class, 'feeds_indivisual_filter_image']); // feeds_indivisual_filter_image URL
-		Route::post('/feed', [FeedsController::class, 'feed_data']); // feed URL
+		Route::get('/feeds', [FeedsController::class, 'feed']); // feed URL
+		Route::get('/feed_all_user', [FeedsController::class, 'feed_all_user']); // feed_all_user URL
+		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
+		Route::post('/feeds_post_comments', [FeedsController::class, 'feeds_post_comments']); // feeds_post_comments url
+		Route::post('/feeds_post_tips', [FeedsController::class, 'feeds_post_tips']); // feeds_post_tips url
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url		
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
 		Route::get('/privacy', [SettingsController::class, 'privacy']); // privacy url
@@ -80,9 +84,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/search_videos/{id}', [SearchController::class, 'search_videos']); // search_videos url
 		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
 		Route::get('/notifications/{type?}', [NotificationsController::class, 'notifications']); // notifications url
-		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
-		Route::post('/feeds_post_comments', [FeedsController::class, 'feeds_post_comments']); // feeds_post_comments url
-		Route::post('/feeds_post_tips', [FeedsController::class, 'feeds_post_tips']); // feeds_post_tips url
-	
+
 	});
 });
