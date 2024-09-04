@@ -24,6 +24,8 @@ use App\Providers\AttachmentServiceProvider;
 use App\Providers\AuthServiceProvider;
 use App\Providers\EmailsServiceProvider;
 use App\Providers\GenericHelperServiceProvider;
+use App\Providers\SettingsServiceProvider;
+use App\Providers\InvoiceServiceProvider;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +41,6 @@ use Jenssegers\Agent\Agent;
 use Ramsey\Uuid\Uuid;
 use App\Model\Wallet;
 use App\Model\PaymentRequest;
-use App\Providers\SettingsServiceProvider;
 use App\Services\PaymentsServiceProvider;
 use App\Model\Withdrawal;
 use App\Helpers\PaymentHelper;
@@ -215,8 +216,10 @@ class WalletController extends Controller
          foreach ($settingsKeys as $key) {
              $settings[$key] = isset($user->settings[$key]) ? $user->settings[$key] === 'true' : false;
          }
- 
-         return response()->json($settings);
+         return response()->json([
+            'status' => 200,
+            'notifications settings' => $settings,
+        ]);
     }
     public function payments_fetch()
     {
@@ -235,6 +238,7 @@ class WalletController extends Controller
                 'formatted_amount' => $formattedAmount,
                 'type' => $payment->type,
                 'status' => $payment->status,
+                'invoice_id'=>$payment->invoice_id,
                 'sender' => $payment->sender ? [
                     'name' => $payment->sender->name,
                     'profile_url' => route('profile', ['username' => $payment->sender->username])
@@ -279,24 +283,29 @@ class WalletController extends Controller
                 'message' => 'Unauthorized',
             ]);
         }
-    
+       
         // Get the logo URL
         $logoUrl = asset('storage/settings/July2024/NpKPs2YR6YIZU4TlECV3.png');
-    
+      // Format the amounts
+      $formattedSubtotal = SettingsServiceProvider::getWebsiteFormattedAmount($invoice->data['subtotal']);
+      $formattedTaxesTotalAmount = SettingsServiceProvider::getWebsiteFormattedAmount($invoice->data['taxesTotalAmount']);
+      $invoiceIdentifier = '#' . ($invoice->data['invoicePrefix'] ? $invoice->data['invoicePrefix'] . '_' : '') . $invoice->invoice_id;
+      $formattedTotalAmount = SettingsServiceProvider::getWebsiteFormattedAmount($invoice->data['totalAmount']);
+      $type = InvoiceServiceProvider::getInvoiceDescriptionByTransaction($invoice->transaction);
         // Prepare the data array
         $data = [
             'id' => $invoice->id,
-            'invoice' => $invoice->data['invoicePrefix'] . '_' . $invoice->invoice_id,
-            'subtotal' => $invoice->data['subtotal'],
-            'taxesTotalAmount' => $invoice->data['taxesTotalAmount'],
-            'totalAmount' => $invoice->data['totalAmount'],
+            'invoice' => $invoiceIdentifier,
+            'subtotal' => $formattedSubtotal,
+            'taxesTotalAmount' => $formattedTaxesTotalAmount,
+            'totalAmount' => $formattedTotalAmount,
             'dueDate' => (new \DateTime($invoice->data['dueDate']))->format('Y-m-d'),
             'invoiceDate' => $invoice->created_at->format('Y-m-d'),
             'id' => $invoice->transaction->id,
             'sender_user_id' => $invoice->transaction->sender_user_id,
             'recipient_user_id' => $invoice->transaction->recipient_user_id,
             'status' => $invoice->transaction->status,
-            'type' => $invoice->transaction->type,
+            'type' => $type,
             'payment_provider' => $invoice->transaction->payment_provider,
             'currency' => $invoice->transaction->currency,
             'Invoiced' => [
@@ -340,6 +349,7 @@ class WalletController extends Controller
         $subscriptions = $subscriptionsQuery->paginate(10);
 
         return response()->json([
+            'status'=>200,
             'subscriptions' => $subscriptions->map(function ($subscription) {
                 return [
                     'id' => $subscription->id,

@@ -113,7 +113,10 @@ class SearchController extends Controller
              'verified' => $user->verification && $user->verification->status == 'verified'
          ];
  
-         return response()->json($response);
+         return response()->json([
+            'status' => 200,
+            'data' => $response,
+        ]);
     }
     
     public function search_top(Request $request)

@@ -376,5 +376,42 @@ class FeedsController extends Controller
     
         return response()->json($data);
     }
+    public function feed_user()
+    {
+        if (!Auth::check()) {
+            return response()->json([
+                'status' => 401,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+        $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
+            ->with([
+                'posts' => function ($query) {
+                    $query->select('id', 'user_id', 'text', 'created_at')
+                          ->with([
+                              'comments:id,post_id,message,user_id',
+                              'user:id,name,username,avatar',
+                              'reactions:post_id,reaction_type'
+                          ]);
+                }
+            ])
+            ->find($id);
+        if (!$user) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'User not found'
+            ]);
+        }
+        $user->created_at_formatted = $user->created_at->format('F Y');
+        $user->posts->transform(function ($post) {
+            $post->created_at_formatted = $post->created_at->diffForHumans(); // e.g., "1 day ago"
+            return $post;
+        });
+    
+        return response()->json([
+            'status' => 200,
+            'data' => $user
+        ]);
+    }
 }
   

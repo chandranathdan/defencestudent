@@ -73,17 +73,13 @@ class SettingsController extends Controller
             });
     
         $data = [
-            'public_profile' => $user->public_profile,
-            'open_profile' => $user->open_profile,
+            'public_account' => $user->public_profile,
+            'open_profile' => $user->enable_2fa,
             'devices' => $devices,
-            'verifiedDevicesCount' => UserDevice::where('user_id', $userID)->whereNotNull('verified_at')->count(),
-            'unverifiedDevicesCount' => UserDevice::where('user_id', $userID)->whereNull('verified_at')->count(),
-            'countries' => Country::all(),
-            'enabled' => getSetting('security.allow_geo_blocking'),
         ];
     
         return response()->json([
-            'status' => '200',
+            'status' => 200,
             'settings' => $data,
         ]);
     }
@@ -126,44 +122,18 @@ class SettingsController extends Controller
     }
     public function rates_update(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'profile_access_offer_date' => 'nullable|date|date_format:Y-m-d',
-            'profile_access_price' => 'required|numeric|min:0',
-            'profile_access_price_3_months' => 'required|numeric|min:0',
-            'profile_access_price_6_months' => 'required|numeric|min:0',
-            'profile_access_price_12_months' => 'required|numeric|min:0',
-            'is_offer' => 'nullable|boolean',
-            'paid_profile' => 'nullable|boolean',
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 422,
-                'errors' => $validator->errors()
-            ], 422);
-        }
         $user = Auth::user();
-    
-        if (!$user) {
-            return response()->json([
-                'status' => 401,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
-    
-        $isOffer = $request->input('is_offer', false);
-        if ($isOffer) {
-            $offerExpireDate = $request->input('profile_access_offer_date');
+        if ($request->get('is_offer')) {
+            $offerExpireDate = $request->get('profile_access_offer_date');
             $currentOffer = CreatorOffer::where('user_id', $user->id)->first();
     
             $data = [
                 'expires_at' => $offerExpireDate,
                 'old_profile_access_price' => $user->profile_access_price,
-                'old_profile_access_price_3_months' => $user->profile_access_price_3_months,
                 'old_profile_access_price_6_months' => $user->profile_access_price_6_months,
                 'old_profile_access_price_12_months' => $user->profile_access_price_12_months,
+                'old_profile_access_price_3_months' => $user->profile_access_price_3_months,
             ];
-    
             if ($currentOffer) {
                 $currentOffer->update($data);
             } else {
@@ -175,59 +145,62 @@ class SettingsController extends Controller
             if ($currentOffer) {
                 $currentOffer->delete();
             }
+            return response()->json([
+                'status' => 200,
+                'message' => 'old_Rates delete successfully',
+            ]);
         }
+        $rules = UpdateUserRatesSettingsRequest::getRules();
+        $trimmedRules = [];
     
-        // Update the user's profile access prices and paid_profile status
+        foreach ($rules as $key => $rule) {
+            if ($request->has($key) || $key == 'profile_access_price') {
+                $trimmedRules[$key] = $rule;
+            }
+        }
+        $request->validate($trimmedRules);
         $user->update([
-            'profile_access_price' => $request->input('profile_access_price'),
-            'profile_access_price_3_months' => $request->input('profile_access_price_3_months'),
-            'profile_access_price_6_months' => $request->input('profile_access_price_6_months'),
-            'profile_access_price_12_months' => $request->input('profile_access_price_12_months'),
+            'profile_access_price' => $request->get('profile_access_price'),
+            'profile_access_price_6_months' => $request->get('profile_access_price_6_months'),
+            'profile_access_price_12_months' => $request->get('profile_access_price_12_months'),
+            'profile_access_price_3_months' => $request->get('profile_access_price_3_months'),
         ]);
-    
         return response()->json([
             'status' => 200,
-            'message' => 'Rates saved successfully'
-        ], 200);
+            'message' => 'Rates saved successfully',
+        ]);
     }
     public function rates_fetch(Request $request)
     {
         $user = Auth::user();
-        
+    
         if (!$user) {
             return response()->json([
                 'status' => 400,
                 'message' => 'User not authenticated',
             ]);
-        } 
+        }
         $currentOffer = CreatorOffer::where('user_id', $user->id)->first();
-        
+    
         $response = [
             'profile_access_price' => $user->profile_access_price,
             'profile_access_price_6_months' => $user->profile_access_price_6_months,
             'profile_access_price_12_months' => $user->profile_access_price_12_months,
             'profile_access_price_3_months' => $user->profile_access_price_3_months,
             'paid_profile' => $user->paid_profile,
-            'is_offer' => $user->is_offer,
         ];
-        
-        if ($currentOffer) {
-            $response['current_offer'] = [
-                'expires_at' => $currentOffer->expires_at,
-                'old_profile_access_price' => $currentOffer->old_profile_access_price,
-                'old_profile_access_price_6_months' => $currentOffer->old_profile_access_price_6_months,
-                'old_profile_access_price_12_months' => $currentOffer->old_profile_access_price_12_months,
-                'old_profile_access_price_3_months' => $currentOffer->old_profile_access_price_3_months,
-            ];
+        if ($currentOffer && $currentOffer->expires_at && $currentOffer->expires_at->isFuture()) {
+            $response['is_offer'] = true;
+            $response['current_offer_expires_at'] = $currentOffer->expires_at->format('d-m-Y');
         } else {
-            $response['message'] = 'No current offer found';
+            $response['is_offer'] = false;
+            $response['current_offer_expires_at'] = null;
         }
         return response()->json([
             'status' => 200,
             'data' => $response,
         ]);
     }
-
     public function rates_type(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -259,7 +232,7 @@ class SettingsController extends Controller
                 $data
             );
         } else {
-            CreatorOffer::where('user_id', $user->id)->delete();
+            CreatorOffer::where('user_id', $user->id);
         }
         $updateResult = $user->update([
             'paid_profile' => $paidProfile,
@@ -455,13 +428,16 @@ class SettingsController extends Controller
     }
 
     public function verify_Identity_check(Request $request)
-     {
+   {
         $validator = Validator::make($request->all(), [
             'filename' => 'nullable|file|mimes:jpeg,png,pdf,doc,docx|max:4065',
         ]);
     
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);   
+            return response()->json([
+				'errors' => $validator->errors(),
+				'status' => 600,
+			]);
         }
     
         $user = auth()->user();
@@ -481,14 +457,19 @@ class SettingsController extends Controller
                 $verify->files = $path;
             } else {
                 return response()->json([
-                    'status' => '422',
+                    'status' => 400,
                     'message' => 'File upload failed.',
-                ], 422);
+                ]);
             }
+        }else {
+            return response()->json([
+                'status' => 400,
+                'message' => 'File upload failed.',
+            ]);
         }
         $verify->save();
         return response()->json([
-            'status' => '200',
+            'status' => 200,
             'message' => 'Verification successfully updated with file upload.',
         ]);
     }
@@ -535,8 +516,8 @@ class SettingsController extends Controller
         }
 
         return response()->json([
-            'status' => '200',
-            'response' => $response,
+            'status' => 200,
+            'data' => $response,
         ]);
     }
     
