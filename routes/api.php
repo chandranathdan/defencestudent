@@ -51,6 +51,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url		
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
 		Route::get('/privacy', [SettingsController::class, 'privacy']); // privacy url
+		Route::post('/privacy_update', [SettingsController::class, 'privacy_update']); // privacy_update url
 		Route::post('/privacy_delete', [SettingsController::class, 'privacy_delete']); // privacy_delete url
 		Route::get('/notification', [SettingsController::class, 'notification']); // notifications url
 		Route::post('/rates_update', [SettingsController::class, 'rates_update']); // rates_update url
@@ -69,10 +70,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/wallet_request_withdraw', [WalletController::class, 'wallet_request_withdraw']); // wallet_request_withdraw url
 		Route::post('/wallet_deposit', [WalletController::class, 'wallet_deposit']); // wallet_deposit url
 		Route::get('/notifications', [WalletController::class, 'notifications']); // notifications url
+		Route::post('/notifications_update', [WalletController::class, 'notifications_update']); // notifications_update url
 		Route::get('/payments_fetch', [WalletController::class, 'payments_fetch']); // payments_fetch url
 		Route::get('/invoices/{id}', [WalletController::class, 'invoices']); // invoices url
 		Route::get('/subscriptions_fetch', [WalletController::class, 'subscriptions_fetch']); // subscriptions_fatch url
 		Route::post('/subscriptions_canceled', [WalletController::class, 'subscriptions_canceled']); // subscriptions_Canceled url
+		Route::post('/subscribers_canceled', [WalletController::class, 'subscribers_canceled']); // subscribers_canceled url
 		Route::get('/subscribers_fetch', [WalletController::class, 'subscribers_fetch']); // subscribers_fetch url
 		Route::get('/profile_another_user_subscriptions_fetcher', [OtherUserController::class, 'profile_another_user_subscriptions_fetcher']); // profile_another_user_fetch url
 		Route::post('/profile_another_user', [OtherUserController::class, 'profile_another_user']); // profile_another_user url

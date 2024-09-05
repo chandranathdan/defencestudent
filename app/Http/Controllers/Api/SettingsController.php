@@ -83,6 +83,46 @@ class SettingsController extends Controller
             'settings' => $data,
         ]);
     }
+    public function privacy_update(Request $request)
+    {
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'key' => 'required|string|in:public_profile,paid-profile,enable_2fa,enable_geoblocking,open_profile',
+            'value' => 'required|integer|in:0,1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+                'message' => __('Invalid input'),
+            ]);
+        }
+        $user = Auth::user();
+        $key = $request->get('key');
+        $value = (int)$request->get('value');
+        if (! in_array($key, ['public_profile', 'paid-profile','enable_2fa', 'enable_geoblocking', 'open_profile'])) {
+            return response()->json(['success' => false, 'message' => __('Settings not saved')]);
+        }
+
+        if ($key === 'public_profile') {
+            $key = 'public_profile';
+        }
+        if ($key === 'enable_2fa' && $value === 1) {
+            $userDevices = UserDevice::where('user_id', $user->id)->count();
+            if ($userDevices === 0) {
+                AuthServiceProvider::addNewUserDevice($user->id, true);
+            }
+        }
+        $user->update([
+            $key => $value,
+        ]);
+
+        return response()->json([
+            'status' => 200,
+            'message' => __('Settings saved')
+        ]);
+    } 
     public function privacy_delete(Request $request)
     {
         $validatedData = $request->validate([
@@ -90,8 +130,8 @@ class SettingsController extends Controller
         ]);
         if ($validator->fails()) {
             return response()->json([
-                'status' => 600,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
+                'status' => 600,  
             ]);
         }
         $userID = Auth::id();
@@ -102,7 +142,7 @@ class SettingsController extends Controller
     
         if (!$device) {
             return response()->json([
-                'status' => '404',
+                'status' => 404,
                 'message' => 'Device not found',
             ], 404);
         }
@@ -110,14 +150,14 @@ class SettingsController extends Controller
         try {
             $device->delete();
             return response()->json([
-                'status' => '200',
+                'status' => 200,
                 'message' => 'Device successfully deleted',
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => '400',
+                'status' => 400,
                 'message' => 'An error occurred while deleting the device',
-            ], 500);
+            ]);
         }
     }
     public function rates_update(Request $request)
@@ -167,7 +207,7 @@ class SettingsController extends Controller
         ]);
         return response()->json([
             'status' => 200,
-            'message' => 'Rates saved successfully',
+            'message' => 'Settings saved.',
         ]);
     }
     public function rates_fetch(Request $request)
@@ -205,8 +245,6 @@ class SettingsController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'paid_profile' => 'nullable|integer|in:0,1',
-            'is_offer' => 'nullable|boolean',
-            'profile_access_offer_date' => 'nullable|date',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -240,12 +278,12 @@ class SettingsController extends Controller
         if (!$updateResult) {
             return response()->json([
                 'status' => 500,
-                'message' => 'Failed to update paid profile',
+                'message' => 'Failed Settings saved.',
             ]);
         }
         return response()->json([
             'status' => 200,
-            'message' => 'Rates type updated successfully',
+            'message' => 'Settings saved.',
         ]);
     }
     public function profile_submit(Request $request)

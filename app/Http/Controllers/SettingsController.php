@@ -343,7 +343,6 @@ class SettingsController extends Controller
         if($key === 'paid-profile'){
             $key = 'paid_profile';
         }
-
         if($key == 'enable_2fa'){
             if($value){
                 $userDevices = UserDevice::where('user_id', $user->id)->get();

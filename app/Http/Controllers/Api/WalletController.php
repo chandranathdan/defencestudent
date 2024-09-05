@@ -218,9 +218,58 @@ class WalletController extends Controller
          }
          return response()->json([
             'status' => 200,
-            'notifications settings' => $settings,
+            'data' => $settings,
         ]);
     }
+    public function notifications_update(Request $request)
+    {
+        $validKeys = [
+            'notification_email_new_post_created',
+            'notification_email_new_sub',
+            'notification_email_new_message',
+            'notification_email_expiring_subs',
+            'notification_email_renewals',
+            'notification_email_new_tip',
+            'notification_email_new_comment',
+            'geoblocked_countries',
+            'notification_email_new_ppv_unlock',
+            'notification_email_creator_went_live'
+        ];
+        $key = $request->input('key');
+        $value = $request->input('value');
+        if (!in_array($key, $validKeys)) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Invalid setting key',
+            ]);
+        }
+        if (is_null($value)) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Value is required',
+            ]);
+        }
+    
+        try {
+            $user = Auth::user();
+            User::where('id', Auth::user()->id)->update(['settings'=> array_merge(
+                    Auth::user()->settings->toArray(),
+                    [$key => $value]
+                ),
+            ]);
+            return response()->json([
+                'status' => 200,
+                'message' => 'Settings saved',
+            ]);
+        } catch (\Exception $exception) {
+            return response()->json([
+                'status' => 500,
+                'message' => __('Settings not saved'),
+                'error' => $exception->getMessage()
+            ]);
+        }
+    }
+
     public function payments_fetch()
     {
         $payments = Transaction::all();
@@ -341,110 +390,257 @@ class WalletController extends Controller
         $user = Auth::user();
         $activeSubsTab = $request->query('active', 'subscriptions');
         $subscriptionsQuery = Subscription::query();
-        if ($activeSubsTab == 'subscriptions') {
+        
+        // Filtering subscriptions based on the active tab
+        if ($activeSubsTab === 'subscriptions') {
             $subscriptionsQuery->where('sender_user_id', $user->id);
-        } elseif ($activeSubsTab == 'subscribers') {
+        } elseif ($activeSubsTab === 'subscribers') {
             $subscriptionsQuery->where('subscriber_id', $user->id);
         }
+    
+        // Fetch paginated results
         $subscriptions = $subscriptionsQuery->paginate(10);
-
+    
+        // Map the results to the desired format
+        $formattedSubscriptions = $subscriptions->map(function ($subscription) use ($activeSubsTab) {
+            // Format expiration date
+            $formattedExpiresAt = $subscription->expires_at
+                ? ($subscription->status === \App\Model\Subscription::CANCELED_STATUS 
+                    ? '-' 
+                    : $subscription->expires_at->format('M d Y'))
+                : '-';
+    
+            // Format renewal date (potentially should be similar to expiration date)
+            $formattedRenews = $subscription->expires_at
+                ? ($subscription->status === \App\Model\Subscription::ACTIVE_STATUS 
+                    ? '-' 
+                    : $subscription->expires_at->format('M d Y'))
+                : '-';
+    
+            // Correcting the `name_link` format
+            $nameLink = $activeSubsTab === 'subscriptions'
+                ? route('profile', ['username' => $subscription->creator->username])
+                : route('profile', ['username' => $subscription->subscriber->username]);
+    
+            return [
+                'id' => $subscription->id,
+                'to' => $subscription->creator ? [
+                    'name' => $subscription->creator->name,
+                    'avatar' => $subscription->creator->avatar,
+                    'name_link' => $nameLink
+                ] : null,
+                'status' => $subscription->status,
+                'paid_with' => $subscription->provider,
+                'renews' => $formattedExpiresAt,
+                'expires_at' => $formattedRenews,
+                'cancel_subscriptions' => $subscription->status === \App\Model\Subscription::ACTIVE_STATUS
+                
+            ];
+        });
+    
         return response()->json([
-            'status'=>200,
-            'subscriptions' => $subscriptions->map(function ($subscription) {
-                return [
-                    'id' => $subscription->id,
-                    'creator' => $subscription->creator ? [
-                        'name' => $subscription->creator->name,
-                        'username' => $subscription->creator->username,
-                        'avatar' => $subscription->creator->avatar
-                    ] : null,
-                    'subscriber' => $subscription->subscriber ? [
-                        'name' => $subscription->subscriber->name,
-                        'username' => $subscription->subscriber->username,
-                        'avatar' => $subscription->subscriber->avatar
-                    ] : null,
-                    'status' => $subscription->status,
-                    'provider' => $subscription->provider,
-                    'expires_at' => $subscription->expires_at ? $subscription->expires_at->format('M d Y') : null,
-                ];
-            }),
+            'status' => 200,
+            'data' => $formattedSubscriptions,
         ]);
     }
     public function subscriptions_canceled(Request $request)
-   {
-        $validatedData = $request->validate([
+    {
+        // Validate request
+        $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:subscriptions,id',
         ]);
-
-        $subscriptionId = $validatedData['id'];
-
-        try {
-            $subscription = Subscription::where('id', $subscriptionId)
-                ->where(function ($query) {
-                    $query->where('sender_user_id', Auth::id())
-                          ->orWhere('recipient_user_id', Auth::id());
-                })
-                ->first();
-
-            if (!$subscription) {
-                return response()->json([
-                    'status' => '400',
-                    'message' => 'Subscription not found',
-                ]);
-            }
-
-            if ($subscription->status === Subscription::CANCELED_STATUS) {
-                return response()->json([
-                    'status' => '400',
-                    'message' => 'This subscription is already canceled.',
-                ]);
-            }
-            $cancelSubscription = $this->paymentHelper->cancelSubscription($subscription);
-            if (!$cancelSubscription) {
-                return response()->json([
-                    'status' => '500',
-                    'message' => 'Something went wrong when cancelling this subscription.',
-                ]);
-            }
+    
+        if ($validator->fails()) {
             return response()->json([
-                'status' => '200',
-                'message' => 'Successfully canceled subscription.',
+                'errors' => $validator->errors(),
+                'status' => 600,
             ]);
-            
-        } catch (\Exception $exception) {
-            return response()->json(['error' => $exception->getMessage()], 500);
-            
         }
+    
+        // Retrieve the subscription based on ID and the authenticated user
+        $subscription = Subscription::where('id', $request->id)
+            ->where(function ($query) {
+                $query->where('sender_user_id', Auth::id())
+                      ->orWhere('recipient_user_id', Auth::id());
+            })
+            ->first();
+    
+        if (!$subscription) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Subscription not found',
+            ]);
+        }
+    
+        // Check if already canceled
+        if ($subscription->status === Subscription::CANCELED_STATUS) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'This subscription is already canceled.',
+            ]);
+        }
+    
+        // Attempt to cancel the subscription
+        $cancelSubscription = $this->paymentHelper->cancelSubscription($subscription);
+    
+        if (!$cancelSubscription) {
+            return response()->json([
+                'status' => 500,
+                'message' => 'Something went wrong when cancelling this subscription.',
+            ]);
+        }
+        $formattedExpiresAt = $subscription->expires_at
+        ? ($subscription->status === \App\Model\Subscription::CANCELED_STATUS 
+            ? '-' 
+            : $subscription->expires_at->format('M d Y'))
+        : '-';
+
+        // Format renewal date (potentially should be similar to expiration date)
+        $formattedRenews = $subscription->expires_at
+            ? ($subscription->status === \App\Model\Subscription::ACTIVE_STATUS 
+                ? '-' 
+                : $subscription->expires_at->format('M d Y'))
+            : '-';
+        // Define the response data structure
+        $cancelSubscriptionData = [
+            'to' => $subscription->creator ? [
+                'name' => $subscription->creator->name,
+                'avatar' => $subscription->creator->avatar,
+                'name_link' => route('profile', ['username' => $subscription->creator->username]),
+            ] : null,
+            'status' => $subscription->status,
+            'paid_with' => $subscription->provider,
+            'renews' => $formattedExpiresAt,
+            'expires_at' => $formattedRenews,
+        ];
+    
+        return response()->json([
+            'status' => 200,
+            'message' => 'Successfully canceled subscription.',
+            'data' => $cancelSubscriptionData, 
+        ]);
     }
     public function subscribers_fetch(Request $request)
     {
         $user = Auth::user();
+        $activeSubsTab = $request->input('activeSubsTab', 'subscriptions'); // Obtain from request
+    
         $subscriptionsQuery = Subscription::where('recipient_user_id', $user->id)
-            ->with(['subscriber'])
+            ->with(['subscriber', 'creator']) // Include creator if needed
             ->paginate(10);
-
-        $subscriptions = $subscriptionsQuery->map(function ($subscription) {
+    
+        $subscriptions = $subscriptionsQuery->map(function ($subscription) use ($activeSubsTab) {
+            $formattedExpiresAt = $subscription->expires_at
+                ? ($subscription->status === \App\Model\Subscription::CANCELED_STATUS 
+                    ? '-' 
+                    : $subscription->expires_at->format('M d Y'))
+                : '-';
+    
+            // Format renewal date (assuming it's the same as expiration date in this case)
+            $formattedRenews = $formattedExpiresAt;
+    
+            // Correcting the `name_link` format
+            $nameLink = $activeSubsTab === 'subscriptions'
+                ? route('profile', ['username' => $subscription->subscriber->username])
+                : route('profile', ['username' => $subscription->creator->username]); 
+    
             return [
                 'id' => $subscription->id,
-                'subscriber' => $subscription->subscriber ? [
+                'from' => $subscription->subscriber ? [
                     'name' => $subscription->subscriber->name,
-                    'username' => $subscription->subscriber->username,
                     'avatar' => $subscription->subscriber->avatar,
+                    'name_link' => $nameLink,
                 ] : null,
                 'status' => $subscription->status,
-                'provider' => $subscription->provider,
-                'expires_at' => $subscription->expires_at ? $subscription->expires_at->format('M d Y') : null,
+                'paid_with' => $subscription->provider,
+                'renews' => $formattedRenews,
+                'expires_at' => $formattedExpiresAt,
+                'cancel_subscriber' => $subscription->status === \App\Model\Subscription::ACTIVE_STATUS
+                
             ];
         });
-
+    
         return response()->json([
-            'subscriptions' => $subscriptions,
-            'pagination' => [
-                'total' => $subscriptionsQuery->total(),
-                'per_page' => $subscriptionsQuery->perPage(),
-                'current_page' => $subscriptionsQuery->currentPage(),
-                'last_page' => $subscriptionsQuery->lastPage(),
-            ],
+            'status' => 200,
+            'data' => $subscriptions,
+        ]);
+    }
+    public function subscribers_canceled(Request $request)
+    {
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:subscriptions,id',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+    
+        // Retrieve the subscription based on ID and the authenticated user
+        $subscription = Subscription::where('id', $request->id)
+            ->where(function ($query) {
+                $query->where('sender_user_id', Auth::id())
+                      ->orWhere('recipient_user_id', Auth::id());
+            })
+            ->first();
+    
+        if (!$subscription) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Subscription not found',
+            ]);
+        }
+    
+        // Check if already canceled
+        if ($subscription->status === Subscription::CANCELED_STATUS) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'This subscription is already canceled.',
+            ]);
+        }
+    
+        // Attempt to cancel the subscription
+        $cancelSubscription = $this->paymentHelper->cancelSubscription($subscription);
+    
+        if (!$cancelSubscription) {
+            return response()->json([
+                'status' => 500,
+                'message' => 'Something went wrong when cancelling this subscription.',
+            ]);
+        }
+    
+        $formattedExpiresAt = $subscription->expires_at
+        ? ($subscription->status === \App\Model\Subscription::CANCELED_STATUS 
+            ? '-' 
+            : $subscription->expires_at->format('M d Y'))
+        : '-';
+
+        // Format renewal date (potentially should be similar to expiration date)
+        $formattedRenews = $subscription->expires_at
+            ? ($subscription->status === \App\Model\Subscription::ACTIVE_STATUS 
+                ? '-' 
+                : $subscription->expires_at->format('M d Y'))
+            : '-';
+        // Define the response data structure
+        $cancelSubscriptionData = [
+            'from' => $subscription->subscriber ? [
+                'name' => $subscription->subscriber->name,
+                'avatar' => $subscription->subscriber->avatar,
+                'name_link' => route('profile', ['username' => $subscription->subscriber->username]),
+            ] : null,
+            'status' => $subscription->status,
+            'paid_with' => $subscription->provider,
+            'renews'=> $formattedExpiresAt,
+            'expires_at' => $formattedRenews,
+        ];
+    
+        return response()->json([
+            'status' => 200,
+            'message' => 'Successfully canceled subscriber.',
+            'data' => $cancelSubscriptionData, 
         ]);
     }
 }
