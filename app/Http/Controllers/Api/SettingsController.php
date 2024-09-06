@@ -46,7 +46,7 @@ use Ramsey\Uuid\Uuid;
 
 class SettingsController extends Controller
 {
-    public function privacy()
+    public function privacy_fetch()
     {
         $userID = Auth::user()->id;
         $user = Auth::user(); 
@@ -80,12 +80,11 @@ class SettingsController extends Controller
     
         return response()->json([
             'status' => 200,
-            'settings' => $data,
+            'data' => $data,
         ]);
     }
     public function privacy_update(Request $request)
     {
-        // Validate request
         $validator = Validator::make($request->all(), [
             'key' => 'required|string|in:public_profile,paid-profile,enable_2fa,enable_geoblocking,open_profile',
             'value' => 'required|integer|in:0,1',
@@ -323,7 +322,7 @@ class SettingsController extends Controller
         
         return response()->json([
             'status' => '200',
-            'message' => __('Profile saved.'),
+            'message' => __('Settings saved.'),
         ]);
     }
     public function profile_cover_image_upload(Request $request)

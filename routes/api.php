@@ -50,7 +50,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/feed_user', [FeedsController::class, 'feed_user']); // feed_user url
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url		
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
-		Route::get('/privacy', [SettingsController::class, 'privacy']); // privacy url
+		Route::get('/privacy_fetch', [SettingsController::class, 'privacy_fetch']); // privacy_fetch url
 		Route::post('/privacy_update', [SettingsController::class, 'privacy_update']); // privacy_update url
 		Route::post('/privacy_delete', [SettingsController::class, 'privacy_delete']); // privacy_delete url
 		Route::get('/notification', [SettingsController::class, 'notification']); // notifications url
