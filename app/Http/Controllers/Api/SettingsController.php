@@ -82,7 +82,7 @@ class SettingsController extends Controller
             'status' => 200,
             'data' => $data,
         ]);
-    }
+    } 
     public function privacy_update(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -121,7 +121,7 @@ class SettingsController extends Controller
             'status' => 200,
             'message' => __('Settings saved')
         ]);
-    } 
+    }
     public function privacy_delete(Request $request)
     {
         $validatedData = $request->validate([

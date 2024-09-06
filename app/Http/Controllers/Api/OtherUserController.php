@@ -144,7 +144,7 @@ class OtherUserController extends Controller
             ->where('user_id', $id)
             ->get();
         return response()->json([
-            'status' => '200',
+            'status' => 200,
             'user_data' => $user_data,
             'social_user'=> $social_user_data,
             'feed' => $posts,
@@ -158,9 +158,9 @@ class OtherUserController extends Controller
 
         if (!$user) {
             return response()->json([
-                'status' => '400',
+                'status' => 400,
                 'message' => __('User not found.'),
-            ], 404);
+            ]);
         }
 
         // Define subscription durations and prices
@@ -184,7 +184,7 @@ class OtherUserController extends Controller
         ];
 
         return response()->json([
-            'status' => '200',
+            'status' => 200,
             'data' => $Subscriptions,
         ]);
     }
@@ -207,7 +207,7 @@ class OtherUserController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors(),
-                'status' => '600',
+                'status' => 600,
             ]);
         }
         $user->update($request->only([
@@ -221,7 +221,7 @@ class OtherUserController extends Controller
         ]));
     
         return response()->json([
-            'status' => '200',
+            'status' => 200,
             'message' => __('profile_another_user_subscriptions_submit.'),
         ]);
     }
@@ -253,7 +253,7 @@ class OtherUserController extends Controller
             'user_wallet_balance' => $user ? $user->wallet->total : 0,
         ];
         return response()->json([
-            'status' => '200',
+            'status' => 200,
             'data' => $profileData,
             'Payment method' => $settings,
         ]);

@@ -272,6 +272,7 @@ class WalletController extends Controller
 
     public function payments_fetch()
     {
+        $user = Auth::user();
         $payments = Transaction::all();
          $formattedPayments = $payments->map(function ($payment) {
             $user = Auth::user();
@@ -280,12 +281,39 @@ class WalletController extends Controller
             if ($payment->decodedTaxes && $user->id == $payment->recipient_user_id) {
                 $formattedAmount = \App\Providers\SettingsServiceProvider::getWebsiteFormattedAmount($payment->amount - $payment->decodedTaxes->taxesTotalAmount);
             }
-
+            $typeLink = null;
+            $typeText = ucfirst(__($payment->type));
+            if ($payment->type == 'stream-access') {
+                if ($payment->stream->status == 'in-progress') {
+                    $typeLink = route('public.stream.get', ['streamID' => $payment->stream->id, 'slug' => $payment->stream->slug]);
+                } elseif ($payment->stream->settings['dvr'] && $payment->stream->vod_link) {
+                    $typeLink = route('public.vod.get', ['streamID' => $payment->stream->id, 'slug' => $payment->stream->slug]);
+                } else {
+                    $typeText .= ' (Stream VOD unavailable)';
+                }
+            } elseif ($payment->type == 'post-unlock') {
+                $typeLink = route('posts.get', ['post_id' => $payment->post->id, 'username' => $payment->receiver->username]);
+            } elseif ($payment->type == 'tip') {
+                if ($payment->post_id) {
+                    $typeText .= '(Post)';
+                    $typeLink = route('posts.get',['post_id'=>$payment->post->id,'username'=>$payment->receiver->username]);
+                } elseif ($payment->stream_id) {
+                    if ($payment->stream->status == 'in-progress') {
+                        $typeLink = route('public.stream.get', ['streamID' => $payment->stream->id, 'slug' => $payment->stream->slug]);
+                    } elseif ($payment->stream->settings['dvr'] && $payment->stream->vod_link) {
+                        $typeLink = route('public.vod.get', ['streamID' => $payment->stream->id, 'slug' => $payment->stream->slug]);
+                    } else {
+                        $typeText .= ' (Stream VOD unavailable)';
+                    }
+                } else {
+                    $typeText .= '(User)';
+                }
+            }
             return [
                 'id' => $payment->id,
                 'amount' => $payment->amount,
                 'formatted_amount' => $formattedAmount,
-                'type' => $payment->type,
+                'type' => $typeText,
                 'status' => $payment->status,
                 'invoice_id'=>$payment->invoice_id,
                 'sender' => $payment->sender ? [
@@ -300,7 +328,8 @@ class WalletController extends Controller
                     'invoice_exists' => $payment->invoice_id ? true : false,
                     'receiver_id_diff' => $payment->receiver->id !== $user->id ? true : false,
                     'status_approved' => $payment->status === \App\Model\Transaction::APPROVED_STATUS ? true : false
-                ]
+                ],
+                    'type_link' => $typeLink
             ];
         });
         

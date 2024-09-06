@@ -117,25 +117,55 @@ class SearchController extends Controller
             'status' => 200,
             'data' => $response,
         ]);
+    } 
+    protected function processFilterParams(Request $request)
+    {
+        $filters = [];
+        if ($request->has('mediaType')) {
+            $filters['mediaType'] = $request->input('mediaType');
+        }
+        if ($request->has('sortOrder')) {
+            $filters['sortOrder'] = $request->input('sortOrder');
+        }
+        return $filters;
     }
-    
+
     public function search_top(Request $request)
     {
-        $page = $request->query('page', 1);
-        $previousPage = $page > 1 ? $page - 1 : null;
-        $posts = Post::with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10, ['*'], 'page', $page);
-        $hasPosts = $posts->count() > 0;
+        $postsFilter = $request->input('postsFilter', 'top');
+        $searchTerm = $request->input('searchTerm', '');
+        $filters = $this->processFilterParams($request);
+        $filters['postsFilter'] = $postsFilter;
+    
+        // Validate filter
+        if ($filters['postsFilter'] !== 'top') {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Invalid filter. Only "top" filter is supported.',
+            ]);
+        }
+    
+        // Proceed with the valid filter
+        $startPage = PostsHelperServiceProvider::getFeedStartPage(
+            PostsHelperServiceProvider::getPrevPage($request)
+        );
+        $userId = $request->user()->id;
+        return $userId;
+        $posts = PostsHelperServiceProvider::getFeedPosts(
+            $userId, 
+            false, 
+            $startPage, 
+            $filters['mediaType'] ?? null,
+            $filters['sortOrder'] ?? null,
+            $searchTerm
+        );
+    
+        $topData = $this->fetchTopData($filters);
+    
         return response()->json([
-            'posts' => $posts->items(),
-            'pagination' => [
-                'current_page' => $posts->currentPage(),
-                'last_page' => $posts->lastPage(),
-                'has_more' => $posts->hasMorePages(),
-                'previous_page' => $previousPage
-            ],
-            'has_posts' => $hasPosts
+            'status' => 200,
+            'data' => $topData,
+            'filters' => $filters,
         ]);
     }
     public function search_latest(Request $request)
