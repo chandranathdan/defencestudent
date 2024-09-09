@@ -197,11 +197,10 @@ class WalletController extends Controller
             'deposit' => $deposit,
         ]);
     }
-    public function notifications(Request $request)
+    public function settings_notifications(Request $request)
     { 
          $user = Auth::user();
          $settingsKeys = [
-             'notification_email_new_post_created',
              'notification_email_new_sub',
              'notification_email_new_tip',
              'notification_email_new_ppv_unlock',
@@ -221,17 +220,15 @@ class WalletController extends Controller
             'data' => $settings,
         ]);
     }
-    public function notifications_update(Request $request)
+    public function settings_notifications_update(Request $request)
     {
         $validKeys = [
-            'notification_email_new_post_created',
             'notification_email_new_sub',
             'notification_email_new_message',
             'notification_email_expiring_subs',
             'notification_email_renewals',
             'notification_email_new_tip',
             'notification_email_new_comment',
-            'geoblocked_countries',
             'notification_email_new_ppv_unlock',
             'notification_email_creator_went_live'
         ];
@@ -264,12 +261,11 @@ class WalletController extends Controller
         } catch (\Exception $exception) {
             return response()->json([
                 'status' => 500,
-                'message' => __('Settings not saved'),
+                'message' => 'Settings not saved',
                 'error' => $exception->getMessage()
             ]);
         }
     }
-
     public function payments_fetch()
     {
         $user = Auth::user();

@@ -9,6 +9,7 @@ use App\Providers\NotificationServiceProvider;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class NotificationsController extends Controller
 {
@@ -19,62 +20,55 @@ class NotificationsController extends Controller
         Notification::TIPS_FILTER,
         Notification::PROMOS_FILTER,
     ];
-    public function notifications(Request $request, $type = null)
+    public function notifications(Request $request)
     {
-        $activeType = $request->route('type');
-        $listOnly = $request->get('list');
-        $notifications = $this->getUserNotifications($activeType);
+        $tab = [
+            'total' => (int) $request->post('total'),
+            'messages' => (int) $request->post('messages'),
+            'likes' => (int) $request->post('likes'),
+            'subscriptions' => (int) $request->post('subscriptions'),
+            'tips' => (int) $request->post('tips'),
+            'promos' => (int) $request->post('promos'),
+        ];
+        $activeType = array_keys($tab, 1, true);
+        $allNotifications = [];
+        foreach ($activeType as $type) {
+            $notifications = $this->getUserNotifications($type);
+            $unreadNotificationIds = $notifications->filter(function ($notification) {
+                return !$notification->read;
+            })->pluck('id');
     
-        $unreadNotificationIds = $notifications->filter(function ($notification) {
-            return !$notification->read;
-        })->pluck('id');
-        if ($unreadNotificationIds->isNotEmpty()) {
-            Notification::whereIn('id', $unreadNotificationIds)->update(['read' => true]);
+            if ($unreadNotificationIds->isNotEmpty()) {
+                Notification::whereIn('id', $unreadNotificationIds)->update(['read' => true]);
+            }
+            $formattedNotifications = $notifications->map(function ($notification) {
+                $user = $notification->fromUser;
+                $postMessage = $notification->postComment
+                    ? $user->name . ' added a new comment on your post.'
+                    : ($notification->post_id
+                        ? $user->name . ' liked your post.'
+                        : '');
+                return [
+                    'userId' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'avatar' => $user->avatar,
+                    'message' => $postMessage,
+                    'created_at' => Carbon::parse($notification->created_at)->diffForHumans(),
+                ];
+            });
+            $allNotifications[$type] = $formattedNotifications->toArray();
         }
-        $notificationsCountOverride = NotificationServiceProvider::getUnreadNotifications();
-    
-        $formattedNotifications = $notifications->map(function ($notification) {
-            return [
-                'type' => $notification->type,
-                'fromUser' => [
-                    'username' => $notification->fromUser->username,
-                    'name' => $notification->fromUser->name,
-                    'avatar' => $notification->fromUser->avatar
-                ],
-                'transaction' => $notification->transaction ? [
-                    'sender' => [
-                        'name' => $notification->transaction->sender->name
-                    ],
-                    'amount' => $notification->transaction->amount
-                ] : null,
-                'read' => $notification->read,
-                'created_at' => Carbon::parse($notification->created_at)->diffForHumans(),
-                    
-               'postDetails' => $notification->postComment ? 
-                [
-                    'message' => $notification->fromUser->name . ' added a new comment on your post.',
-                ] : ($notification->post_id ? [
-                    'message' => $notification->fromUser->name . ' liked your post.',
-                ] : null),
-            ];
-        });
-    
-        if ($listOnly) {
-            return response()->json([
-                'notifications' => $formattedNotifications
-            ]);
-        } else {
-            return response()->json([
-                'notificationTypes' => $this->notificationTypes,
-                'activeType' => $activeType,
-                'notifications' => $formattedNotifications,
-            ]);
-        }
-        
+        return response()->json([
+            'status' => 200,
+            'activeType' => $activeType,
+            'data' => $allNotifications,
+        ]);
     }
-    private function getUserNotifications($activeType)
+    private function getUserNotifications($filter)
     {
-        $notificationTypes = $this->getNotificationTypesByActiveFilter($activeType);
+        $notificationTypes = $this->getNotificationTypesByActiveFilter($filter);
+
         $query = Notification::query()
             ->where('to_user_id', Auth::id())
             ->orderBy('read', 'ASC')
@@ -89,27 +83,27 @@ class NotificationsController extends Controller
     private function getNotificationTypesByActiveFilter($filter)
     {
         $types = [];
-        if ($filter) {
-            switch ($filter) {
-                case Notification::MESSAGES_FILTER:
-                    $types = [Notification::NEW_COMMENT, Notification::NEW_MESSAGE];
-                    break;
-                case Notification::LIKES_FILTER:
-                    $types = [Notification::NEW_REACTION];
-                    break;
-                case Notification::SUBSCRIPTIONS_FILTER:
-                    $types = [Notification::NEW_SUBSCRIPTION];
-                    break;
-                case Notification::TIPS_FILTER:
-                    $types = [Notification::NEW_TIP, Notification::PPV_UNLOCK];
-                    break;
-                case Notification::PROMOS_FILTER:
-                    $types = [Notification::PROMOS_FILTER];
-                    break;
-            }
+
+        switch ($filter) {
+            case Notification::MESSAGES_FILTER:
+                $types = [Notification::NEW_COMMENT, Notification::NEW_MESSAGE];
+                break;
+            case Notification::LIKES_FILTER:
+                $types = [Notification::NEW_REACTION];
+                break;
+            case Notification::SUBSCRIPTIONS_FILTER:
+                $types = [Notification::NEW_SUBSCRIPTION];
+                break;
+            case Notification::TIPS_FILTER:
+                $types = [Notification::NEW_TIP, Notification::PPV_UNLOCK];
+                break;
+            case Notification::PROMOS_FILTER:
+                $types = [Notification::PROMOS_FILTER];
+                break;
         }
 
         return $types;
     }
+            
 }
 

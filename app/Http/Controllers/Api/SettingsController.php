@@ -73,8 +73,8 @@ class SettingsController extends Controller
             });
     
         $data = [
-            'public_account' => $user->public_profile,
-            'open_profile' => $user->enable_2fa,
+            'public_profile' => $user->public_profile,
+            'enable_2fa' => $user->enable_2fa,
             'devices' => $devices,
         ];
     
@@ -101,7 +101,7 @@ class SettingsController extends Controller
         $key = $request->get('key');
         $value = (int)$request->get('value');
         if (! in_array($key, ['public_profile', 'paid-profile','enable_2fa', 'enable_geoblocking', 'open_profile'])) {
-            return response()->json(['success' => false, 'message' => __('Settings not saved')]);
+            return response()->json(['status' => 400, 'message' => __('Settings not saved')]);
         }
 
         if ($key === 'public_profile') {
@@ -513,45 +513,43 @@ class SettingsController extends Controller
     public function verify_email_birthdate()
     {
         $user = Auth::user();
-        $response = [
-            'email_verified' => [
-                'status' => $user->email_verified_at ? 'verified' : 'unverified',
-                'icon' => $user->email_verified_at ? 'checkmark-circle-outline' : 'close-circle-outline',
-                'color' => $user->email_verified_at ? 'success' : 'warning',
-                'message' => __('Confirm your email address.')
-            ],
-            'birthdate_set' => [
-                'status' => $user->birthdate ? 'set' : 'not_set',
-                'icon' => $user->birthdate ? 'checkmark-circle-outline' : 'close-circle-outline',
-                'color' => $user->birthdate ? 'success' : 'warning',
-                'message' => __('Set your birthdate.')
-            ],
-            'identity_verification' => [
-                'status' => 'pending',
-                'icon' => 'time-outline',
-                'color' => 'primary',
-                'message' => __('Identity check in progress.')
-            ]
-        ];
-
+        $STATUS_VERIFIED = 1;
+        $STATUS_NOT_SET = 0;
+        $STATUS_PENDING = 2;
+        $emailStatus = $user->email_verified_at ? $STATUS_VERIFIED : $STATUS_NOT_SET;
+        $birthdateStatus = $user->birthdate ? $STATUS_VERIFIED : $STATUS_NOT_SET;
+        $identityStatus = $STATUS_PENDING;
+    
         if ($user->verification) {
             if ($user->verification->status == 'verified') {
-                $response['identity_verification'] = [
-                    'status' => 'verified',
-                    'icon' => 'checkmark-circle-outline',
-                    'color' => 'success',
-                    'message' => __('Upload a Government issued ID card.')
-                ];
+                $identityStatus = $STATUS_VERIFIED;
             } elseif ($user->verification->status !== 'pending') {
-                $response['identity_verification'] = [
-                    'status' => 'not_verified',
-                    'icon' => 'close-circle-outline',
-                    'color' => 'warning',
-                    'message' => __('Upload a Government issued ID card.')
-                ];
+                $identityStatus = $STATUS_NOT_SET;
             }
         }
-
+        $response = [
+            'email_verified' => [
+                'status' => $emailStatus,
+                'message' => $emailStatus === $STATUS_VERIFIED
+                    ? __('Your email address is verified.')
+                    : __('Confirm your email address.')
+            ],
+            'birthdate_set' => [
+                'status' => $birthdateStatus,
+                'message' => $birthdateStatus === $STATUS_VERIFIED
+                    ? __('Your birthdate is set.')
+                    : __('Set your birthdate.')
+            ],
+            'identity_verification' => [
+                'status' => $identityStatus,
+                'message' => $identityStatus === $STATUS_VERIFIED
+                    ? __('Identity verification is complete. Upload a Government issued ID card.')
+                    : ($identityStatus === $STATUS_NOT_SET
+                        ? __('Identity verification failed. Upload a Government issued ID card.')
+                        : __('Identity check in progress.')
+                    )
+            ]
+        ];
         return response()->json([
             'status' => 200,
             'data' => $response,

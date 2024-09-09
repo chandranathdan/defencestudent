@@ -50,52 +50,114 @@ class SearchController extends Controller
 {
     public function search(Request $request)
     {
-        $gender = $request->query('gender', 'all');
-        $minAge = $request->query('min_age');
-        $maxAge = $request->query('max_age');
-        $location = $request->query('location');
-        $searchTerm = $request->query('query');
-        $filter = $request->query('filter', 'top');
+        $tab = [
+            'top' => (int) $request->post('top'),
+            'latest' => (int) $request->post('latest'),
+            'people' => (int) $request->post('people'),
+            'photos' => (int) $request->post('photos'),
+            'videos' => (int) $request->post('videos'),
+        ];
+        $filterParams = $this->processFilterParams($request);
+        $searchTerm = $filterParams['searchTerm'];
+        $postsFilter = $filterParams['postsFilter'];
+        $mediaType = $filterParams['mediaType'];
+        $sortOrder = $filterParams['sortOrder'];
         $userQuery = User::query();
         $postQuery = Post::query();
         $streamQuery = Stream::query();
-        if ($gender && $gender != 'all') {
-            $userQuery->where('gender', $gender);
-        }
-        if ($minAge) {
-            $userQuery->where('age', '>=', $minAge);
-        }
-        if ($maxAge) {
-            $userQuery->where('age', '<=', $maxAge);
-        }
-        if ($location) {
-            $userQuery->where('location', 'like', "%{$location}%");
-        }
+        $this->applyUserFilters($userQuery, $request);
         if ($searchTerm) {
             $userQuery->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'like', "%{$searchTerm}%")
                   ->orWhere('email', 'like', "%{$searchTerm}%");
             });
         }
-
-        if ($filter == 'top') {
+        if ($postsFilter === 'top' || $postsFilter === 'latest') {
             $postQuery->orderBy('created_at', 'desc');
         }
-
+        if ($mediaType) {
+            $postQuery->where('media_type', $mediaType);
+        }
         $users = $userQuery->get();
-        $posts = $postQuery->get(); 
         $streams = $streamQuery->get();
+        $startPage = PostsHelperServiceProvider::getFeedStartPage(PostsHelperServiceProvider::getPrevPage($request));
+        $posts = PostsHelperServiceProvider::getFeedPosts(
+            Auth::user()->id,
+            false,
+            $startPage,
+            $mediaType,
+            $sortOrder,
+            $searchTerm
+        );
+        PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
+        $formattedPosts = $posts->map(function ($post) {
+            return [
+                'username' => $post->user->name,
+                'postContent' => $post->content,
+                'timestamp' => $post->created_at->diffForHumans(),
+                'likes' => $post->likes_count,
+                'comments' => $post->comments_count,
+                'tips' => $post->tips_count,
+            ];
+        });
         return response()->json([
             'status' => '200',
-            'availableFilters' => ['live', 'top', 'latest', 'people', 'photos', 'videos'] ,
-            'results' => $users,
-            'posts' => $posts,
+            'availableFilters' => ['top', 'latest', 'people', 'photos', 'videos'],
+            'data' => $formattedPosts,
             'streams' => $streams,
-            'searchFilters' => $request->all(),
-            'genders' => UserGender::all(),
-            'searchTerm' => $searchTerm,
-            'activeFilter' => $filter,
+            'activeFilter' => $postsFilter,
         ]);
+    }   
+    protected function processFilterParams(Request $request)
+    {
+        $searchTerm = $request->get('query') ?: false;
+        $postsFilter = $request->get('filter') ?: false;
+    
+        $mediaType = 'image';
+        $sortOrder = '';
+    
+        switch ($postsFilter) {
+            case 'videos':
+                $mediaType = 'video';
+                break;
+            case 'photos':
+                $mediaType = 'image';
+                break;
+            case 'top':
+                $mediaType = false;
+                $sortOrder = 'top';
+                break;
+            case 'latest':
+            case 'live':
+                $mediaType = false;
+                $sortOrder = 'latest';
+                break;
+        }
+    
+        return [
+            'searchTerm' => $searchTerm,
+            'postsFilter' => $postsFilter,
+            'mediaType' => $mediaType,
+            'sortOrder' => $sortOrder,
+        ];
+    }
+    
+    protected function applyUserFilters($query, Request $request)
+    {
+        if ($gender = $request->query('gender')) {
+            if ($gender != 'all') {
+                $query->where('gender', $gender);
+            }
+        }
+        if ($minAge = $request->query('minAge')) {
+            $query->where('age', '>=', $minAge);
+        }
+        if ($maxAge = $request->query('maxAge')) {
+            $query->where('age', '<=', $maxAge);
+        }
+        if ($location = $request->query('location')) {
+            $query->where('location', 'like', "%{$location}%");
+        }
     }
     public function search_people($id)
     {
@@ -118,17 +180,7 @@ class SearchController extends Controller
             'data' => $response,
         ]);
     } 
-    protected function processFilterParams(Request $request)
-    {
-        $filters = [];
-        if ($request->has('mediaType')) {
-            $filters['mediaType'] = $request->input('mediaType');
-        }
-        if ($request->has('sortOrder')) {
-            $filters['sortOrder'] = $request->input('sortOrder');
-        }
-        return $filters;
-    }
+   
 
     public function search_top(Request $request)
     {

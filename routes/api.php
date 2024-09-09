@@ -69,8 +69,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/wallet_available_pending_balance', [WalletController::class, 'wallet_available_pending_balance']); // wallet_available_pending_balance url
 		Route::post('/wallet_request_withdraw', [WalletController::class, 'wallet_request_withdraw']); // wallet_request_withdraw url
 		Route::post('/wallet_deposit', [WalletController::class, 'wallet_deposit']); // wallet_deposit url
-		Route::get('/notifications', [WalletController::class, 'notifications']); // notifications url
-		Route::post('/notifications_update', [WalletController::class, 'notifications_update']); // notifications_update url
+		Route::get('/settings_notifications', [WalletController::class, 'settings_notifications']); // settings_notifications url
+		Route::post('/settings_notifications_update', [WalletController::class, 'settings_notifications_update']); // settings_notifications_update url
 		Route::get('/payments_fetch', [WalletController::class, 'payments_fetch']); // payments_fetch url
 		Route::get('/invoices/{id}', [WalletController::class, 'invoices']); // invoices url
 		Route::get('/subscriptions_fetch', [WalletController::class, 'subscriptions_fetch']); // subscriptions_fatch url
@@ -81,13 +81,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/profile_another_user', [OtherUserController::class, 'profile_another_user']); // profile_another_user url
 		Route::post('/profile_another_user_subscriptions_submit', [OtherUserController::class, 'profile_another_user_subscriptions_submit']); // profile_another_user_subscriptions_submit url
 		Route::get('/profile_another_user_subscriptions_fetch', [OtherUserController::class, 'profile_another_user_subscriptions_fetch']); // profile_another_user_subscriptions_fetch url
-		Route::get('/search', [SearchController::class, 'search']); // search url
+		Route::post('/search', [SearchController::class, 'search']); // search url
 		Route::get('/search_top', [SearchController::class, 'search_top']); // search_top url
 		Route::get('/search_people/{id}', [SearchController::class, 'search_people']); // search_people url
 		Route::get('/search_latest', [SearchController::class, 'search_latest']); // search_latest url
 		Route::get('/search_videos/{id}', [SearchController::class, 'search_videos']); // search_videos url
 		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
-		Route::get('/notifications/{type?}', [NotificationsController::class, 'notifications']); // notifications url
+		Route::post('/notifications', [NotificationsController::class, 'notifications']); // notifications url
 
 	});
 });
