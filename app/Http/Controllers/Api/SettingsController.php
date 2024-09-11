@@ -465,6 +465,7 @@ class SettingsController extends Controller
     }
 
     public function verify_Identity_check(Request $request)
+    
    {
         $validator = Validator::make($request->all(), [
             'filename' => 'nullable|file|mimes:jpeg,png,pdf,doc,docx|max:4065',
@@ -488,9 +489,7 @@ class SettingsController extends Controller
             if ($file->isValid()) {
                 $uniqueId = uniqid();
                 $filename = $uniqueId . '.' . $file->getClientOriginalExtension();
-                $path = '["users\/verifications\/' . $filename;
-                $file->storeAs('public/users/verifications', $filename);
-    
+                $path = $file->storeAs('/users/verifications', $filename);
                 $verify->files = $path;
             } else {
                 return response()->json([
