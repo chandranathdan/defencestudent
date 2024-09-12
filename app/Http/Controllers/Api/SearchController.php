@@ -59,7 +59,6 @@ class SearchController extends Controller
     ];
     protected function processFilterParams($request)
     {
-        // Use input() method to retrieve request data
         $searchTerm = $request->post('query');
         $postsFilter = $request->post('filter');
         $mediaType = 'image';
@@ -90,6 +89,30 @@ class SearchController extends Controller
     {
         $jsData = $viewData = [];
         $filters = $this->processFilterParams($request);
+        $users = user::all();
+        $posts = post::all();
+        $viewData = $users->map(function ($user) {
+            return [
+                'name' => $user->name,
+                'username' => $user->username,
+                'bio' => $user->bio,
+                'avatar' => $user->avatar,
+                'description' => $user->description ?? 'No description available.'
+            ];
+        });
+    
+        return response()->json([
+            'status' => 200,
+            'users' => $viewData,
+            'posts' => $posts,
+            'searchTerm' => $filters['searchTerm'],
+            'availableFilters' => $this->filters,
+            'activeFilter' => $filters['postsFilter'],
+        ]);
+    }
+    /*{
+        $jsData = $viewData = [];
+        $filters = $this->processFilterParams($request);
 
         if (!Auth::check() && $filters['postsFilter'] && $filters['postsFilter'] !== 'people') {
             return response()->json([
@@ -103,14 +126,8 @@ class SearchController extends Controller
         if (!Auth::check()) {
             $this->filters = ['people'];
         }
-        if($filters['postsFilter'] = 'people'){
+        if($filters['postsFilter'] == 'people'){
 
-          /*  $searchFilters = [
-                'gender' => $request->get('gender'),
-                'min_age' => $request->get('min_age'),
-                'max_age' => $request->get('max_age'),
-                'location' => $request->get('location'),
-            ];*/
             $users = MembersHelperServiceProvider::getSearchUsers(array_merge(['searchTerm' => $filters['searchTerm']]));
             $jsData = [
                 'paginatorConfig' => [
@@ -123,17 +140,7 @@ class SearchController extends Controller
                 ],
                 'searchType' => 'people'
             ];
-            /*if(
-                $searchFilters['gender'] ||
-                $searchFilters['min_age'] ||
-                $searchFilters['max_age'] ||
-                $searchFilters['location']
-            ){
-                $searchFilterExpanded = true;
-            }
-            else{
-                $searchFilterExpanded = false;
-            }*/
+         
             $viewData = $users->map(function ($user) {
                 return [
                     'name' => $user->name,
@@ -143,12 +150,11 @@ class SearchController extends Controller
                     'description' => $user->description ?? 'No description available.'
                 ];
             });
-        }elseif ($filters['postsFilter'] === 'live') {
+        } elseif ($filters['postsFilter'] === 'live') {
             $streams = StreamsServiceProvider::getPublicStreams([
                 'searchTerm' => $filters['searchTerm'],
                 'status' => 'live'
             ]);
-            
             $viewData = [
                 'streams' => $streams,
                 'searchFilterExpanded' => false
@@ -163,7 +169,6 @@ class SearchController extends Controller
                 $filters['sortOrder'],
                 $filters['searchTerm']
             );
-            
             PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
             $viewData = ['posts' => $posts];
         }
@@ -174,5 +179,5 @@ class SearchController extends Controller
             'availableFilters' => $this->filters,
             'activeFilter' => $filters['postsFilter'],
         ]);
-    }
+    }*/
 }
