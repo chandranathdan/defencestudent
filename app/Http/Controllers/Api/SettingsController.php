@@ -586,12 +586,14 @@ class SettingsController extends Controller
         $STATUS_PENDING = 2;
         $emailStatus = $user->email_verified_at ? $STATUS_VERIFIED : $STATUS_NOT_SET;
         $birthdateStatus = $user->birthdate ? $STATUS_VERIFIED : $STATUS_NOT_SET;
-        $identityStatus = $STATUS_PENDING;
+        $identityStatus = $STATUS_NOT_SET;
     
         if ($user->verification) {
             if ($user->verification->status == 'verified') {
                 $identityStatus = $STATUS_VERIFIED;
-            } elseif ($user->verification->status !== 'pending') {
+            } elseif ($user->verification->status == 'pending') {
+                $identityStatus = $STATUS_PENDING;
+            }else {
                 $identityStatus = $STATUS_NOT_SET;
             }
         }
@@ -599,22 +601,25 @@ class SettingsController extends Controller
             'email_verified' => [
                 'status' => $emailStatus,
                 'message' => $emailStatus === $STATUS_VERIFIED
-                    ? __('Your email address is verified.')
+                    ? __('Confirm your email address.')
                     : __('Confirm your email address.')
             ],
             'birthdate_set' => [
                 'status' => $birthdateStatus,
                 'message' => $birthdateStatus === $STATUS_VERIFIED
-                    ? __('Your birthdate is set.')
+                    ? __('Set your birthdate.')
                     : __('Set your birthdate.')
             ],
             'identity_verification' => [
                 'status' => $identityStatus,
                 'message' => $identityStatus === $STATUS_VERIFIED
                     ? __('Identity verification is complete. Upload a Government issued ID card.')
-                    : ($identityStatus === $STATUS_NOT_SET
-                        ? __('Identity verification failed. Upload a Government issued ID card.')
-                        : __('Identity check in progress.')
+                    : ($identityStatus === $STATUS_PENDING
+                        ? __('Identity check in progress.')
+                        : ($identityStatus === $STATUS_NOT_SET
+                            ? __('Upload a government issued ID card.')
+                            : __('Identity verification failed. Upload a Government issued ID card.')
+                        )
                     )
             ]
         ];

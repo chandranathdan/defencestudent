@@ -59,25 +59,30 @@ class SearchController extends Controller
     ];
     protected function processFilterParams($request)
     {
-        $searchTerm = $request->post('query');
-        $postsFilter = $request->post('filter');
+        $searchTerm = $request->input('query', '');
+        $postsFilter = $request->get('filter', 'people');
+       
         $mediaType = 'image';
-        if ($postsFilter == 'videos') {
+        if($postsFilter == 'videos'){
             $mediaType = 'video';
         }
-        if ($postsFilter == 'photos') {
+        if($postsFilter == 'photos'){
             $mediaType = 'image';
         }
-
         $sortOrder = '';
-        if ($postsFilter == 'top') {
+        if($postsFilter == 'top'){
             $mediaType = false;
             $sortOrder = 'top';
         }
-        if ($postsFilter == 'latest' || $postsFilter === 'live') {
+        if($postsFilter == 'latest'){
             $mediaType = false;
             $sortOrder = 'latest';
         }
+        if($postsFilter == 'live') {
+            $mediaType = false;
+            $sortOrder = 'latest';
+        }
+
         return [
             'searchTerm' => $searchTerm,
             'postsFilter' => $postsFilter,
@@ -85,99 +90,59 @@ class SearchController extends Controller
             'sortOrder' => $sortOrder
         ];
     }
+    
     public function search(Request $request)
     {
-        $jsData = $viewData = [];
         $filters = $this->processFilterParams($request);
-        $users = user::all();
-        $posts = post::all();
-        $viewData = $users->map(function ($user) {
-            return [
-                'name' => $user->name,
-                'username' => $user->username,
-                'bio' => $user->bio,
-                'avatar' => $user->avatar,
-                'description' => $user->description ?? 'No description available.'
-            ];
-        });
-    
-        return response()->json([
-            'status' => 200,
-            'users' => $viewData,
-            'posts' => $posts,
-            'searchTerm' => $filters['searchTerm'],
-            'availableFilters' => $this->filters,
-            'activeFilter' => $filters['postsFilter'],
-        ]);
-    }
-    /*{
-        $jsData = $viewData = [];
-        $filters = $this->processFilterParams($request);
-
-        if (!Auth::check() && $filters['postsFilter'] && $filters['postsFilter'] !== 'people') {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Authentication required for this filter.'
+        $viewData = [];
+        $topData = [];
+        $latestData = [];
+        $photosData = [];
+        $videoData = [];
+        if ($filters['postsFilter'] == 'people') {
+            $users = MembersHelperServiceProvider::getSearchUsers([
+                'searchTerm' => $filters['searchTerm'],
             ]);
-        }
-        if (!$filters['postsFilter'] && !Auth::check()) {
-            $filters['postsFilter'] = 'people';
-        }
-        if (!Auth::check()) {
-            $this->filters = ['people'];
-        }
-        if($filters['postsFilter'] == 'people'){
-
-            $users = MembersHelperServiceProvider::getSearchUsers(array_merge(['searchTerm' => $filters['searchTerm']]));
-            $jsData = [
-                'paginatorConfig' => [
-                    'next_page_url' => str_replace('/search', '/search/users', $users->nextPageUrl()),
-                    'prev_page_url' => str_replace('/search', '/search/users', $users->previousPageUrl()),
-                    'current_page' => $users->currentPage(),
-                    'total' => $users->total(),
-                    'per_page' => $users->perPage(),
-                    'hasMore' => $users->hasMorePages(),
-                ],
-                'searchType' => 'people'
-            ];
-         
             $viewData = $users->map(function ($user) {
                 return [
                     'name' => $user->name,
                     'username' => $user->username,
                     'bio' => $user->bio,
                     'avatar' => $user->avatar,
-                    'description' => $user->description ?? 'No description available.'
                 ];
             });
-        } elseif ($filters['postsFilter'] === 'live') {
-            $streams = StreamsServiceProvider::getPublicStreams([
-                'searchTerm' => $filters['searchTerm'],
-                'status' => 'live'
-            ]);
-            $viewData = [
-                'streams' => $streams,
-                'searchFilterExpanded' => false
-            ];
-        } else {
-            $startPage = PostsHelperServiceProvider::getFeedStartPage(PostsHelperServiceProvider::getPrevPage($request));
-            $posts = PostsHelperServiceProvider::getFeedPosts(
-                Auth::user()->id,
-                false,
-                $startPage,
-                $filters['mediaType'],
-                $filters['sortOrder'],
-                $filters['searchTerm']
-            );
-            PostsHelperServiceProvider::shouldDeletePaginationCookie($request);
-            $viewData = ['posts' => $posts];
         }
+        $posts = Post::all();
+        $formatPostData = function ($post) {
+            return [
+                'name' => $post->user->name,
+                'username' => $post->user->username,
+                'avatar' =>$post->user->avatar,
+                'bio' => $post->user->bio,
+                'likesCount' => $post->likes_count,
+                'createdAt' => $post->created_at->diffForHumans(),
+            ];
+        };
+        $topData = $posts->map($formatPostData);
+        $latestData = $posts->map($formatPostData);
+        $photosData = $posts->filter(function ($post) {
+            return $post->media_type === 'photo';
+        })->map($formatPostData);
+        $videoData = $posts->filter(function ($post) {
+            return $post->media_type === 'video';
+        })->map($formatPostData);
+   
         return response()->json([
             'status' => 200,
-            'data' => $viewData,
+            'data' => [
+                'people' => $viewData,
+                'top' => $topData,
+                'lateast' => $latestData, 
+                'phots' => $photosData,
+                'vedio' => $videoData,
+            ],
             'searchTerm' => $filters['searchTerm'],
-            'availableFilters' => $this->filters,
             'activeFilter' => $filters['postsFilter'],
         ]);
-    }*/
+    }
 }
