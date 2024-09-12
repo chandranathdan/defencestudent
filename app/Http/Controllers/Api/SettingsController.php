@@ -464,9 +464,8 @@ class SettingsController extends Controller
         return response()->json(['status' => '200', 'message' => 'Avatar deleted successfully.']);
     }
 
-    public function verify_Identity_check(Request $request)
-    
-   {
+    /*public function verify_Identity_check(Request $request)    
+	{
         $validator = Validator::make($request->all(), [
             'filename' => 'nullable|file|mimes:jpeg,png,pdf,doc,docx|max:4065',
         ]);
@@ -508,6 +507,76 @@ class SettingsController extends Controller
             'status' => 200,
             'message' => 'Verification successfully updated with file upload.',
         ]);
+    }*/
+    public function verify_Identity_check(Request $request)    
+	{
+        $validator = Validator::make($request->all(), [
+			'files' => 'required',
+			'files.*' => 'required|mimes:png,jpg,jpeg,pdf,xlsx,doc,docx|max:4000',
+		]);
+
+		if ($validator->fails()) {
+			return response()->json([
+				'errors' => $validator->errors(),
+				'status' => 600,
+			]);
+		}
+    
+        if ($request->hasFile('files')) {
+			$files = $request->file('files'); // Retrieve the array of files
+			$uploadedFiles = [];
+			
+			try {
+				foreach ($files as $file) {
+					// Store each file using your AttachmentServiceProvider
+					$attachment = AttachmentServiceProvider::createAttachment($file, 'users/verifications', false);
+					$uploadedFiles[] = $attachment->filename; // Collect filenames
+				}
+				$user = Auth::user();
+
+				// Check if the user already has a verification record
+				$verification = $user->verification;
+				if ($verification) {
+					$existingFiles = $verification->files ? json_decode($verification->files, true) : []; // Handle if null
+					$allFiles = array_merge($existingFiles, $uploadedFiles);
+					$verification->update([
+						'files' => json_encode($allFiles),
+						'status' => 'pending',
+					]);
+				} else {
+					UserVerify::create([
+						'user_id' => $user->id,
+						'files' => json_encode($uploadedFiles),
+						'status' => 'pending',
+					]);
+				}
+
+				// Sending out admin email
+				$adminEmails = User::where('role_id', 1)->select(['email', 'name'])->get();
+				foreach ($adminEmails as $user) {
+					EmailsServiceProvider::sendGenericEmail(
+						[
+							'email' => $user->email,
+							'subject' => __('Action required | New identity check'),
+							'title' => __('Hello, :name,', ['name' => $user->name]),
+							'content' => __('There is a new identity check on :siteName that requires your attention.', ['siteName' => getSetting('site.name')]),
+							'button' => [
+								'text' => __('Go to admin'),
+								'url' => route('voyager.dashboard'),
+							],
+						]
+					);
+				}
+				return response()->json([
+					'status' => 200,
+					'message' => 'Verification successfully updated with file upload.',
+				]);
+			} catch (\Exception $exception) {
+				return response()->json(['status' => 400, 'message' => 'File upload failed']);
+				//return response()->json(['success' => false, 'errors' => [$exception->getMessage()]], 500);
+			}
+        }
+		return response()->json(['status' => 400, 'message' => 'No files uploaded']);
     }
     public function verify_email_birthdate()
     {
