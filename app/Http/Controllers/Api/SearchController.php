@@ -57,37 +57,29 @@ class SearchController extends Controller
         'videos',
         'people',
     ];
+
     protected function processFilterParams($request)
     {
         $searchTerm = $request->input('query', '');
         $postsFilter = $request->get('filter', 'people');
-       
-        $mediaType = 'image';
-        if($postsFilter == 'videos'){
+        $mediaType = null;
+        $sortOrder = null;
+        if ($postsFilter === 'videos') {
             $mediaType = 'video';
-        }
-        if($postsFilter == 'photos'){
+        } elseif ($postsFilter === 'photos') {
             $mediaType = 'image';
-        }
-        $sortOrder = '';
-        if($postsFilter == 'top'){
-            $mediaType = false;
+        } elseif ($postsFilter === 'top') {
             $sortOrder = 'top';
-        }
-        if($postsFilter == 'latest'){
-            $mediaType = false;
+        } elseif ($postsFilter === 'latest' || $postsFilter === 'live') {
             $sortOrder = 'latest';
+        } elseif ($postsFilter !== 'people') {
+            $postsFilter = 'people'; 
         }
-        if($postsFilter == 'live') {
-            $mediaType = false;
-            $sortOrder = 'latest';
-        }
-
         return [
             'searchTerm' => $searchTerm,
             'postsFilter' => $postsFilter,
             'mediaType' => $mediaType,
-            'sortOrder' => $sortOrder
+            'sortOrder' => $sortOrder,
         ];
     }
     
@@ -95,14 +87,24 @@ class SearchController extends Controller
     {
         $filters = $this->processFilterParams($request);
         $viewData = [];
-        $topData = [];
-        $latestData = [];
-        $photosData = [];
-        $videoData = [];
-        if ($filters['postsFilter'] == 'people') {
+        $posts = Post::query();
+        if ($filters['mediaType']) {
+            $posts->where('media_type', $filters['mediaType']);
+        }
+        if ($filters['sortOrder'] === 'latest') {
+            $oneWeekAgo = Carbon::now()->subWeek();
+            $posts->where('created_at', '>=', $oneWeekAgo);
+        }
+        if ($filters['sortOrder'] === 'top') {
+            $posts->orderBy('likes_count', 'desc');
+        }
+        $posts = $posts->get();
+
+        if ($filters['postsFilter'] === 'people') {
             $users = MembersHelperServiceProvider::getSearchUsers([
                 'searchTerm' => $filters['searchTerm'],
             ]);
+    
             $viewData = $users->map(function ($user) {
                 return [
                     'name' => $user->name,
@@ -112,37 +114,31 @@ class SearchController extends Controller
                 ];
             });
         }
-        $posts = Post::all();
-        $formatPostData = function ($post) {
+        $formattedPosts = $posts->map(function ($post) {
             return [
                 'name' => $post->user->name,
                 'username' => $post->user->username,
-                'avatar' =>$post->user->avatar,
+                'avatar' => $post->user->avatar,
                 'bio' => $post->user->bio,
                 'likesCount' => $post->likes_count,
                 'createdAt' => $post->created_at->diffForHumans(),
             ];
-        };
-        $topData = $posts->map($formatPostData);
-        $latestData = $posts->map($formatPostData);
-        $photosData = $posts->filter(function ($post) {
-            return $post->media_type === 'photo';
-        })->map($formatPostData);
-        $videoData = $posts->filter(function ($post) {
-            return $post->media_type === 'video';
-        })->map($formatPostData);
-   
+        });
+    
         return response()->json([
             'status' => 200,
             'data' => [
                 'people' => $viewData,
-                'top' => $topData,
-                'lateast' => $latestData, 
-                'phots' => $photosData,
-                'vedio' => $videoData,
+                'Top' => $formattedPosts,
+                'latest' => $formattedPosts,
             ],
             'searchTerm' => $filters['searchTerm'],
             'activeFilter' => $filters['postsFilter'],
         ]);
+    }
+
+    public static function getFeedPosts($userID, $encodePostsToHtml = false, $pageNumber = false, $mediaType = false, $sortOrder = false, $searchTerm = '')
+    {
+        return self::getFilteredPosts($userID, $encodePostsToHtml, $pageNumber, $mediaType, false, false, false, $sortOrder, $searchTerm);
     }
 }

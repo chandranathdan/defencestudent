@@ -34,6 +34,7 @@ Route::post('/forgot-password', [UserController::class, 'forgotpassword']); // F
 Route::post('/forgot-password/verify-otp', [UserController::class, 'forget_password_verify_otp']); // Verify otp
 Route::post('/reset-password', [UserController::class, 'resetpassword']); // RESETPASSWORD url
 Route::get('/home_slider', [Homecontroller::class, 'home_slider']); // home_slider url
+Route::post('/cms', [Homecontroller::class, 'cms']); // cms url
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 	Route::post('/register/verify-otp', [UserController::class, 'register_verify_otp']);
