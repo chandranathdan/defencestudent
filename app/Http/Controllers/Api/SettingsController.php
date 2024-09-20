@@ -607,8 +607,8 @@ class SettingsController extends Controller
             'birthdate_set' => [
                 'status' => $birthdateStatus,
                 'message' => $birthdateStatus === $STATUS_VERIFIED
-                    ? __('Set your birthdate.')
-                    : __('Set your birthdate.')
+                    ? __('Set your Birthday.')
+                    : __('Set your Birthday.')
             ],
             'identity_verification' => [
                 'status' => $identityStatus,
@@ -617,7 +617,7 @@ class SettingsController extends Controller
                     : ($identityStatus === $STATUS_PENDING
                         ? __('Identity check in progress.')
                         : ($identityStatus === $STATUS_NOT_SET
-                            ? __('Upload a government issued ID card.')
+                            ? __('Upload a passport or driving license.')
                             : __('Identity verification failed. Upload a Government issued ID card.')
                         )
                     )

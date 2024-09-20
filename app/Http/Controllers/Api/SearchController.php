@@ -57,52 +57,84 @@ class SearchController extends Controller
         'videos',
         'people',
     ];
-    protected function processFilterParams($request)
-    {
-        $searchTerm = $request->input('query', '');
-        $postsFilter = $request->get('filter', 'people');
-       
-        $mediaType = 'image';
-        if($postsFilter == 'videos'){
-            $mediaType = 'video';
-        }
-        if($postsFilter == 'photos'){
+    
+        protected function processFilterParams($request)
+        {
+            $searchTerm = $request->input('query');
+            $postsFilter = $request->get('filter', 'people');
+    
             $mediaType = 'image';
-        }
-        $sortOrder = '';
-        if($postsFilter == 'top'){
-            $mediaType = false;
-            $sortOrder = 'top';
-        }
-        if($postsFilter == 'latest'){
-            $mediaType = false;
-            $sortOrder = 'latest';
-        }
-        if($postsFilter == 'live') {
-            $mediaType = false;
-            $sortOrder = 'latest';
+            if($postsFilter == 'videos'){
+                $mediaType = 'video';
+            }
+            if($postsFilter == 'photos'){
+                $mediaType = 'image';
+            }
+            $sortOrder = '';
+            if($postsFilter == 'top'){
+                $mediaType = false;
+                $sortOrder = 'top';
+            }
+            if($postsFilter == 'latest'){
+                $mediaType = false;
+                $sortOrder = 'latest';
+            }
+            if($postsFilter == 'live') {
+                $mediaType = false;
+                $sortOrder = 'latest';
+            }
+    
+            return [
+                'searchTerm' => $searchTerm,
+                'postsFilter' => $postsFilter,
+                'mediaType' => $mediaType,
+                'sortOrder' => $sortOrder
+            ];
+    
         }
 
-        return [
-            'searchTerm' => $searchTerm,
-            'postsFilter' => $postsFilter,
-            'mediaType' => $mediaType,
-            'sortOrder' => $sortOrder
-        ];
-    }
-    
     public function search(Request $request)
     {
+        if (!Auth::check()) {
+            return response()->json(['status' => 401, 'message' => 'Unauthorized'], 401);
+        }
+    
         $filters = $this->processFilterParams($request);
+        $startPage = $request->input('page', 1);
+
+        $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage, $filters['sortOrder'],$filters['mediaType'], $filters['searchTerm']);
+        if ($filters['sortOrder']) {
+            $posts = $posts->sortByDesc('created_at');
+        }
+        $formattedPosts = $posts->map(function ($post) {
+            return [
+                'name' => $post->user->name,
+                'username' => $post->user->username,
+                'avatar' => $post->user->avatar,
+                'bio' => $post->user->bio,
+                'likesCount' => $post->reactions()->where('reaction_type', 'like')->count(),
+                'commentsCount' => $post->comments()->count(),
+                'created_at' => $post->created_at->diffForHumans(),
+                
+            ];
+        });
+        $posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage, $filters['sortOrder'],$filters['mediaType'], $filters['searchTerm']);
+        $topPosts = $posts->map(function ($post) {
+            return [
+                'name' => $post->user->name,
+                'username' => $post->user->username,
+                'avatar' => $post->user->avatar,
+                'bio' => $post->user->bio,
+                'likesCount' => $post->reactions()->where('reaction_type', 'like')->count(),
+                'commentsCount' => $post->comments()->count(),
+                'tipsCount' => ($post->tips_count ?? 0) + 1,
+                'created_at' => $post->created_at->diffForHumans(),
+                
+            ];
+        });
         $viewData = [];
-        $topData = [];
-        $latestData = [];
-        $photosData = [];
-        $videoData = [];
-        if ($filters['postsFilter'] == 'people') {
-            $users = MembersHelperServiceProvider::getSearchUsers([
-                'searchTerm' => $filters['searchTerm'],
-            ]);
+        if ($filters['postsFilter'] === 'people') {
+            $users = MembersHelperServiceProvider::getSearchUsers(['searchTerm' => $filters['searchTerm']]);
             $viewData = $users->map(function ($user) {
                 return [
                     'name' => $user->name,
@@ -112,34 +144,43 @@ class SearchController extends Controller
                 ];
             });
         }
-        $posts = Post::all();
-        $formatPostData = function ($post) {
+        $photos = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage, $filters['mediaType'],$filters['sortOrder'], $filters['searchTerm']);
+        $photos = $photos->map(function ($post) {
             return [
                 'name' => $post->user->name,
                 'username' => $post->user->username,
-                'avatar' =>$post->user->avatar,
+                'avatar' => $post->user->avatar,
                 'bio' => $post->user->bio,
-                'likesCount' => $post->likes_count,
-                'createdAt' => $post->created_at->diffForHumans(),
+                'likesCount' => $post->reactions()->where('reaction_type', 'like')->count(),
+                'commentsCount' => $post->comments()->count(),
+                'tipsCount' => ($post->tips_count ?? 0) + 1,
+                'created_at' => $post->created_at->diffForHumans(),
+              
             ];
-        };
-        $topData = $posts->map($formatPostData);
-        $latestData = $posts->map($formatPostData);
-        $photosData = $posts->filter(function ($post) {
-            return $post->media_type === 'photo';
-        })->map($formatPostData);
-        $videoData = $posts->filter(function ($post) {
-            return $post->media_type === 'video';
-        })->map($formatPostData);
-   
+        });
+        $videos = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage, $filters['mediaType'],$filters['sortOrder'], $filters['searchTerm']);
+        $videos = $videos->map(function ($post) {
+            return [
+                'name' => $post->user->name,
+                'username' => $post->user->username,
+                'avatar' => $post->user->avatar,
+                'bio' => $post->user->bio,
+                'likesCount' => $post->reactions()->where('reaction_type', 'like')->count(),
+                'commentsCount' => $post->comments()->count(),
+                'tipsCount' => ($post->tips_count ?? 0) + 1,
+                'created_at' => $post->created_at->diffForHumans(),
+            
+            ];
+        });
+
         return response()->json([
             'status' => 200,
             'data' => [
                 'people' => $viewData,
-                'top' => $topData,
-                'lateast' => $latestData, 
-                'phots' => $photosData,
-                'vedio' => $videoData,
+                'latest' => $formattedPosts,
+                'top' => $topPosts,
+                'photos' => $photos,
+                'videos' => $videos,
             ],
             'searchTerm' => $filters['searchTerm'],
             'activeFilter' => $filters['postsFilter'],

@@ -24,7 +24,7 @@
             <ul class="navbar-nav ml-auto">
                 <!-- Authentication Links -->
                 <li class="nav-item">
-                    <a class="nav-link ml-0 ml-md-2" href="/">{{ __('Home') }}</a>
+                    <a class="nav-link ml-0 ml-md-2" href="{{ route('home') }}">{{ __('Home') }}</a>
                 </li>
 				<li class="nav-item">
 					<a class="nav-link ml-0 ml-md-2" href="{{route('pages.get',['slug' => 'about'])}}">{{ __('About') }}</a>
