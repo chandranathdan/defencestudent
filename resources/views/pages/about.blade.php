@@ -15,7 +15,6 @@
         <h1>Become a Content Creator</h1>
     </div>      
 </div>
-
 <div class="container">
     <div class="row">
         <div class="col-12 col-md-8">
@@ -35,5 +34,4 @@
         </div>
     </div>
 </div>
-
 @stop
