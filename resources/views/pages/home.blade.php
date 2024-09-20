@@ -136,12 +136,12 @@
             <div class="row">
                 <div class="col-12 col-md-5 d-none d-md-flex justify-content-center">
                     {{--<img src="{{asset('/img/home-creators.svg')}}" class="home-mid-img" alt="{{__('Make more money')}}">--}}
-					<img src="{{asset('/img/defence-1.jpg')}}" class="home-mid-img home-achieve-img" alt="{{__('Make more money')}}">
+					<img src="{{asset('/img/defence-2.jpg')}}" class="home-mid-img home-achieve-img" alt="{{__('Make more money')}}">
                 </div>
                 <div class="col-12 col-md-7">
                     <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                         <div class="pl-4 pl-md-5">
-                            <h4 class="font-weight-normal font-italic m-0">{{__('State Of The Art Online Training')}}.</h4>
+                            <h4 class="font-weight-normal font-italic m-0" style="color: #D10037;">{{__('State Of The Art Online Training')}}.</h4>
                             <h2 class="font-weight-bold m-0">{{__('ACHIEVE MORE THAN YOU EVER THOUGHT POSSIBLE!')}},</h2>
                             <div class="my-4 col-9 px-0">
                                 <p>{{__("We focus on giving everyone the opportunity to achieve more than they ever thought possible.")}}</p>
@@ -268,7 +268,7 @@
         </div>
     </div>--}}
 
-    <div class="my-5 py-5 home-bg-section text-white bgimg-1" style="background-image: url({{asset('/img/static/slider4.png')}});">
+    <div class="my-5 py-5 home-bg-section text-white bgimg-1" style="background-image: url({{asset('/img/static/slider5.jpg')}});">
         <div class="container">
             <div class="text-center mb-4">
                 <h4 class="font-weight-normal font-italic m-0">{{__('Our Students Believe In Us')}}.</h4>
@@ -319,12 +319,12 @@
             </div>
         </div>
     </div>
-    <div class="my-5 py-5 home-bg-section">
+    {{--<div class="my-5 py-5 home-bg-section">
         <div class="container">
             <div class="text-center mb-4">
                 <h2 class="font-weight-bold">{{__("Featured Instructors")}}</h2>
                 <p>{{__("Meet just some of the instructors")}}</p>
-				{{--<p>{{__("Here's list of currated content creators to start exploring now!")}}</p>--}}
+				<p>{{__("Here's list of currated content creators to start exploring now!")}}</p>
             </div>
 
             <div class="creators-wrapper">
@@ -341,7 +341,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>--}}
 
     {{--<div class="py-4 my-4 white-section ">
         <div class="container">
@@ -354,7 +354,7 @@
     <div class="py-4 my-4 white-section ">
         <div class="container">
             <div class="text-center">
-                <h4 class="font-weight-normal font-italic m-0">State Of The Art Online Training.</h4>
+                <h4 class="font-weight-normal font-italic m-0"> Go Beyond your limits.</h4>
 				<h1 class="font-weight-bold">{{__("Challenge yourself. have you got what it takes?")}}</h1>
                 <div>
 					<a href="#" class="btn btn-grow mb-0 me-1 mt-2 mt-md-0 button-default">{{__('Join Us')}}</a>
