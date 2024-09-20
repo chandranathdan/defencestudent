@@ -141,7 +141,7 @@
                 <div class="col-12 col-md-7">
                     <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                         <div class="pl-4 pl-md-5">
-                            <h4 class="font-weight-normal font-italic m-0" style="color: #D10037;">{{__('State Of The Art Online Training')}}.</h4>
+                            <h4 class="font-weight-normal font-italic m-0 text-css">{{__('State Of The Art Online Training')}}.</h4>
                             <h2 class="font-weight-bold m-0">{{__('ACHIEVE MORE THAN YOU EVER THOUGHT POSSIBLE!')}},</h2>
                             <div class="my-4 col-9 px-0">
                                 <p>{{__("We focus on giving everyone the opportunity to achieve more than they ever thought possible.")}}</p>
