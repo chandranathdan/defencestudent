@@ -21,7 +21,10 @@ class PublicPagesController extends Controller
         if (! $page) {
             abort(404);
         }
-
-        return view('pages.public-page', ['page'=>$page]);
+		if($page->slug == 'about'){
+			return view('pages.about', ['page'=>$page]);
+		}else{
+			return view('pages.public-page', ['page'=>$page]);
+		}
     }
 }
