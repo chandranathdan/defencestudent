@@ -57,7 +57,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/privacy_fetch', [SettingsController::class, 'privacy_fetch']); // privacy_fetch url
 		Route::post('/privacy_update', [SettingsController::class, 'privacy_update']); // privacy_update url
 		Route::post('/privacy_delete', [SettingsController::class, 'privacy_delete']); // privacy_delete url
-		Route::get('/notification', [SettingsController::class, 'notification']); // notifications url
+		//Route::get('/notification', [SettingsController::class, 'notification']); // notifications url
 		Route::post('/rates_update', [SettingsController::class, 'rates_update']); // rates_update url
 		Route::post('/rates_type', [SettingsController::class, 'rates_type']); // rates_type url
 		Route::get('/rates_fetch', [SettingsController::class, 'rates_fetch']); // rates_fetch url
