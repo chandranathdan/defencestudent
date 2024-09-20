@@ -33,6 +33,8 @@ use Illuminate\Support\Facades\Auth;
 use JavaScript;
 use View;
 
+//Social login
+use Laravel\Socialite\Facades\Socialite;
 
 class UserController extends Controller
 {
@@ -308,8 +310,8 @@ class UserController extends Controller
 		$msg = 'Password updated successfully.';
 		return $this->authResponse($user, $msg);
     }
-	public function post_create(Request $request)
-    {
+	
+	public function post_create(Request $request){
         $validator = Validator::make($request->all(), [
             'text' => 'required|string|min:10',
             'price' => 'nullable|numeric',
@@ -352,6 +354,51 @@ class UserController extends Controller
         ], 200);
     }
    
+	public function redirectToProvider(Request $request){
+        return Socialite::driver($request->route('provider'))->redirect();
+    }
+	
+	public function handleProviderCallback(Request $request){
+        $provider = $request->route('provider');
+
+        try {
+            $user = Socialite::driver($provider)->user();
+        } catch (RequestException $e) {
+            //throw new \ErrorException($e->getMessage());
+			$response['status']="400";
+			$response['message']=$e->getMessage();
+			return $response;
+        }
+
+        // Creating the user & Logging in the user
+        $userCheck = User::where('auth_provider_id', $user->id)->first();
+        if($userCheck){
+            $authUser = $userCheck;
+        }
+        else{
+            try {
+                $authUser = AuthServiceProvider::createUser([
+                    'name' => $user->getName(),
+                    'email' => $user->getEmail(),
+                    'auth_provider' => $provider,
+                    'auth_provider_id' => $user->id
+                ]);
+            }
+            catch (\Exception $exception) {
+                // Redirect to homepage with error
+                //return redirect(route('home'))->with('error', $exception->getMessage());
+				$response['status']="400";
+				$response['message']=$e->getMessage();
+				return $response;
+            }
+
+        }
+
+        $msg = 'Successfully logged in';
+		return $this->authResponse($authUser, $msg);
+
+    }
+	
 	public function user_data(){
         return auth()->user();
     }
