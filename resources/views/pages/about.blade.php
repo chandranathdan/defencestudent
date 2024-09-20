@@ -21,7 +21,7 @@
 <div class="page-content-wrapper pb-5" style="position: relative; text-align: center;">
     <img class="d-block w-100" src="{{ asset('/img/static/about_image.jpg') }}" style="width: 100%; height: 400px; object-fit: cover;">
     <div class="carousel-caption d-none d-md-block" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white;">
-        <h3>We'd Love To Work with You</h3>
+        <h3 class="default-color-text">We'd Love To Work with You</h3>
         <h1>Become a Content Creator</h1>
     </div>      
 </div>
@@ -34,7 +34,7 @@
                     <p class="text-muted mt-2">{{ __("Last updated") }}: {{ $page->updated_at->format('Y-m-d') }}</p>
                 @endif
             </div>
-            <div class="d-flex justify-content">
+            <div>
                 {!! $page->content !!}
             </div>
         </div>
