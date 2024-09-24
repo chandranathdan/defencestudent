@@ -5,11 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Model\Notification;
-use App\Providers\NotificationServiceProvider;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 class NotificationsController extends Controller
 {
@@ -30,33 +27,32 @@ class NotificationsController extends Controller
             'subscriptions' => (int) $request->post('subscriptions'),
             'tips' => (int) $request->post('tips'),
         ];
-        
+
+        $perPage = 6;
+        $offset = ($request->post('page', 1) - 1) * $perPage; 
+
         $activeType = array_keys($tab, 1, true);
         $allNotifications = [];
-        
+        $totalNotificationsCount = 0;
+
         foreach ($activeType as $type) {
-            $notifications = $this->getUserNotifications($type);
-            $unreadNotificationIds = $notifications->filter(function ($notification) {
-                return !$notification->read;
-            })->pluck('id');
+            $notifications = $this->getUserNotifications($type, $offset, $perPage);
+            $totalNotificationsCount += $this->countUserNotifications($type);
+
+            $unreadNotificationIds = $notifications->filter(fn($notification) => !$notification->read)->pluck('id');
 
             if ($unreadNotificationIds->isNotEmpty()) {
                 Notification::whereIn('id', $unreadNotificationIds)->update(['read' => true]);
             }
 
-            $formattedNotifications = $notifications->map(function ($notification) {
-                $user = $notification->fromUser;
-                $message = $this->formatNotificationMessage($notification);
-                
-                return [
-                    'name' => $user ? $user->name : null,
-                    'username' => $user ? $user->username : null,
-                    'avatar' => $user ? $user->avatar : null,
-                    'message' => $message,
-                    'created_at' => Carbon::parse($notification->created_at)->diffForHumans(),
-                    'read' => $notification->read,
-                ];
-            });
+            $formattedNotifications = $notifications->map(fn($notification) => [
+                'name' => optional($notification->fromUser)->name,
+                'username' => optional($notification->fromUser)->username,
+                'avatar' => optional($notification->fromUser)->avatar,
+                'message' => $this->formatNotificationMessage($notification),
+                'created_at' => Carbon::parse($notification->created_at)->diffForHumans(),
+                'read' => $notification->read,
+            ]);
 
             $allNotifications[$type] = $formattedNotifications->toArray();
         }
@@ -64,11 +60,25 @@ class NotificationsController extends Controller
         return response()->json([
             'status' => 200,
             'activeType' => $activeType,
-            'data' => $allNotifications,
+            'data' => array_diff_key($allNotifications, ['page' => []]),
         ]);
     }
 
-    private function getUserNotifications($filter)
+    private function countUserNotifications($filter)
+    {
+        $notificationTypes = $this->getNotificationTypesByActiveFilter($filter);
+    
+        $query = Notification::query()
+            ->where('to_user_id', Auth::id());
+    
+        if (!empty($notificationTypes)) {
+            $query->whereIn('type', $notificationTypes);
+        }
+    
+        return $query->count();
+    }
+
+    private function getUserNotifications($filter, $offset, $perPage)
     {
         $notificationTypes = $this->getNotificationTypesByActiveFilter($filter);
 
@@ -77,12 +87,11 @@ class NotificationsController extends Controller
             ->orderBy('read', 'ASC')
             ->orderBy('created_at', 'DESC')
             ->with(['fromUser', 'post', 'postComment', 'userMessage', 'transaction', 'withdrawal']);
-        
+
         if (!empty($notificationTypes)) {
             $query->whereIn('type', $notificationTypes);
         }
-
-        return $query->paginate(8);
+        return $query->skip($offset)->take($perPage)->get();
     }
 
     private function getNotificationTypesByActiveFilter($filter)
@@ -111,13 +120,11 @@ class NotificationsController extends Controller
                     ? "{$notification->transaction->sender->name} sent you a tip of " . \App\Providers\SettingsServiceProvider::getWebsiteFormattedAmount(\App\Providers\PaymentsServiceProvider::getTransactionAmountWithTaxesDeducted($notification->transaction)) . "."
                     : 'No transaction data';
             case Notification::NEW_REACTION:
-                if ($notification->post_id) {
-                    return __(":name liked your post.", ['name' => $notification->fromUser->name]);
-                }
-                if ($notification->post_comment_id) {
-                    return __(":name liked your comment.", ['name' => $notification->postComment->author->name]);
-                }
-                break;
+                return $notification->post_id
+                    ? __(":name liked your post.", ['name' => $notification->fromUser->name])
+                    : ($notification->post_comment_id
+                        ? __(":name liked your comment.", ['name' => $notification->postComment->author->name])
+                        : '');
             case Notification::NEW_COMMENT:
                 return __(":name added a new comment on your post.", ['name' => $notification->fromUser->name]);
             case Notification::NEW_SUBSCRIPTION:

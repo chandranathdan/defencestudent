@@ -10,6 +10,7 @@ use App\Model\Post;
 use App\Model\PostComment;
 use App\Model\UserList;
 use App\Model\Reaction;
+use App\Model\Transaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use function App\Helpers\getSetting;
@@ -229,66 +230,6 @@ class FeedsController extends Controller
             'new_comments_count' => $newCommentsCount,
         ]);
     }
-    public function feeds_post_tips(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'post_id' => 'required|exists:posts,id',
-            'amount' => 'required|numeric|min:1',
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-    
-        $user = Auth::user();
-        $post = Post::find($request->post_id);
-    
-        if (!$post) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Post not found'
-            ]);
-        }
-    
-        if ($post->user_id == $user->id) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'You cannot tip yourself'
-            ]);
-        }
-    
-        if (!GenericHelperServiceProvider::creatorCanEarnMoney($post->user)) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'This creator cannot earn money yet'
-            ]);
-        }
-    
-        if ($user->wallet->total < $request->amount) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Insufficient funds'
-            ]);
-        }
-    
-        // Increment the tips_count for the post
-        $post->price = ($post->tips_count ?? 0) + 1;
-        $post->save();
-    
-        $user->wallet->total -= $request->amount;
-        $user->wallet->save();
-    
-        $tip = new Transaction();
-        $tip->post_id = $request->post_id;
-        $tip->user_id = $user->id;
-        $tip->price = $request->amount;
-        $tip->save();
-    
-        return response()->json([
-            'status' => 200,
-            'message' => 'Tip sent successfully'
-        ]);
-    }
     public function feed_all_user()
     {
         if (!Auth::check()) {
@@ -411,6 +352,128 @@ class FeedsController extends Controller
         return response()->json([
             'status' => 200,
             'data' => $user
+        ]);
+    }
+    public function tips_fetch(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|exists:posts,id',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        } 
+    
+        $post = Post::with('user', 'transactions')->find($request->post_id);
+    
+        if (!$post) {
+            return response()->json(['message' => 'Post not found'], 404);
+        }
+        $transactionsData = $post->transactions->map(function ($transaction) {
+            return [
+                'Payment_summary' => $transaction->taxes,
+                'Payment_method'=> $transaction->payment_provider,
+            ];
+        });
+        $data = [
+            'user' => [
+                'avatar' => $post->user->avatar,
+                'name' => $post->user->name,
+                'billing_address ' => $post->user->billing_address ,
+                'first_name ' => $post->user->first_name ,
+                'last_name' => $post->user->last_name ,
+                'city' => $post->user->city,
+                'country' => $post->user->country,
+                'state' => $post->user->state,
+                'postcode' => $post->user->postcode, 	 
+
+            ],
+            'transactions' => $transactionsData,
+        ];
+    
+        return response()->json([
+            'status' => 200,
+            'data' => $data,
+        ]);
+    }
+    public function tips_submit(Request $request)
+    {
+        // Validate the incoming request
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|exists:posts,id',
+            'amount' => 'required|numeric|min:1',
+            'payment_provider' => 'required|string',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        
+        $user = Auth::user();
+        $post = Post::find($request->post_id);
+        
+        if (!$post) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Post not found'
+            ]);
+        }
+        
+        if ($post->user_id == $user->id) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'You cannot tip yourself'
+            ]);
+        }
+        
+        if (!GenericHelperServiceProvider::creatorCanEarnMoney($post->user)) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'This creator cannot earn money yet'
+            ]);
+        }
+        
+        if ($user->wallet->total < $request->amount) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Insufficient funds'
+            ]);
+        }
+        
+        // Create the tip transaction
+        $tip = new Transaction();
+        $tip->post_id = $request->post_id;
+        $tip->sender_user_id = $user->id;
+        $tip->status = 'approved';
+        $tip->type = 'tip';
+        $tip->currency = 'USD';
+        $tip->amount = $request->amount;
+        $tip->payment_provider = $request->payment_provider;
+        $tip->save();
+        
+        // Deduct the amount from the user's wallet
+        $user->wallet->total -= $request->amount;
+        $user->wallet->save();
+        
+        $creator = $post->user;
+        if ($creator) {
+            $creator->update([
+                'billing_address' => $user->billing_address,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'city' => $user->city,
+                'country' => $user->country,
+                'state' => $user->state,
+                'postcode' => $user->postcode,
+            ]);
+        }
+        
+        return response()->json([
+            'status' => 200,
+            'message' => 'Tip sent successfully'
         ]);
     }
 }
