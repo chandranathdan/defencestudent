@@ -93,6 +93,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/search_videos/{id}', [SearchController::class, 'search_videos']); // search_videos url
 		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
 		Route::post('/notifications', [NotificationsController::class, 'notifications']); // notifications url
+		Route::post('/social_lists', [FeedsController::class, 'social_lists']); // social_lists url
 
 	});
 });

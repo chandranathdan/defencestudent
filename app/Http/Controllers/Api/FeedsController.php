@@ -376,6 +376,8 @@ class FeedsController extends Controller
             return [
                 'Payment_summary' => $transaction->taxes,
                 'Payment_method'=> $transaction->payment_provider,
+                'currency'=> $transaction->currency,
+                'available_credit' => auth()->user()->wallet->total, 
             ];
         });
         $data = [
@@ -406,75 +408,106 @@ class FeedsController extends Controller
             'post_id' => 'required|exists:posts,id',
             'amount' => 'required|numeric|min:1',
             'payment_provider' => 'required|string',
+            'billing_address' => 'nullable|string',
+            'first_name' => 'nullable|string',
+            'last_name' => 'nullable|string',
+            'city' => 'nullable|string',
+            'country' => 'nullable|string',
+            'state' => 'nullable|string',
+            'postcode' => 'nullable|string',
         ]);
         
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        } 
         
         $user = Auth::user();
         $post = Post::find($request->post_id);
         
         if (!$post) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Post not found'
-            ]);
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
         }
         
-        if ($post->user_id == $user->id) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'You cannot tip yourself'
-            ]);
+        if ($post->user_id === $user->id) {
+            return response()->json(['status' => 400, 'message' => 'You cannot tip yourself']);
         }
         
         if (!GenericHelperServiceProvider::creatorCanEarnMoney($post->user)) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'This creator cannot earn money yet'
-            ]);
+            return response()->json(['status' => 400, 'message' => 'This creator cannot earn money yet']);
         }
         
         if ($user->wallet->total < $request->amount) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Insufficient funds'
-            ]);
+            return response()->json(['status' => 400, 'message' => 'Insufficient funds']);
         }
         
         // Create the tip transaction
+        $amt= $request->amount;
+        $dataArray = [
+            "data" => [],
+            "taxesTotalAmount" => $amt,
+            "subtotal" => $amt
+        ];
         $tip = new Transaction();
         $tip->post_id = $request->post_id;
         $tip->sender_user_id = $user->id;
+        $tip->recipient_user_id = $post->user_id;
         $tip->status = 'approved';
-        $tip->type = 'tip';
-        $tip->currency = 'USD';
+        $tip->type = Transaction::TIP_TYPE; 
+        $tip->currency = config('app.site.currency_code'); 
         $tip->amount = $request->amount;
-        $tip->payment_provider = $request->payment_provider;
+        $tip->taxes = json_encode($dataArray); 
+        $tip->payment_provider = $request->payment_provider; 
         $tip->save();
         
-        // Deduct the amount from the user's wallet
         $user->wallet->total -= $request->amount;
         $user->wallet->save();
-        
+    
         $creator = $post->user;
-        if ($creator) {
-            $creator->update([
-                'billing_address' => $user->billing_address,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'city' => $user->city,
-                'country' => $user->country,
-                'state' => $user->state,
-                'postcode' => $user->postcode,
-            ]);
-        }
-        
-        return response()->json([
-            'status' => 200,
-            'message' => 'Tip sent successfully'
+        $updated = User::where('id', $post->user->id)->update([
+            'billing_address' => $request->billing_address,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'city' => $request->city,
+            'country' => $request->country,
+            'state' => $request->state,
+            'postcode' => $request->postcode,
         ]);
+            
+        return response()->json(['status' => 200, 'message' => 'Tip sent successfully']);
+    }
+    public function social_lists(Request $request)
+    {
+        $followingType = $request->input('FOLLOWING_TYPE');
+        $blockedType = $request->input('BLOCKED_TYPE');
+        $followersType = $request->input('FOLLOWERS_TYPE');
+
+        if ($request->has('list_type')) {
+            $listType = $request->input('list_type');
+        } else {
+            return response()->json(['error' => 'List type not specified'], 400);
+        }
+    
+        if ($listType != UserList::FOLLOWERS_TYPE) {
+            $list = UserList::with(['members', 'members.user'])
+                ->where('id', $listType)
+                ->where('user_id', Auth::id())
+                ->first();
+    
+            if ($list) {
+                $list->members = ListsHelperServiceProvider::getUsersForListMembers($list->members);
+            }
+        } else {
+            $list = ListsHelperServiceProvider::getUserFollowersList();
+        }
+    
+        if (!$list) {
+            return response()->json(['error' => 'List not found'], 404);
+        }
+    
+        return response()->json($list);
     }
 }
   
