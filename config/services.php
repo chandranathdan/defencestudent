@@ -29,12 +29,5 @@ return [
         'secret' => '',
         'region' => '',
     ],
-	
-	//Google login credential
-	'google' => [
-        'client_id' => '832507371700-b7acij4tbc6hofl4ro88epe8otq8ebf3.apps.googleusercontent.com',
-        'client_secret' => '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',
-        'redirect' => 'https://exaltedsolution.com/defencestudent/public/api/auth/google/callback',
-    ],
 
 ];
