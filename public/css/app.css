@@ -619,3 +619,6 @@ footer .brand-logo{
 .feed-widgets .swiper-pagination{
     position: relative;
 }
+.default-color-text {
+    color: #D10037;
+}

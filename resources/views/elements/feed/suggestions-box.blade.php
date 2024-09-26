@@ -1,6 +1,6 @@
 <div class="suggestions-box{{$isMobile ? '-mobile':''}} border rounded-lg px-2 {{isset($isMobile) ? 'pt-3 pb-1' : 'py-4'}}">
     <div class="d-flex justify-content-between suggestions-header mb-3 px-1">
-        <h5 class="card-title pl-2 mb-0">{{__('Suggestions')}}</h5>
+        <h5 class="card-title pl-2 mb-0">{{__('Courses')}}</h5>
         <div class="d-flex">
             <div class="d-flex">
             </div>

@@ -50,14 +50,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/feed_all_user', [FeedsController::class, 'feed_all_user']); // feed_all_user URL
 		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
 		Route::post('/feeds_post_comments', [FeedsController::class, 'feeds_post_comments']); // feeds_post_comments url
-		Route::post('/feeds_post_tips', [FeedsController::class, 'feeds_post_tips']); // feeds_post_tips url
+		Route::post('/tips_submit', [FeedsController::class, 'tips_submit']); // tips_update url
+		Route::post('/tips_fetch', [FeedsController::class, 'tips_fetch']); // tips_fetch url
 		Route::get('/feed_user', [FeedsController::class, 'feed_user']); // feed_user url
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url		
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
 		Route::get('/privacy_fetch', [SettingsController::class, 'privacy_fetch']); // privacy_fetch url
 		Route::post('/privacy_update', [SettingsController::class, 'privacy_update']); // privacy_update url
 		Route::post('/privacy_delete', [SettingsController::class, 'privacy_delete']); // privacy_delete url
-		Route::get('/notification', [SettingsController::class, 'notification']); // notifications url
+		//Route::get('/notification', [SettingsController::class, 'notification']); // notifications url
 		Route::post('/rates_update', [SettingsController::class, 'rates_update']); // rates_update url
 		Route::post('/rates_type', [SettingsController::class, 'rates_type']); // rates_type url
 		Route::get('/rates_fetch', [SettingsController::class, 'rates_fetch']); // rates_fetch url
@@ -92,6 +93,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/search_videos/{id}', [SearchController::class, 'search_videos']); // search_videos url
 		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
 		Route::post('/notifications', [NotificationsController::class, 'notifications']); // notifications url
+		Route::post('/social_lists', [FeedsController::class, 'social_lists']); // social_lists url
+		Route::post('/social_lists_following_delete', [FeedsController::class, 'social_lists_following_delete']); // social_lists_following_delete url
+		Route::post('/follow_creator', [FeedsController::class, 'follow_creator']); // follow_creator url
 
 	});
 });

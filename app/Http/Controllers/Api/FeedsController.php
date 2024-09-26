@@ -9,13 +9,16 @@ use App\User;
 use App\Model\Post;
 use App\Model\PostComment;
 use App\Model\UserList;
+use App\Model\UserListMember;
 use App\Model\Reaction;
+use App\Model\Transaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use function App\Helpers\getSetting;
 use App\Helpers\PostsHelper;
 use App\Providers\GenericHelperServiceProvider;
 use App\Providers\PostsHelperServiceProvider;
+use App\Providers\ListsHelperServiceProvider;
 use Carbon\Carbon;
 
 class FeedsController extends Controller
@@ -229,66 +232,6 @@ class FeedsController extends Controller
             'new_comments_count' => $newCommentsCount,
         ]);
     }
-    public function feeds_post_tips(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'post_id' => 'required|exists:posts,id',
-            'amount' => 'required|numeric|min:1',
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-    
-        $user = Auth::user();
-        $post = Post::find($request->post_id);
-    
-        if (!$post) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Post not found'
-            ]);
-        }
-    
-        if ($post->user_id == $user->id) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'You cannot tip yourself'
-            ]);
-        }
-    
-        if (!GenericHelperServiceProvider::creatorCanEarnMoney($post->user)) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'This creator cannot earn money yet'
-            ]);
-        }
-    
-        if ($user->wallet->total < $request->amount) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Insufficient funds'
-            ]);
-        }
-    
-        // Increment the tips_count for the post
-        $post->price = ($post->tips_count ?? 0) + 1;
-        $post->save();
-    
-        $user->wallet->total -= $request->amount;
-        $user->wallet->save();
-    
-        $tip = new Transaction();
-        $tip->post_id = $request->post_id;
-        $tip->user_id = $user->id;
-        $tip->price = $request->amount;
-        $tip->save();
-    
-        return response()->json([
-            'status' => 200,
-            'message' => 'Tip sent successfully'
-        ]);
-    }
     public function feed_all_user()
     {
         if (!Auth::check()) {
@@ -413,5 +356,269 @@ class FeedsController extends Controller
             'data' => $user
         ]);
     }
+    public function tips_fetch(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|exists:posts,id',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        } 
+    
+        $post = Post::with('user', 'transactions')->find($request->post_id);
+    
+        if (!$post) {
+            return response()->json(['message' => 'Post not found'], 404);
+        }
+        $transactionsData = $post->transactions->map(function ($transaction) {
+            return [
+                'Payment_summary' => $transaction->taxes,
+                'Payment_method'=> $transaction->payment_provider,
+                'currency'=> $transaction->currency,
+                'available_credit' => auth()->user()->wallet->total, 
+            ];
+        });
+        $data = [
+            'user' => [
+                'avatar' => $post->user->avatar,
+                'name' => $post->user->name,
+                'billing_address ' => $post->user->billing_address ,
+                'first_name ' => $post->user->first_name ,
+                'last_name' => $post->user->last_name ,
+                'city' => $post->user->city,
+                'country' => $post->user->country,
+                'state' => $post->user->state,
+                'postcode' => $post->user->postcode, 	 
+
+            ],
+            'transactions' => $transactionsData,
+        ];
+    
+        return response()->json([
+            'status' => 200,
+            'data' => $data,
+        ]);
+    }
+    public function tips_submit(Request $request)
+    {
+        // Validate the incoming request
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|exists:posts,id',
+            'amount' => 'required|numeric|min:1',
+            'payment_provider' => 'required|string',
+            'billing_address' => 'nullable|string',
+            'first_name' => 'nullable|string',
+            'last_name' => 'nullable|string',
+            'city' => 'nullable|string',
+            'country' => 'nullable|string',
+            'state' => 'nullable|string',
+            'postcode' => 'nullable|string',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        } 
+        
+        $user = Auth::user();
+        $post = Post::find($request->post_id);
+        
+        if (!$post) {
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
+        }
+        
+        if ($post->user_id === $user->id) {
+            return response()->json(['status' => 400, 'message' => 'You cannot tip yourself']);
+        }
+        
+        if (!GenericHelperServiceProvider::creatorCanEarnMoney($post->user)) {
+            return response()->json(['status' => 400, 'message' => 'This creator cannot earn money yet']);
+        }
+        
+        if ($user->wallet->total < $request->amount) {
+            return response()->json(['status' => 400, 'message' => 'Insufficient funds']);
+        }
+        
+        // Create the tip transaction
+        $amt= $request->amount;
+        $dataArray = [
+            "data" => [],
+            "taxesTotalAmount" => $amt,
+            "subtotal" => $amt
+        ];
+        $tip = new Transaction();
+        $tip->post_id = $request->post_id;
+        $tip->sender_user_id = $user->id;
+        $tip->recipient_user_id = $post->user_id;
+        $tip->status = 'approved';
+        $tip->type = Transaction::TIP_TYPE; 
+        $tip->currency = config('app.site.currency_code'); 
+        $tip->amount = $request->amount;
+        $tip->taxes = json_encode($dataArray); 
+        $tip->payment_provider = $request->payment_provider; 
+        $tip->save();
+        
+        $user->wallet->total -= $request->amount;
+        $user->wallet->save();
+    
+        $creator = $post->user;
+        $updated = User::where('id', $post->user->id)->update([
+            'billing_address' => $request->billing_address,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'city' => $request->city,
+            'country' => $request->country,
+            'state' => $request->state,
+            'postcode' => $request->postcode,
+        ]);
+            
+        return response()->json(['status' => 200, 'message' => 'Tip sent successfully']);
+    }
+    public function social_lists(Request $request)
+    {
+        $socialUserParams = $request->post();
+        $userId = Auth::user()->id;
+    
+        $followersCount = 0;
+        $followersPosts = 0;
+        $followingCount = 0;
+        $followingPosts = 0;
+        $blockedCount = 0; 
+        $blockedPosts = 0;
+    
+        $followingUsers = [];
+        $followerUsers = [];
+        $blockedUsers = [];
+    
+        // Following count and posts
+        if (!empty($socialUserParams['following'])) {
+            $followingLists = ListsHelperServiceProvider::getUserLists();
+            foreach ($followingLists as $list) {
+                foreach ($list->members as $member) {
+                    $followingUsers[] = [
+                        'id' => $member->id,
+                        'username' => $member->username,
+                        'name' => $member->name,
+                        'cover' => $member->cover,
+                        'avatar' => $member->avatar,
+                    ];
+                }
+                $followingCount += $list->members->count();
+                $followingPosts += $list->posts_count;
+            }
+        }
+    
+        // Followers count and posts
+        if (!empty($socialUserParams['followers'])) {
+            $followers = ListsHelperServiceProvider::getUserFollowers($userId);
+            $followerIds = collect($followers)->pluck('user_id');
+            $followersData = User::whereIn('id', $followerIds)->withCount('posts')->get();
+            
+            $followersCount = $followersData->count();
+            $followersPosts = $followersData->sum('posts_count');
+    
+            foreach ($followersData as $follower) {
+                $followerUsers[] = [
+                    'id' => $follower->id,
+                    'username' => $follower->username,
+                    'name' => $member->name,
+                    'cover' => $member->cover,
+                    'avatar' => $member->avatar,
+                ];
+            }
+        }
+    
+        // Blocked count and posts
+        if (!empty($socialUserParams['blocked'])) {
+            $blockedLists = ListsHelperServiceProvider::getUserLists();
+            foreach ($blockedLists as $list) {
+                if ($list->type == UserList::BLOCKED_TYPE) {
+                    foreach ($list->members as $member) {
+                        $blockedUsers[] = [
+                            'id' => $member->id,
+                            'username' => $member->username,
+                            'name' => $member->name,
+                            'cover' => $member->cover,
+                            'avatar' => $member->avatar,
+                        ];
+                    }
+                    $blockedCount += $list->members->count();
+                    $blockedPosts += $list->posts_count;
+                }
+            }
+        }
+    
+        // Return the response with the collected data
+        return response()->json([
+            'status' => 200,
+            'data' => [
+                'following_count' => $followingCount,
+                'following_posts' => $followingPosts,
+                'followers_count' => $followersCount,
+                'followers_posts' => $followersPosts,
+                'blocked_count' => $blockedCount,
+                'blocked_posts' => $blockedPosts,
+                'following' => $followingUsers,
+                'followers' => $followerUsers,
+                'blocked' => $blockedUsers,
+            ],
+        ]);
+    }
+    public function social_lists_following_delete(Request $request)
+    {
+        $memberID = $request->input('id');
+        $member = UserListMember::find($memberID);
+    
+        if ($member) {
+            $member->delete();
+            $returnData = $request->input('return_data', false);
+            
+            if ($returnData) {
+                return response()->json([
+                    'status' => 200,
+                    'message' => __('Member removed from list.'),
+                    'data' => $this->getListDetails($member->list_id, $member->user_id),
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 200,
+                    'message' => __('Member removed from list.'),
+                ]);
+            }
+        } else {
+            return response()->json([
+                'status' => 400,
+                'message' => __('Member not found.'),
+            ], 404);
+        }
+    }
+    public function follow_creator(Request $request)
+    {
+        $follow = $request->input('follow');
+        $user = Auth::user();
+        if ($follow === '1') {
+            $follow = \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, true);   
+            return response()->json([
+                'status' => 200,
+                'message' => 'You are now following the user.', 
+            ]);
+        } elseif ($follow === '0') {
+            $follow = \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, true); 
+            return response()->json([
+                'status' => 200,
+                'message' => 'You have unfollowed the user.',
+            ]);
+        } else {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Invalid input. Use 1 to follow or 0 to unfollow.',
+            ]);
+        }
+    }
 }
-  
