@@ -94,6 +94,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/search_photos/{id}', [SearchController::class, 'search_photos']); // search_photos url
 		Route::post('/notifications', [NotificationsController::class, 'notifications']); // notifications url
 		Route::post('/social_lists', [FeedsController::class, 'social_lists']); // social_lists url
+		Route::post('/social_lists_following_delete', [FeedsController::class, 'social_lists_following_delete']); // social_lists_following_delete url
+		Route::post('/follow_creator', [FeedsController::class, 'follow_creator']); // follow_creator url
 
 	});
 });

@@ -9,6 +9,7 @@ use App\User;
 use App\Model\Post;
 use App\Model\PostComment;
 use App\Model\UserList;
+use App\Model\UserListMember;
 use App\Model\Reaction;
 use App\Model\Transaction;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,7 @@ use function App\Helpers\getSetting;
 use App\Helpers\PostsHelper;
 use App\Providers\GenericHelperServiceProvider;
 use App\Providers\PostsHelperServiceProvider;
+use App\Providers\ListsHelperServiceProvider;
 use Carbon\Carbon;
 
 class FeedsController extends Controller
@@ -480,34 +482,143 @@ class FeedsController extends Controller
     }
     public function social_lists(Request $request)
     {
-        $followingType = $request->input('FOLLOWING_TYPE');
-        $blockedType = $request->input('BLOCKED_TYPE');
-        $followersType = $request->input('FOLLOWERS_TYPE');
-
-        if ($request->has('list_type')) {
-            $listType = $request->input('list_type');
-        } else {
-            return response()->json(['error' => 'List type not specified'], 400);
+        $socialUserParams = $request->post();
+        $userId = Auth::user()->id;
+    
+        $followersCount = 0;
+        $followersPosts = 0;
+        $followingCount = 0;
+        $followingPosts = 0;
+        $blockedCount = 0; 
+        $blockedPosts = 0;
+    
+        $followingUsers = [];
+        $followerUsers = [];
+        $blockedUsers = [];
+    
+        // Following count and posts
+        if (!empty($socialUserParams['following'])) {
+            $followingLists = ListsHelperServiceProvider::getUserLists();
+            foreach ($followingLists as $list) {
+                foreach ($list->members as $member) {
+                    $followingUsers[] = [
+                        'id' => $member->id,
+                        'username' => $member->username,
+                        'name' => $member->name,
+                        'cover' => $member->cover,
+                        'avatar' => $member->avatar,
+                    ];
+                }
+                $followingCount += $list->members->count();
+                $followingPosts += $list->posts_count;
+            }
         }
     
-        if ($listType != UserList::FOLLOWERS_TYPE) {
-            $list = UserList::with(['members', 'members.user'])
-                ->where('id', $listType)
-                ->where('user_id', Auth::id())
-                ->first();
+        // Followers count and posts
+        if (!empty($socialUserParams['followers'])) {
+            $followers = ListsHelperServiceProvider::getUserFollowers($userId);
+            $followerIds = collect($followers)->pluck('user_id');
+            $followersData = User::whereIn('id', $followerIds)->withCount('posts')->get();
+            
+            $followersCount = $followersData->count();
+            $followersPosts = $followersData->sum('posts_count');
     
-            if ($list) {
-                $list->members = ListsHelperServiceProvider::getUsersForListMembers($list->members);
+            foreach ($followersData as $follower) {
+                $followerUsers[] = [
+                    'id' => $follower->id,
+                    'username' => $follower->username,
+                    'name' => $member->name,
+                    'cover' => $member->cover,
+                    'avatar' => $member->avatar,
+                ];
+            }
+        }
+    
+        // Blocked count and posts
+        if (!empty($socialUserParams['blocked'])) {
+            $blockedLists = ListsHelperServiceProvider::getUserLists();
+            foreach ($blockedLists as $list) {
+                if ($list->type == UserList::BLOCKED_TYPE) {
+                    foreach ($list->members as $member) {
+                        $blockedUsers[] = [
+                            'id' => $member->id,
+                            'username' => $member->username,
+                            'name' => $member->name,
+                            'cover' => $member->cover,
+                            'avatar' => $member->avatar,
+                        ];
+                    }
+                    $blockedCount += $list->members->count();
+                    $blockedPosts += $list->posts_count;
+                }
+            }
+        }
+    
+        // Return the response with the collected data
+        return response()->json([
+            'status' => 200,
+            'data' => [
+                'following_count' => $followingCount,
+                'following_posts' => $followingPosts,
+                'followers_count' => $followersCount,
+                'followers_posts' => $followersPosts,
+                'blocked_count' => $blockedCount,
+                'blocked_posts' => $blockedPosts,
+                'following' => $followingUsers,
+                'followers' => $followerUsers,
+                'blocked' => $blockedUsers,
+            ],
+        ]);
+    }
+    public function social_lists_following_delete(Request $request)
+    {
+        $memberID = $request->input('id');
+        $member = UserListMember::find($memberID);
+    
+        if ($member) {
+            $member->delete();
+            $returnData = $request->input('return_data', false);
+            
+            if ($returnData) {
+                return response()->json([
+                    'status' => 200,
+                    'message' => __('Member removed from list.'),
+                    'data' => $this->getListDetails($member->list_id, $member->user_id),
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 200,
+                    'message' => __('Member removed from list.'),
+                ]);
             }
         } else {
-            $list = ListsHelperServiceProvider::getUserFollowersList();
+            return response()->json([
+                'status' => 400,
+                'message' => __('Member not found.'),
+            ], 404);
         }
-    
-        if (!$list) {
-            return response()->json(['error' => 'List not found'], 404);
+    }
+    public function follow_creator(Request $request)
+    {
+        $follow = $request->input('follow');
+        $user = Auth::user();
+        if ($follow === '1') {
+            $follow = \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, true);   
+            return response()->json([
+                'status' => 200,
+                'message' => 'You are now following the user.', 
+            ]);
+        } elseif ($follow === '0') {
+            $follow = \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, true); 
+            return response()->json([
+                'status' => 200,
+                'message' => 'You have unfollowed the user.',
+            ]);
+        } else {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Invalid input. Use 1 to follow or 0 to unfollow.',
+            ]);
         }
-    
-        return response()->json($list);
     }
 }
-  
