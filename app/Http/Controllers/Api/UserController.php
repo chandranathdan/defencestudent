@@ -74,6 +74,43 @@ class UserController extends Controller
 		}
 		return $response;
     }
+    public function googleLogin(Request $request){
+		\Log::info('Socialite user: ' . $request->user['displayName']);
+		$email =  $request->user['email'];
+		$name = $request->user['displayName'] ?? '';
+		$auth_provider_id = $request->user['id'] ?? '';
+		$provider = $request->route('provider');
+		if($email) {
+			$user = User::where('email',$email)->first();
+			if($user){
+				$user->name = $name;
+				$user->save();
+				
+				$authUser = $user;
+			}else{
+				try {
+					$authUser = AuthServiceProvider::createUser([
+						'name' => $name,
+						'email' => $email,
+						'auth_provider' => $provider,
+						'auth_provider_id' => $auth_provider_id,
+					]);
+				} catch (\Exception $exception) {
+					// Redirect to homepage with error
+					//return redirect(route('home'))->with('error', $exception->getMessage());
+					$response['status']="400";
+					$response['message']=$e->getMessage();
+					return $response;
+				}
+			}
+			$msg = 'Successfully logged in';
+			return $this->authResponse($authUser, $msg);
+		}else{
+			$response['status']="400";
+			$response['message']='Email not provided by Google.';
+			return $response;
+		}
+    }
 	
 	public function register(Request $request){
 		$validator = Validator::make($request->all(), [
@@ -354,15 +391,18 @@ class UserController extends Controller
         ], 200);
     }
    
-	public function redirectToProvider(Request $request){
+	/*public function redirectToProvider(Request $request){
         return Socialite::driver($request->route('provider'))->redirect();
-    }
+    }*/
 	
-	public function handleProviderCallback(Request $request){
+	/*public function handleProviderCallback(Request $request){
         $provider = $request->route('provider');
+		\Log::info('Socialite user: ' . json_encode($request->all()));
 
         try {
-            $user = Socialite::driver($provider)->user();
+            //$user = Socialite::driver($provider)->user();
+			$user = Socialite::driver($provider)->stateless()->user();
+			\Log::info('Socialite user:', (array) $user);
         } catch (RequestException $e) {
             //throw new \ErrorException($e->getMessage());
 			$response['status']="400";
@@ -377,9 +417,16 @@ class UserController extends Controller
         }
         else{
             try {
+				$name = $user->getName() ?? 'No Name'; // Default to 'No Name' if null
+				$email = $user->getEmail();
+				if (!$email) {
+					$response['status']="400";
+					$response['message']='Email not provided by Google.';
+					return $response;
+				}
                 $authUser = AuthServiceProvider::createUser([
-                    'name' => $user->getName(),
-                    'email' => $user->getEmail(),
+                    'name' => $name,
+                    'email' => $email,
                     'auth_provider' => $provider,
                     'auth_provider_id' => $user->id
                 ]);
@@ -397,7 +444,7 @@ class UserController extends Controller
         $msg = 'Successfully logged in';
 		return $this->authResponse($authUser, $msg);
 
-    }
+    }*/
 	
 	public function user_data(){
         return auth()->user();
@@ -412,4 +459,5 @@ class UserController extends Controller
             ->delete();
 		return response()->json(['status' => '200.', 'success' => 'Successfully logged out.']);	
     }
+
 }

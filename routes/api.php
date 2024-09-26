@@ -30,8 +30,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::post('/login', [UserController::class, 'login']); // lOGIN url
 Route::post('/register', [UserController::class, 'register']); // REGISTER url
-Route::get('/socialAuth/{provider}', [UserController::class, 'redirectToProvider']);
-Route::get('/socialAuth/{provider}/callback', [UserController::class, 'handleProviderCallback']);
+//Route::get('/socialAuth/{provider}', [UserController::class, 'redirectToProvider']);
+Route::post('/google/callback', [UserController::class, 'googleLogin']);
 
 Route::post('/forgot-password', [UserController::class, 'forgotpassword']); // FORGOTPASSWORD url
 Route::post('/forgot-password/verify-otp', [UserController::class, 'forget_password_verify_otp']); // Verify otp
