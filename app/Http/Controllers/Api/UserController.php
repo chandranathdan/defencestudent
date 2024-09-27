@@ -75,7 +75,7 @@ class UserController extends Controller
 		return $response;
     }
     public function googleLogin(Request $request){
-		\Log::info('Socialite user: ' . $request->user['displayName']);
+		//  \Log::info('Socialite user: ' . $request->user['displayName']);
 		$email =  $request->user['email'];
 		$name = $request->user['displayName'] ?? '';
 		$auth_provider_id = $request->user['id'] ?? '';
@@ -94,6 +94,7 @@ class UserController extends Controller
 						'email' => $email,
 						'auth_provider' => $provider,
 						'auth_provider_id' => $auth_provider_id,
+						'email_verified_at' => date('Y-m-d H:i:s'),
 					]);
 				} catch (\Exception $exception) {
 					// Redirect to homepage with error
