@@ -75,7 +75,7 @@ class UserController extends Controller
 		return $response;
     }
     public function googleLogin(Request $request){
-		\Log::info('Socialite user: ' . $request->user['displayName']);
+		//  \Log::info('Socialite user: ' . $request->user['displayName']);
 		$email =  $request->user['email'];
 		$name = $request->user['displayName'] ?? '';
 		$auth_provider_id = $request->user['id'] ?? '';
