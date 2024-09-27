@@ -595,7 +595,7 @@ class FeedsController extends Controller
             return response()->json([
                 'status' => 400,
                 'message' => __('Member not found.'),
-            ], 404);
+            ]);
         }
     }
     public function follow_creator(Request $request)
@@ -609,35 +609,45 @@ class FeedsController extends Controller
         $follow = $request->input('follow');
     
         if ($follow === '1') {
-            \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, $followUserId);
+            // Ensure the authenticated user is following the specified user
+            $this->followUser($user->id, $followUserId);
             return response()->json(['status' => 200, 'message' => 'You are now following the user.']);
         } elseif ($follow === '0') {
-            \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, $followUserId);
+            // Ensure the authenticated user unfollows the specified user
+            $this->unfollowUser($user->id, $followUserId);
             return response()->json(['status' => 200, 'message' => 'You have unfollowed the user.']);
         } else {
             return response()->json(['status' => 400, 'message' => 'Invalid input. Use 1 to follow or 0 to unfollow.']);
         }
     }
     
-    public static function getUserFollowingType($userId, $getTranslated = false)
+    private function followUser($authUserId, $followUserId)
     {
-        if (self::loggedUserIsFollowingUser($userId)) {
-            return $getTranslated ? __('Unfollow') : 'unfollow';
-        } else {
-            return $getTranslated ? __('Follow') : 'follow';
+        $followingListId = $this->getFollowingListId($authUserId);
+        if ($followingListId) {
+            UserListMember::updateOrCreate(
+                [
+                    'user_id' => $followUserId,
+                    'list_id' => $followingListId,
+                ]
+            );
         }
     }
     
-    public static function loggedUserIsFollowingUser($userId)
+    private function unfollowUser($authUserId, $followUserId)
     {
-        if (Auth::user()) {
-            $loggedUserId = Auth::user()->id;
-            $userFollowersListId = UserList::query()->where(['user_id' => $loggedUserId, 'type' => 'following'])->select('id')->first();
-            if ($userFollowersListId != null) {
-                $userListMember = UserListMember::query()->where(['user_id' => $userId, 'list_id' => $userFollowersListId->id])->select('id')->first();
-                return $userListMember != null;
-            }
+        $followingListId = $this->getFollowingListId($authUserId);
+        if ($followingListId) {
+            UserListMember::where([
+                'user_id' => $followUserId,
+                'list_id' => $followingListId,
+            ])->delete();
         }
-        return false;
+    }
+    
+    private function getFollowingListId($userId)
+    {
+        $userFollowersList = UserList::where(['user_id' => $userId, 'type' => 'following'])->first();
+        return $userFollowersList ? $userFollowersList->id : null;
     }
 }
