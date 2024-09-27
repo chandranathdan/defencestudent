@@ -600,25 +600,44 @@ class FeedsController extends Controller
     }
     public function follow_creator(Request $request)
     {
-        $follow = $request->input('follow');
         $user = Auth::user();
-        if ($follow === '1') {
-            $follow = \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, true);   
-            return response()->json([
-                'status' => 200,
-                'message' => 'You are now following the user.', 
-            ]);
-        } elseif ($follow === '0') {
-            $follow = \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, true); 
-            return response()->json([
-                'status' => 200,
-                'message' => 'You have unfollowed the user.',
-            ]);
-        } else {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Invalid input. Use 1 to follow or 0 to unfollow.',
-            ]);
+        if (!$user) {
+            return response()->json(['status' => 401, 'message' => 'Unauthorized.']);
         }
+    
+        $followUserId = $request->input('user_id');
+        $follow = $request->input('follow');
+    
+        if ($follow === '1') {
+            \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, $followUserId);
+            return response()->json(['status' => 200, 'message' => 'You are now following the user.']);
+        } elseif ($follow === '0') {
+            \App\Providers\ListsHelperServiceProvider::getUserFollowingType($user->id, $followUserId);
+            return response()->json(['status' => 200, 'message' => 'You have unfollowed the user.']);
+        } else {
+            return response()->json(['status' => 400, 'message' => 'Invalid input. Use 1 to follow or 0 to unfollow.']);
+        }
+    }
+    
+    public static function getUserFollowingType($userId, $getTranslated = false)
+    {
+        if (self::loggedUserIsFollowingUser($userId)) {
+            return $getTranslated ? __('Unfollow') : 'unfollow';
+        } else {
+            return $getTranslated ? __('Follow') : 'follow';
+        }
+    }
+    
+    public static function loggedUserIsFollowingUser($userId)
+    {
+        if (Auth::user()) {
+            $loggedUserId = Auth::user()->id;
+            $userFollowersListId = UserList::query()->where(['user_id' => $loggedUserId, 'type' => 'following'])->select('id')->first();
+            if ($userFollowersListId != null) {
+                $userListMember = UserListMember::query()->where(['user_id' => $userId, 'list_id' => $userFollowersListId->id])->select('id')->first();
+                return $userListMember != null;
+            }
+        }
+        return false;
     }
 }
