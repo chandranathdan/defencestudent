@@ -374,7 +374,7 @@ class UserController extends Controller
         $post->save();
         return response()->json([
             'status' => 200,
-            'message' => 'post_create saved successfully'
+            'message' => 'post saved successfully'
         ], 200);
     }
     public function post_create_file(Request $request)
@@ -390,17 +390,20 @@ class UserController extends Controller
 				'status' => 600,
 			]);
 		}
-    
+        $postId = $request->input('post_id');
         if ($request->hasFile('files')) {
 			$files = $request->file('files');
 			$uploadedFiles = [];
-			
 			try {
 				foreach ($files as $file) {
 					$attachment = AttachmentServiceProvider::createAttachment($file, 'public/attachments', false);
-					$uploadedFiles[] = $attachment->filename;
-				}
+					$attachment->post_id = $postId;
+                    $attachment->save(); 
+                    $uploadedFiles[] = $attachment->filename;
+				} 
+                  
 				$user = Auth::user();
+               
 				$attachment = $user->attachment;
 				if ($attachment) {
 					$existingFiles = $attachment->files ? json_decode($attachment->files, true) : [];
@@ -411,11 +414,11 @@ class UserController extends Controller
 				} 
 				return response()->json([
 					'status' => 200,
-					'message' => 'Post file upload successfully .',
+                    'post_id'=>$postId,
+					'message' => 'Post save successfully .',
 				]);
 			} catch (\Exception $exception) {
 				return response()->json(['status' => 400, 'message' => 'File upload failed']);
-				//return response()->json(['success' => false, 'errors' => [$exception->getMessage()]], 500);
 			}
         }
 		return response()->json(['status' => 400, 'message' => 'No files uploaded']);
