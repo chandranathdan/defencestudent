@@ -374,8 +374,9 @@ class UserController extends Controller
         $post->save();
         return response()->json([
             'status' => 200,
+            'post_id' =>$post->id,
             'message' => 'post saved successfully'
-        ], 200);
+        ]);
     }
     public function post_create_file(Request $request)
     {
@@ -398,7 +399,7 @@ class UserController extends Controller
 				foreach ($files as $file) {
 					$attachment = AttachmentServiceProvider::createAttachment($file, 'public/attachments', false);
 					$attachment->post_id = $postId;
-                    $attachment->save(); 
+                    $attachment->save();   
                     $uploadedFiles[] = $attachment->filename;
 				} 
                   
@@ -414,7 +415,6 @@ class UserController extends Controller
 				} 
 				return response()->json([
 					'status' => 200,
-                    'post_id'=>$postId,
 					'message' => 'Post save successfully .',
 				]);
 			} catch (\Exception $exception) {
