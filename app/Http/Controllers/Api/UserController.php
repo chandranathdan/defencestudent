@@ -355,7 +355,6 @@ class UserController extends Controller
             'price' => 'nullable|numeric',
             'release_date' => 'nullable|date',
             'expire_date' => 'nullable|date',
-            'attachments' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -373,25 +372,93 @@ class UserController extends Controller
         $post->text = $request->input('text');
         $post->price = $request->input('price', 0);
         $post->save();
-        if ($request->hasFile('attachments')) {
-            $file = $request->file('attachments');
-            if ($file->isValid()) {
-                $filename = time() . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('public/attachments', $filename);
-                $attachment = new Attachment();
-                $attachment->filename = $filename;
-                $attachment->post_id = $post->id;
-                $attachment->save();
-            } else {
-                return response()->json(['status' => 400, 'message' => 'File upload failed.']);
-            }
-        }
         return response()->json([
             'status' => 200,
             'message' => 'post_create saved successfully'
         ], 200);
     }
-   
+    public function post_create_file(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+			'files' => 'required',
+			'files.*' => 'file|mimes:jpeg,png,gif,mp4|max:2048',
+		]);
+
+		if ($validator->fails()) {
+			return response()->json([
+				'errors' => $validator->errors(),
+				'status' => 600,
+			]);
+		}
+    
+        if ($request->hasFile('files')) {
+			$files = $request->file('files');
+			$uploadedFiles = [];
+			
+			try {
+				foreach ($files as $file) {
+					$attachment = AttachmentServiceProvider::createAttachment($file, 'public/attachments', false);
+					$uploadedFiles[] = $attachment->filename;
+				}
+				$user = Auth::user();
+				$attachment = $user->attachment;
+				if ($attachment) {
+					$existingFiles = $attachment->files ? json_decode($attachment->files, true) : [];
+					$allFiles = array_merge($existingFiles, $uploadedFiles);
+					$attachment->update([
+						'files' => json_encode($allFiles),
+					]);
+				} 
+				return response()->json([
+					'status' => 200,
+					'message' => 'Post file upload successfully .',
+				]);
+			} catch (\Exception $exception) {
+				return response()->json(['status' => 400, 'message' => 'File upload failed']);
+				//return response()->json(['success' => false, 'errors' => [$exception->getMessage()]], 500);
+			}
+        }
+		return response()->json(['status' => 400, 'message' => 'No files uploaded']);
+    }
+    /*{
+        $validator = Validator::make($request->all(), [
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|mimes:jpeg,png,gif,mp4|max:2048', // Validate each file
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+    
+        $post = new Post();
+        $post->user_id = Auth::id();
+        $post->save();
+    
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                if ($file->isValid()) {
+                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $path = $file->storeAs('public/attachments', $filename);
+    
+                    $attachment = new Attachment();
+                    $attachment->id = (string) Str::uuid();
+                    $attachment->filename = $filename;
+                    $attachment->post_id = $post->id; 
+                    $attachment->driver = Attachment::PUBLIC_DRIVER;
+                    $attachment->type = $file->getClientOriginalExtension();
+                    $attachment->save();
+                }
+            }
+        }
+    
+        return response()->json([
+            'status' => 200,
+            'message' => 'Post_created and files saved successfully'
+        ]);
+    }*/
 	/*public function redirectToProvider(Request $request){
         return Socialite::driver($request->route('provider'))->redirect();
     }*/
