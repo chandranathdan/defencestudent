@@ -230,7 +230,7 @@ class SearchController extends Controller
 					[
 						'content_type' => 'locked',
 						'file' => asset('/img/post-locked.svg'),
-						'price' => 1,
+						'price' => $post->price,
 					]
 				];
 			}else{
@@ -246,6 +246,7 @@ class SearchController extends Controller
 					return [
 						'content_type' => $type,
 						'file' => Storage::url('attachments/' . $attachment->filename),
+						'price' => 0,
 					];
 				})->toArray();
 			}
@@ -254,7 +255,7 @@ class SearchController extends Controller
 				[
 					'content_type' => 'locked',
 					'file' => asset('/img/post-locked.svg'),
-					'price' => 1,
+					'price' => $post->price,
 				]
 			];
 		}
