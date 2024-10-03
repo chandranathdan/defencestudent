@@ -137,9 +137,9 @@ class SearchController extends Controller
             });
         }
     
-        if ($userIds) {
+        //if ($userIds) {
             $sortOrder = $filters['sortOrder'];
-            $postsQuery = Post::with('user', 'attachments')
+            /*$postsQuery = Post::with('user', 'attachments')
                 ->whereIn('user_id', $userIds);
     
             if ($sortOrder === 'top') {
@@ -151,7 +151,10 @@ class SearchController extends Controller
                 });
             }
     
-            $posts = $postsQuery->get();
+            $posts = $postsQuery->get();*/
+			$startPage = $request->post('page');
+			$posts = PostsHelperServiceProvider::getFeedPosts(Auth::user()->id, false, $startPage, false, $filters['sortOrder'], $filters['searchTerm']);
+			//dd($filters['mediaType']);
             if ($activeFilters['top'] || $activeFilters['latest']) {
                 if ($activeFilters['top']) {
                     $responseData['top'] = $posts->map(function ($post) {
@@ -187,7 +190,7 @@ class SearchController extends Controller
                     });
                 }
             }
-        }
+        //}
     
         return response()->json([
             'status' => 200,
@@ -198,9 +201,10 @@ class SearchController extends Controller
     }
     protected function formatPostData($post)
     {
+		//dd($post->id);
         $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
         $isPaid = $transactions->isNotEmpty();
-        $attachments = $isPaid ? $post->attachments->map(function ($attachment) {
+        /*$attachments = !$isPaid ? $post->attachments->map(function ($attachment) {
             $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
             $type = null;
             if (in_array($extension, ['jpg', 'png', 'gif'])) {
@@ -219,10 +223,45 @@ class SearchController extends Controller
                 'file' => asset('/img/post-locked.svg'),
                 'price' => 1,
             ]
-        ];
+        ];*/
+		if(!$isPaid){
+			if((Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) || (!Auth::check() && $post->price > 0 )){
+				$attachments = [
+					[
+						'content_type' => 'locked',
+						'file' => asset('/img/post-locked.svg'),
+						'price' => 1,
+					]
+				];
+			}else{
+				$attachments = $post->attachments->map(function ($attachment) {
+					$extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+					$type = null;
+					if (in_array($extension, ['jpg', 'png', 'gif'])) {
+						$type = 'image';
+					} elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+						$type = 'video';
+					}
+			
+					return [
+						'content_type' => $type,
+						'file' => Storage::url('attachments/' . $attachment->filename),
+					];
+				})->toArray();
+			}
+		}else{
+			$attachments = [
+				[
+					'content_type' => 'locked',
+					'file' => asset('/img/post-locked.svg'),
+					'price' => 1,
+				]
+			];
+		}
         $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
         ->where('status', Transaction::APPROVED_STATUS)->count();
         return [
+            'post_id' => $post->id,
             'name' => $post->user->name,
             'username' => $post->user->username,
             'avatar' => $post->user->avatar,
