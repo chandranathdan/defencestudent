@@ -30,7 +30,7 @@ class FeedsController extends Controller
             return response()->json([
                 'status' => 401,
                 'message' => 'Unauthorized'
-            ], 401);
+            ]);
         }
         if (!is_numeric($id)) {
             return response()->json([
@@ -58,7 +58,7 @@ class FeedsController extends Controller
         }
         $user->created_at_formatted = $user->created_at->format('F Y');
         $user->posts->transform(function ($post) {
-            $post->created_at_formatted = $post->created_at->diffForHumans(); // e.g., "1 day ago"
+            $post->created_at_formatted = $post->created_at->diffForHumans();
             return $post;
         });
     
@@ -67,30 +67,6 @@ class FeedsController extends Controller
             'data' => $user
         ]);
     }
-    /*{
-        $post = Post::select('id', 'user_id','text', 'release_date', 'expire_date')->with([
-            'attachments' => function ($query) {
-                $query->select('filename', 'post_id', 'driver');
-            },
-            'user' => function ($query) {
-                $query->select('id', 'name', 'username');
-            },
-            'comments' => function ($query) {
-                $query->select('id', 'post_id', 'message', 'user_id');
-            },
-            'reactions' => function ($query) {
-                $query->select('post_id', 'reaction_type');
-            }
-        ])->where('user_id', $id)->get();
-        if (!$post) {
-            return response()->json(['status' => '400', 'message' => 'Post not found']);
-        }
-
-        return response()->json([
-            'status' => '200',
-            'user' => $post,
-        ]);
-    } */
     //feeds_indivisual_filter_image
     public function feeds_indivisual_filter_image($id)
     {
@@ -163,10 +139,9 @@ class FeedsController extends Controller
     public function feeds_post_comments(Request $request)
     {
         $user = Auth::user();
-        
         $validator = Validator::make($request->all(), [
             'post_id' => 'required|exists:posts,id',
-            'message' => 'sometimes|required|string|max:1000',
+            'message' => 'nullable|string|max:1000',
         ]);
     
         if ($validator->fails()) {
@@ -174,17 +149,84 @@ class FeedsController extends Controller
                 'errors' => $validator->errors(),
                 'status' => 600,
             ]);
-        }  
+        }
         $postId = $request->input('post_id');
         $comment = $request->input('message');
-    
         $post = Post::find($postId);
         if (!$post) {
             return response()->json([
                 'status' => 400,
-                'message' => 'Post not found'
+                'message' => 'Post not found',
             ]);
         }
+        if ($comment) {
+            $newComment = PostComment::create([
+                'user_id' => $user->id,
+                'post_id' => $postId,
+                'message' => $comment,
+            ]);
+            $newComment->load('author');
+    
+            return response()->json([
+                'status' => 200,
+                'message' => 'Comment added',
+                'data' => $this->formatComment($newComment),
+                'new_comments_count' => $post->comments()->count(),
+            ]);
+        }
+        $comments = $post->comments()->with('author')->latest()->get();
+        $formattedComments = $comments->map(fn($comment) => $this->formatComment($comment));
+    
+        return response()->json([
+            'status' => 200,
+            'message' =>'Comment added.',
+            'data' => $formattedComments,
+            'new_comments_count' => $comments->count(),
+        ]);
+    }
+    private function formatComment(PostComment $comment)
+    {
+        $likesCount = $comment->reactions()->count(); 
+        return [
+            'id' => $comment->id,
+            'user_id' => $comment->user_id,
+           // 'post_id' => $comment->post_id,
+            'message' => $comment->message,
+            'created_at' => $comment->created_at->diffForHumans(), 
+                'username' => $comment->author->username,
+                'avatar' => $comment->author->avatar,
+                'name' => $comment->author->name,
+                'post_comment_likes_ount' =>$likesCount,
+                'worn_user' => $comment->user_id === Auth::id(),
+        ];
+    }
+    public function feeds_fetch_comments(Request $request)
+    {
+        $user = Auth::user();
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|exists:posts,id',
+            'comment' => 'nullable|string',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+    
+        $postId = $request->input('post_id');
+        $post = Post::find($postId);
+        
+        if (!$post) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Post not found',
+            ]);
+        }
+    
+        // Check if a new comment is being added
+        $comment = $request->input('comment');
     
         if ($comment) {
             $newComment = PostComment::create([
@@ -193,43 +235,109 @@ class FeedsController extends Controller
                 'message' => $comment,
             ]);
             $newComment->load('author');
-            $newCommentsCount = $post->comments()->count();
+    
             return response()->json([
                 'status' => 200,
                 'message' => 'Comment added',
-                'comment' => [
-                    'id' => $newComment->id,
-                    'message' => $newComment->message,
-                    'created_at' => $newComment->created_at,
-                    'user' => [
-                        'username' => $newComment->author->username,
-                        'avatar' => $newComment->author->avatar,
-                        'name' => $newComment->author->name,
-                    ],
-                ],
+                'comment' => $this->formatComment($newComment),
+                'new_comments_count' => $post->comments()->count(),
             ]);
         }
     
+        // Fetch existing comments if no new comment is added
         $comments = $post->comments()->with('author')->latest()->get();
-        $newCommentsCount = $comments->count();
+        $formattedComments = $comments->map(fn($comment) => $this->formatComment($comment));
+        return response()->json([
+            'status' => 200,
+            'data' => $formattedComments,
+            'new_comments_count' => $comments->count(),
+        ]);
+    }
+    public function feeds_like_comments(Request $request)
+    {
+        $user = Auth::user();
     
-        $formattedComments = $comments->map(function ($comment) {
-            return [
-                'id' => $comment->id,
-                'message' => $comment->message,
-                'created_at' => $comment->created_at,
-                'user' => [
-                    'username' => $comment->author->username,
-                    'avatar' => $comment->author->avatar,
-                    'name' => $comment->author->name,
-                ],
-            ];
-        });
+        // Validate the incoming request
+        $validator = Validator::make($request->all(), [
+            'post_comment_id' => 'required|exists:post_comments,id',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+    
+        $postCommentId = $request->input('post_comment_id');
+        $postComment = PostComment::find($postCommentId);
+        if (!$postComment) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Comment not found'
+            ]);
+        }
+    
+        // Check for an existing like
+        $existingLike = Reaction::where('user_id', $user->id)
+            ->where('post_comment_id', $postCommentId)
+            ->first();
+    
+        if ($existingLike) {
+            $existingLike->delete();
+            $message = 'Like removed';
+        } else {
+            Reaction::create([
+                'user_id' => $user->id,
+                'post_comment_id' => $postCommentId,
+                'reaction_type' => 'like',
+            ]);
+            $message = 'Comment liked';
+        }
+    
+        // Get the new like count
+        $newLikeCount = Reaction::where('post_comment_id', $postCommentId)
+            ->where('reaction_type', 'like')
+            ->count();
     
         return response()->json([
             'status' => 200,
-            'comments' => $formattedComments,
-            'new_comments_count' => $newCommentsCount,
+            'message' => $message,
+            'new_like_count' => $newLikeCount,
+        ]);
+    }
+    public function feeds_delete_comments(Request $request)
+    {
+        $user = Auth::user();
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'post_comment_id' => 'required|exists:post_comments,id',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+    
+        $postCommentId = $request->input('post_comment_id');
+        $comment = PostComment::where('id', $postCommentId)
+            ->where('user_id', $user->id)
+            ->first();
+    
+        if (!$comment) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Comment not found or you do not have permission to delete this comment',
+            ]);
+        }
+    
+        $comment->delete();
+        return response()->json([
+            'status' => 200,
+            'message' => 'Comment deleted successfully.',
+            'new_comments_count' => PostComment::where('post_id', $comment->post_id)->count(), // Reference the post_id
         ]);
     }
     public function feed_all_user()

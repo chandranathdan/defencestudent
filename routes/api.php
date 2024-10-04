@@ -50,7 +50,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/feed_all_user', [FeedsController::class, 'feed_all_user']); // feed_all_user URL
 		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
 		Route::post('/feeds_post_comments', [FeedsController::class, 'feeds_post_comments']); // feeds_post_comments url
+		Route::post('/feeds_fetch_comments', [FeedsController::class, 'feeds_fetch_comments']); // feeds_fetch_comments url
+		Route::post('/feeds_like_comments', [FeedsController::class, 'feeds_like_comments']); // feeds_like_comments url
+		Route::post('/feeds_delete_comments', [FeedsController::class, 'feeds_delete_comments']); // feeds_delete_comments url
 		Route::post('/tips_submit', [FeedsController::class, 'tips_submit']); // tips_update url
+		Route::post('/tips_submit_tipes', [FeedsController::class, 'tips_submit_tipes']); // tips_submit_tipes url
 		Route::post('/tips_fetch', [FeedsController::class, 'tips_fetch']); // tips_fetch url
 		Route::get('/feed_user', [FeedsController::class, 'feed_user']); // feed_user url
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url	
