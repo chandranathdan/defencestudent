@@ -46,17 +46,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 	Route::group(['middleware' => ['api_email_verified']], function () {
 		Route::get('/feeds_indivisual/{id}', [FeedsController::class, 'feeds_indivisual']); // feeds-indivisual URL
 		Route::get('/feeds_indivisual_filter_image/{id}', [FeedsController::class, 'feeds_indivisual_filter_image']); // feeds_indivisual_filter_image URL
-		Route::get('/feeds', [FeedsController::class, 'feed']); // feed URL
 		Route::get('/feed_all_user', [FeedsController::class, 'feed_all_user']); // feed_all_user URL
+		Route::get('/feed_user', [FeedsController::class, 'feed_user']); // feed_user url
 		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
 		Route::post('/feeds_post_comments', [FeedsController::class, 'feeds_post_comments']); // feeds_post_comments url
 		Route::post('/feeds_fetch_comments', [FeedsController::class, 'feeds_fetch_comments']); // feeds_fetch_comments url
 		Route::post('/feeds_like_comments', [FeedsController::class, 'feeds_like_comments']); // feeds_like_comments url
 		Route::post('/feeds_delete_comments', [FeedsController::class, 'feeds_delete_comments']); // feeds_delete_comments url
 		Route::post('/tips_submit', [FeedsController::class, 'tips_submit']); // tips_update url
-		Route::post('/tips_submit_tipes', [FeedsController::class, 'tips_submit_tipes']); // tips_submit_tipes url
 		Route::post('/tips_fetch', [FeedsController::class, 'tips_fetch']); // tips_fetch url
-		Route::get('/feed_user', [FeedsController::class, 'feed_user']); // feed_user url
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url	
 		Route::post('/post_create_file', [UserController::class, 'post_create_file']); // post_create_file url		
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
