@@ -46,7 +46,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 	Route::group(['middleware' => ['api_email_verified']], function () {
 		Route::get('/feeds_indivisual/{id}', [FeedsController::class, 'feeds_indivisual']); // feeds-indivisual URL
 		Route::get('/feeds_indivisual_filter_image/{id}', [FeedsController::class, 'feeds_indivisual_filter_image']); // feeds_indivisual_filter_image URL
-		Route::get('/feed_all_user', [FeedsController::class, 'feed_all_user']); // feed_all_user URL
+		Route::post('/feed_all_user', [FeedsController::class, 'feed_all_user']); // feed_all_user URL
 		Route::get('/feed_user', [FeedsController::class, 'feed_user']); // feed_user url
 		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
 		Route::post('/feeds_post_comments', [FeedsController::class, 'feeds_post_comments']); // feeds_post_comments url

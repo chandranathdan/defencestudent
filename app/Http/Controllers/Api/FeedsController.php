@@ -46,7 +46,7 @@ class FeedsController extends Controller
         // Find the user by ID
         $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
             ->find($id);
-            
+    
         if (!$user) {
             return response()->json([
                 'status' => 404,
@@ -56,17 +56,14 @@ class FeedsController extends Controller
     
         $user->created_at = $user->created_at->format('F j');
         $user->bio = $user->bio ?? __('No description available.');
-    
-        // Fetch the user's posts with counts
+        $authUser = Auth::user();
+        $likesCount = $user->reactions()->count();
         $posts = $user->posts()->withCount(['comments', 'reactions'])->get();
     
-        // Format posts data
-        $formattedPosts = $posts->map(function ($post) {
-            // Calculate tips count for the specific post
+        $formattedPosts = $posts->map(function ($post) use ($authUser) {
             $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
                 ->where('status', Transaction::APPROVED_STATUS)->count();
     
-            // Process attachments
             $attachments = $post->attachments->map(function ($attachment) {
                 $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
                 $type = null;
@@ -83,6 +80,7 @@ class FeedsController extends Controller
                 ];
             })->toArray();
     
+            $hasLiked = $authUser->reactions()->where('post_id', $post->id)->exists();
             return [
                 'post_id' => $post->id,
                 'name' => $post->user->name,
@@ -95,9 +93,11 @@ class FeedsController extends Controller
                 'tipsCount' => $tipsCount,
                 'likesCount' => $post->reactions_count,
                 'created_at' => $post->created_at->diffForHumans(),
+                'post_comment_likes_count' => $likesCount,
+                'own_comment' => $post->user_id === $authUser->id,
+                'own_like' => $hasLiked,
             ];
         });
-    
         return response()->json([
             'status' => 200,
             'data' => [
@@ -106,49 +106,6 @@ class FeedsController extends Controller
             ]
         ]);
     }
-   /* {
-    
-        if (!Auth::check()) {
-            return response()->json([
-                'status' => 401,
-                'message' => 'Unauthorized'
-            ]);
-        }
-        if (!is_numeric($id)) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Invalid user ID'
-            ]);
-        }
-        $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
-            ->with([
-                'posts' => function ($query) {
-                    $query->select('id', 'user_id', 'text', 'created_at')
-                          ->with([
-                              'comments:id,post_id,message,user_id',
-                              'user:id,name,username,avatar',
-                              'reactions:post_id,reaction_type'
-                          ]);
-                }
-            ])
-            ->find($id);
-        if (!$user) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'User not found'
-            ]);
-        }
-        $user->created_at_formatted = $user->created_at->format('F Y');
-        $user->posts->transform(function ($post) {
-            $post->created_at_formatted = $post->created_at->diffForHumans();
-            return $post;
-        });
-    
-        return response()->json([
-            'status' => 200,
-            'data' => $user
-        ]);
-    }*/
     //feeds_indivisual_filter_image
     public function feeds_indivisual_filter_image($id)
     {
@@ -426,8 +383,93 @@ class FeedsController extends Controller
             'new_comments_count' => PostComment::where('post_id', $comment->post_id)->count(), 
         ]);
     }
-    public function feed_all_user()
+    public function feed_all_user(Request $request)
     {
+        $postCommentId = $request->input('page');
+        $postCommentId = $request->input('courses_user_page');
+        if (!Auth::check()) {
+            return response()->json([
+                'status' => 401,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+        $currentUserId = Auth::id();
+        $followingIds = User::where('id', $currentUserId)
+                            ->with('followers')
+                            ->first()
+                            ->followers
+                            ->pluck('id'); 
+        $users = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
+                    ->whereIn('id', $followingIds) 
+                    ->get();
+        $formattedUsers = $users->map(function ($user) use ($currentUserId) {
+            $isFollowing = $user->followers()->where('follower_id', $currentUserId)->exists();
+
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'avatar' => $user->avatar,
+                'cover' => $user->cover,
+                'bio' => $user->bio ?? __('No description available.'),
+                'created_at' => Carbon::parse($user->created_at)->format('F j'),
+                'location' => $user->location,
+                'website' => $user->website,
+                'posts' => $this->getUserPosts($user),
+                'is_following' => $isFollowing, 
+            ];
+        });
+
+        return response()->json([
+            'status' => 200,
+            'data' => $formattedUsers
+        ]);
+    }
+    
+    // Helper function to fetch and format user posts
+    private function getUserPosts($user)
+    {
+        $posts = $user->posts()->withCount(['comments', 'reactions'])->get();
+    
+        return $posts->map(function ($post) {
+            // Calculate tips count for the specific post
+            $tipsCount = $post->transactions()
+                ->where('type', Transaction::TIP_TYPE)
+                ->where('status', Transaction::APPROVED_STATUS)
+                ->count();
+    
+            // Process attachments
+            $attachments = $post->attachments->map(function ($attachment) {
+                $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+                $type = null;
+    
+                if (in_array($extension, ['jpg', 'png', 'gif'])) {
+                    $type = 'image';
+                } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+                    $type = 'video';
+                }
+    
+                return [
+                    'content_type' => $type,
+                    'file' => Storage::url('attachments/' . $attachment->filename),
+                ];
+            })->toArray();
+    
+            return [
+                'post_id' => $post->id,
+                'name' => $post->user->name,
+                'username' => $post->user->username,
+                'avatar' => $post->user->avatar,
+                'post_text' => $post->text,
+                'attachments' => $attachments,
+                'commentsCount' => $post->comments_count,
+                'tipsCount' => $tipsCount,
+                'likesCount' => $post->reactions_count,
+                'created_at' => $post->created_at->diffForHumans(),
+            ];
+        });
+    }
+    /*{
         if (!Auth::check()) {
             return response()->json([
                 'status' => 401,
@@ -502,7 +544,7 @@ class FeedsController extends Controller
                 'created_at' => $post->created_at->diffForHumans(),
             ];
         });
-    }
+    }*/
     public function feed_user()
     {
         // Check if the user is authenticated
@@ -648,7 +690,8 @@ class FeedsController extends Controller
             'country' => 'nullable|string',
             'state' => 'nullable|string',
             'postcode' => 'nullable|string',
-        ], [
+        ], 
+        [
             'amount.required' => 'Please enter a valid amount.',
             'amount.numeric' => 'Please enter a valid amount.',
             'amount.min' => 'Please enter a valid amount.',
