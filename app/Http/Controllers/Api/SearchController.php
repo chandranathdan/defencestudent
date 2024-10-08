@@ -245,7 +245,7 @@ class SearchController extends Controller
 			
 					return [
 						'content_type' => $type,
-						'file' => Storage::url('attachments/' . $attachment->filename),
+						'file' => Storage::url($attachment->filename),
 						'price' => 0,
 					];
 				})->toArray();
