@@ -261,6 +261,9 @@ class SearchController extends Controller
 		}
         $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
         ->where('status', Transaction::APPROVED_STATUS)->count();
+
+        $own_like = Auth::check() ? $post->reactions()->where('user_id', Auth::user()->id)
+        ->where('reaction_type', 'like')->exists() : false;
         return [
             'post_id' => $post->id,
             'name' => $post->user->name,
@@ -271,7 +274,8 @@ class SearchController extends Controller
             'attachments' => $attachments,
             'likesCount' => $post->reactions()->where('reaction_type', 'like')->count(),
             'commentsCount' => $post->comments()->count(),
-            'tipsCount' => $tipsCount, 
+            'tipsCount' => $tipsCount,
+            'own_like' =>$own_like, 
             'created_at' => $post->created_at->diffForHumans(),
         ];
     }

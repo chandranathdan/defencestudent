@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\User;
 use App\Model\Post;
 use App\Model\PostComment;
+use App\Model\Country;
 use App\Model\UserList;
 use App\Model\UserListMember;
 use App\Model\Reaction;
@@ -57,7 +58,7 @@ class FeedsController extends Controller
         $user->created_at = $user->created_at->format('F j');
         $user->bio = $user->bio ?? __('No description available.');
         $authUser = Auth::user();
-        $likesCount = $user->reactions()->count();
+        // $likesCount = $user->reactions()->count();
         $posts = $user->posts()->withCount(['comments', 'reactions'])->get();
     
         $formattedPosts = $posts->map(function ($post) use ($authUser) {
@@ -93,9 +94,9 @@ class FeedsController extends Controller
                 'tipsCount' => $tipsCount,
                 'likesCount' => $post->reactions_count,
                 'created_at' => $post->created_at->diffForHumans(),
-                'post_comment_likes_count' => $likesCount,
-                'own_comment' => $post->user_id === $authUser->id,
-                'own_like' => $hasLiked,
+                // 'post_comment_likes_count' => $likesCount,
+                // 'own_comment' => $post->user_id === $authUser->id,
+                // 'own_like' => $hasLiked,
             ];
         });
         return response()->json([
@@ -172,7 +173,7 @@ class FeedsController extends Controller
         return response()->json([
             'status' => 200,
             'message' => $message,
-            'new_like_count' => $newLikeCount,
+            'likesCount' => $newLikeCount,
         ]);
     }
     public function feeds_post_comments(Request $request)
@@ -182,7 +183,6 @@ class FeedsController extends Controller
             'post_id' => 'required|exists:posts,id',
             'message' => 'nullable|string|max:1000',
         ]);
-    
         if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors(),
@@ -385,60 +385,47 @@ class FeedsController extends Controller
     }
     public function feed_all_user(Request $request)
     {
-        $postCommentId = $request->input('page');
-        $postCommentId = $request->input('courses_user_page');
         if (!Auth::check()) {
             return response()->json([
                 'status' => 401,
                 'message' => 'Unauthorized'
             ], 401);
         }
-        $currentUserId = Auth::id();
-        $followingIds = User::where('id', $currentUserId)
-                            ->with('followers')
-                            ->first()
-                            ->followers
-                            ->pluck('id'); 
-        $users = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
-                    ->whereIn('id', $followingIds) 
-                    ->get();
-        $formattedUsers = $users->map(function ($user) use ($currentUserId) {
-            $isFollowing = $user->followers()->where('follower_id', $currentUserId)->exists();
-
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'avatar' => $user->avatar,
-                'cover' => $user->cover,
-                'bio' => $user->bio ?? __('No description available.'),
-                'created_at' => Carbon::parse($user->created_at)->format('F j'),
-                'location' => $user->location,
-                'website' => $user->website,
-                'posts' => $this->getUserPosts($user),
-                'is_following' => $isFollowing, 
-            ];
-        });
-
+    
+        $users = User::all();
+        
+        $responseData = [];
+        $page = $request->input('page', 0);
+        $coursesUserPage = $request->input('courses_user_page', 0); 
+        $posts = ($page != 0) ? $this->getUserPosts($users) : [];
+    
+        if ($page == 1) {
+            $responseData['posts'] = $posts;
+        }
+    
+        if ($coursesUserPage == 1) {
+            $responseData['courses_user_page'] = $this->getUserCourses($users);
+        }
+    
         return response()->json([
             'status' => 200,
-            'data' => $formattedUsers
+            'data' => $responseData
         ]);
     }
     
-    // Helper function to fetch and format user posts
-    private function getUserPosts($user)
+    private function getUserPosts($users)
     {
-        $posts = $user->posts()->withCount(['comments', 'reactions'])->get();
+        // It's assumed here you want posts from all users; if not, specify.
+        $posts = $users->flatMap(function ($user) {
+            return $user->posts()->withCount(['comments', 'reactions'])->get();
+        });
     
         return $posts->map(function ($post) {
-            // Calculate tips count for the specific post
             $tipsCount = $post->transactions()
                 ->where('type', Transaction::TIP_TYPE)
                 ->where('status', Transaction::APPROVED_STATUS)
                 ->count();
     
-            // Process attachments
             $attachments = $post->attachments->map(function ($attachment) {
                 $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
                 $type = null;
@@ -455,19 +442,37 @@ class FeedsController extends Controller
                 ];
             })->toArray();
     
+            $own_like = Auth::check() ? $post->reactions()->where('user_id', Auth::user()->id)
+                ->where('reaction_type', 'like')->exists() : false;
+    
             return [
                 'post_id' => $post->id,
                 'name' => $post->user->name,
                 'username' => $post->user->username,
                 'avatar' => $post->user->avatar,
+                'bio' => $post->user->bio ?? '',
                 'post_text' => $post->text,
                 'attachments' => $attachments,
-                'commentsCount' => $post->comments_count,
+                'likesCount' => $post->reactions()->where('reaction_type', 'like')->count(),
+                'commentsCount' => $post->comments()->count(),
                 'tipsCount' => $tipsCount,
-                'likesCount' => $post->reactions_count,
+                'own_like' => $own_like,
                 'created_at' => $post->created_at->diffForHumans(),
             ];
         });
+    }
+    
+    private function getUserCourses($users)
+    {
+        return $users->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'avatar' => $user->avatar,
+                'cover' => $user->cover,
+            ];
+        })->toArray(); 
     }
     /*{
         if (!Auth::check()) {
@@ -646,8 +651,8 @@ class FeedsController extends Controller
             ? number_format($walletTotal) 
             : number_format($walletTotal, 2); 
     
-        $currencySymbol = config('app.site.currency_symbol', '$');
-        $availableCredit = "($currencySymbol" . $formattedAmount . ")";
+        // $currencySymbol = config('app.site.currency_symbol', '$');
+        // $availableCredit = "($currencySymbol" . $formattedAmount . ")";
         $transactionsData = $post->transactions->map(function ($transaction) {
             return [
                 'Payment_summary' => $transaction->taxes,
@@ -655,9 +660,9 @@ class FeedsController extends Controller
                 'currency' => $transaction->currency,
             ];
         });
-    
+        $country = Country::find($post->user->country);
         $data = [
-            'available_credit' =>$availableCredit,
+            'available_credit' =>auth()->user()->wallet->total,
             'avatar' => $post->user->avatar,
             'name' => $post->user->name,
             'username' => $post->user->username,
@@ -665,7 +670,7 @@ class FeedsController extends Controller
             'first_name' => $post->user->first_name,
             'last_name' => $post->user->last_name,
             'city' => $post->user->city,
-            'country' => $post->user->country,
+            'country' => $country ? $country->id : null, 
             'state' => $post->user->state,
             'postcode' => $post->user->postcode,
             'transactions' => $transactionsData,
@@ -682,12 +687,11 @@ class FeedsController extends Controller
         $validator = Validator::make($request->all(), [
             'post_id' => 'required|exists:posts,id',
             'amount' => 'required|numeric|min:1|max:500',
-            'payment_provider' => 'required|string',
             'billing_address' => 'nullable|string',
             'first_name' => 'nullable|string',
             'last_name' => 'nullable|string',
             'city' => 'nullable|string',
-            'country' => 'nullable|string',
+            'country' => 'nullable|exists:countries,id',
             'state' => 'nullable|string',
             'postcode' => 'nullable|string',
         ], 
@@ -720,7 +724,7 @@ class FeedsController extends Controller
         }
         
         if ($user->wallet->total < $request->amount) {
-            return response()->json(['status' => 400, 'message' => 'Insufficient funds']);
+            return response()->json(['status' => 400, 'message' => 'Not enough credit. You can deposit using the wallet page or use a different payment method.']);
         }
         
         // Create the tip transaction
@@ -735,30 +739,41 @@ class FeedsController extends Controller
         $tip->post_id = $request->post_id;
         $tip->sender_user_id = $user->id;
         $tip->recipient_user_id = $post->user_id;
-        $tip->status = 'approved';
+        $tip->status = Transaction::INITIATED_STATUS;
         $tip->type = Transaction::TIP_TYPE; 
         $tip->currency = config('app.site.currency_code'); 
         $tip->amount = $amt;
         $tip->taxes = json_encode($dataArray); 
-        $tip->payment_provider = $request->payment_provider; 
+        $tip->payment_provider = Transaction::CREDIT_PROVIDER;
         $tip->save();
+
         
         $user->wallet->total -= $amt;
         $user->wallet->save();
         $formattedAmount = number_format($amt, 2);
         $currencySymbol = config('app.site.currency_symbol', '$');
+        $country = Country::find($request->country);
+        $countryName = $country ? $country->name : null;
     
         User::where('id', $post->user->id)->update([
             'billing_address' => $request->billing_address,
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'city' => $request->city,
-            'country' => $request->country,
+            'country' =>$countryName,
             'state' => $request->state,
             'postcode' => $request->postcode,
         ]);
             
         return response()->json(['status' => 200, 'message' => 'You successfully sent a tip of ' . $currencySymbol . $formattedAmount . '.']);
+    }
+    public function country()
+    {
+        $countries = Country::select('id', 'name')->get();
+        return response()->json([
+            'status' => 200,
+            'data' => $countries,
+        ]);
     }
     public function social_lists(Request $request)
     {
