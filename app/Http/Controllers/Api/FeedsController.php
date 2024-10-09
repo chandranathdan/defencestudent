@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use function App\Helpers\getSetting;
 use App\Helpers\PostsHelper;
 use App\Providers\GenericHelperServiceProvider;
+use App\Providers\MembersHelperServiceProvider;
 use Illuminate\Support\Facades\Storage;
 use App\Providers\PostsHelperServiceProvider;
 use App\Providers\ListsHelperServiceProvider;
@@ -26,7 +27,7 @@ use Carbon\Carbon;
 class FeedsController extends Controller
 {
      //feeds-indivisual
-    public function feeds_indivisual($id)
+    public function feeds_indivisual($id,$page = 1)
     {
         // Check if the user is authenticated
         if (!Auth::check()) {
@@ -36,7 +37,6 @@ class FeedsController extends Controller
             ]);
         }
     
-        // Validate user ID
         if (!is_numeric($id)) {
             return response()->json([
                 'status' => 400,
@@ -44,7 +44,6 @@ class FeedsController extends Controller
             ]);
         }
     
-        // Find the user by ID
         $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
             ->find($id);
     
@@ -54,34 +53,74 @@ class FeedsController extends Controller
                 'message' => 'User not found'
             ]);
         }
-    
-        $user->created_at = $user->created_at->format('F j');
-        $user->bio = $user->bio ?? __('No description available.');
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'avatar' => $user->avatar,
+            'bio' => $user->bio ?? __('No description available.'),
+            'created_at' => $user->created_at->format('F j'),
+            'location' => $user->location ?? '',
+            'website' => $user->website ?? '',
+        ];
         $authUser = Auth::user();
-        // $likesCount = $user->reactions()->count();
-        $posts = $user->posts()->withCount(['comments', 'reactions'])->get();
     
-        $formattedPosts = $posts->map(function ($post) use ($authUser) {
+        // Use pagination
+        $posts = $user->posts()
+            ->withCount(['comments', 'reactions'])
+            ->paginate(6, ['*'], 'page', $page);
+    
+        $formattedPosts = $posts->getCollection()->map(function ($post) use ($authUser) {
+            $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
+            $isPaid = $transactions->isNotEmpty();
+    
+            if (!$isPaid) {
+                // Logic for locked posts
+                if ((Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) || 
+                    (!Auth::check() && $post->price > 0)) {
+                    $attachments = [
+                        [
+                            'content_type' => 'locked',
+                            'file' => asset('/img/post-locked.svg'),
+                            'price' => $post->price,
+                        ]
+                    ];
+                } else {
+                    // User can view attachments
+                    $attachments = $post->attachments->map(function ($attachment) {
+                        $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+                        $type = null;
+    
+                        if (in_array($extension, ['jpg', 'png', 'gif'])) {
+                            $type = 'image';
+                        } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+                            $type = 'video';
+                        }
+    
+                        return [
+                            'content_type' => $type,
+                            'file' => Storage::url($attachment->filename),
+                            'price' => 0,
+                        ];
+                    })->toArray();
+                }
+            } else {
+                // Post is locked but paid
+                $attachments = [
+                    [
+                        'content_type' => 'locked',
+                        'file' => asset('/img/post-locked.svg'),
+                        'price' => $post->price,
+                    ]
+                ];
+            }
+    
             $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
                 ->where('status', Transaction::APPROVED_STATUS)->count();
     
-            $attachments = $post->attachments->map(function ($attachment) {
-                $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
-                $type = null;
+            $own_like = Auth::check() ? $post->reactions()->where('user_id', Auth::user()->id)
+                ->where('reaction_type', 'like')->exists() : false;
     
-                if (in_array($extension, ['jpg', 'png', 'gif'])) {
-                    $type = 'image';
-                } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
-                    $type = 'video';
-                }
-    
-                return [
-                    'content_type' => $type,
-                    'file' => Storage::url('attachments/' . $attachment->filename),
-                ];
-            })->toArray();
-    
-            $hasLiked = $authUser->reactions()->where('post_id', $post->id)->exists();
             return [
                 'post_id' => $post->id,
                 'name' => $post->user->name,
@@ -93,18 +132,132 @@ class FeedsController extends Controller
                 'commentsCount' => $post->comments_count,
                 'tipsCount' => $tipsCount,
                 'likesCount' => $post->reactions_count,
+                'own_like' => $own_like,
                 'created_at' => $post->created_at->diffForHumans(),
-                // 'post_comment_likes_count' => $likesCount,
-                // 'own_comment' => $post->user_id === $authUser->id,
-                // 'own_like' => $hasLiked,
             ];
         });
+    
         return response()->json([
             'status' => 200,
             'data' => [
-                'user' => $user,
-                'posts' => $formattedPosts
-            ]
+                'user' => $userData,
+                'posts' => $formattedPosts,
+            ],
+        ]);
+    }
+    //post feeds-indivisual
+    public function feeds_indivisuals(Request $request)
+    {
+        $userId = $request->input('id');
+        $page = $request->input('page', 1);
+        $perPage = 6;
+    
+        // Fetch user by ID
+        $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
+                    ->find($userId);
+    
+        // Check if user exists
+        if (!$user) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'User not found'
+            ]);
+        }
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'avatar' => $user->avatar,
+            'bio' => $user->bio ?? __('No description available.'),
+            'created_at' => $user->created_at->format('F j'),
+            'location' => $user->location ?? '',
+            'website' => $user->website ?? '',
+        ];
+        // Format user data
+        $user->created_at = $user->created_at->format('F j');
+        $user->bio = $user->bio ?? __('No description available.');
+    
+        $posts = $user->posts()
+                      ->withCount(['comments', 'reactions'])
+                      ->orderBy('created_at', 'desc')
+                      ->paginate($perPage, ['*'], 'page', $page);
+    
+        $authUser = Auth::user();
+        // Format posts
+        $formattedPosts = $posts->getCollection()->map(function ($post) use ($authUser) {
+            $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
+            $isPaid = $transactions->isNotEmpty();
+    
+            if (!$isPaid) {
+                // Logic for locked posts
+                if ((Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) || 
+                    (!Auth::check() && $post->price > 0)) {
+                    $attachments = [
+                        [
+                            'content_type' => 'locked',
+                            'file' => asset('/img/post-locked.svg'),
+                            'price' => $post->price,
+                        ]
+                    ];
+                } else {
+                    // User can view attachments
+                    $attachments = $post->attachments->map(function ($attachment) {
+                        $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+                        $type = null;
+    
+                        if (in_array($extension, ['jpg', 'png', 'gif'])) {
+                            $type = 'image';
+                        } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+                            $type = 'video';
+                        }
+    
+                        return [
+                            'content_type' => $type,
+                            'file' => Storage::url('attachments/' . $attachment->filename),
+                            'price' => 0,
+                        ];
+                    })->toArray();
+                }
+            } else {
+                // Post is locked but paid
+                $attachments = [
+                    [
+                        'content_type' => 'locked',
+                        'file' => asset('/img/post-locked.svg'),
+                        'price' => $post->price,
+                    ]
+                ];
+            }
+    
+            $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
+                              ->where('status', Transaction::APPROVED_STATUS)
+                              ->count();
+    
+            $own_like = Auth::check() && $post->reactions()->where('user_id', $authUser->id)
+                                                          ->where('reaction_type', 'like')->exists();
+    
+            return [
+                'post_id' => $post->id,
+                'name' => $post->user->name,
+                'username' => $post->user->username,
+                'avatar' => $post->user->avatar,
+                'bio' => $post->user->bio ?? '',
+                'post_text' => $post->text,
+                'attachments' => $attachments,
+                'commentsCount' => $post->comments_count,
+                'tipsCount' => $tipsCount,
+                'likesCount' => $post->reactions_count,
+                'own_like' => $own_like,
+                'created_at' => $post->created_at->diffForHumans(),
+            ];
+        });
+    
+        return response()->json([
+            'status' => 200,
+            'data' => [
+                'user' => $userData,
+                'posts' => $formattedPosts,
+            ],
         ]);
     }
     //feeds_indivisual_filter_image
@@ -299,19 +452,15 @@ class FeedsController extends Controller
     public function feeds_like_comments(Request $request)
     {
         $user = Auth::user();
-    
-        // Validate the incoming request
         $validator = Validator::make($request->all(), [
             'post_comment_id' => 'required|exists:post_comments,id',
         ]);
-    
         if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors(),
                 'status' => 600,
             ]);
         }
-    
         $postCommentId = $request->input('post_comment_id');
         $postComment = PostComment::find($postCommentId);
         if (!$postComment) {
@@ -320,8 +469,6 @@ class FeedsController extends Controller
                 'message' => 'Comment not found'
             ]);
         }
-    
-        // Check for an existing like
         $existingLike = Reaction::where('user_id', $user->id)
             ->where('post_comment_id', $postCommentId)
             ->first();
@@ -336,8 +483,7 @@ class FeedsController extends Controller
                 'reaction_type' => 'like',
             ]);
             $message = 'Comment liked';
-        }
-    
+        } 
         // Get the new like count
         $newLikeCount = Reaction::where('post_comment_id', $postCommentId)
             ->where('reaction_type', 'like')
@@ -393,18 +539,13 @@ class FeedsController extends Controller
         }
     
         $users = User::all();
-        
         $responseData = [];
-        $page = $request->input('page', 0);
-        $coursesUserPage = $request->input('courses_user_page', 0); 
-        $posts = ($page != 0) ? $this->getUserPosts($users) : [];
-    
-        if ($page == 1) {
-            $responseData['posts'] = $posts;
-        }
-    
+        $page = $request->input('page', 1);
+        $coursesUserPage = $request->input('courses_user_page', 0);
+        
         if ($coursesUserPage == 1) {
-            $responseData['courses_user_page'] = $this->getUserCourses($users);
+            $responseData['posts'] = $this->getUserPosts($users, $page);
+            $responseData['courses_user_page'] = $this->getUserCourses($users, $page);
         }
     
         return response()->json([
@@ -413,44 +554,46 @@ class FeedsController extends Controller
         ]);
     }
     
-    private function getUserPosts($users)
+    private function getUserPosts($users, $page)
     {
-        // It's assumed here you want posts from all users; if not, specify.
-        $posts = $users->flatMap(function ($user) {
+        $loggedUserId = Auth::id();
+        $userFollowersListId = UserList::where(['user_id' => $loggedUserId, 'type' => 'following'])
+            ->value('id');
+
+        if ($userFollowersListId === null) {
+            return collect([]);
+        }
+
+        $followingUserIds = UserListMember::where('list_id', $userFollowersListId)
+            ->pluck('user_id');
+
+        $posts = $users->filter(function ($user) use ($followingUserIds) {
+            return $followingUserIds->contains($user->id);
+        })->flatMap(function ($user) {
             return $user->posts()->withCount(['comments', 'reactions'])->get();
         });
-    
+        $perPage = 6; 
+        $totalPosts = $posts->count();
+        $posts = $posts->slice(($page - 1) * $perPage, $perPage)->values();
+        // Prepare the posts for response
         return $posts->map(function ($post) {
             $tipsCount = $post->transactions()
                 ->where('type', Transaction::TIP_TYPE)
                 ->where('status', Transaction::APPROVED_STATUS)
                 ->count();
-    
-            $attachments = $post->attachments->map(function ($attachment) {
-                $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
-                $type = null;
-    
-                if (in_array($extension, ['jpg', 'png', 'gif'])) {
-                    $type = 'image';
-                } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
-                    $type = 'video';
-                }
-    
-                return [
-                    'content_type' => $type,
-                    'file' => Storage::url('attachments/' . $attachment->filename),
-                ];
-            })->toArray();
-    
-            $own_like = Auth::check() ? $post->reactions()->where('user_id', Auth::user()->id)
-                ->where('reaction_type', 'like')->exists() : false;
-    
+            $attachments = $this->getPostAttachments($post);
+
+            $own_like = Auth::check() ? $post->reactions()
+                ->where('user_id', Auth::user()->id)
+                ->where('reaction_type', 'like')
+                ->exists() : false;
+
             return [
                 'post_id' => $post->id,
                 'name' => $post->user->name,
                 'username' => $post->user->username,
                 'avatar' => $post->user->avatar,
-                'bio' => $post->user->bio ?? '',
+                'bio' => '',
                 'post_text' => $post->text,
                 'attachments' => $attachments,
                 'likesCount' => $post->reactions()->where('reaction_type', 'like')->count(),
@@ -459,100 +602,69 @@ class FeedsController extends Controller
                 'own_like' => $own_like,
                 'created_at' => $post->created_at->diffForHumans(),
             ];
-        });
+        })->toArray();
     }
     
-    private function getUserCourses($users)
+    private function getPostAttachments($post)
     {
-        return $users->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'avatar' => $user->avatar,
-                'cover' => $user->cover,
-            ];
-        })->toArray(); 
-    }
-    /*{
-        if (!Auth::check()) {
-            return response()->json([
-                'status' => 401,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
-    
-        // Fetch all users
-        $users = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')->get();
-    
-        // Format user data
-        $formattedUsers = $users->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'avatar' => $user->avatar,
-                'cover' => $user->cover,
-                'bio' => $user->bio ?? __('No description available.'),
-                'created_at' => Carbon::parse($user->created_at)->format('F j'),
-                'location' => $user->location,
-                'website' => $user->website,
-                'posts' => $this->getUserPosts($user), 
-            ];
-        });
-    
-        return response()->json([
-            'status' => 200,
-            'data' => $formattedUsers
-        ]);
-    }
-    
-    // Helper function to fetch and format user posts
-    private function getUserPosts($user)
-    {
-        $posts = $user->posts()->withCount(['comments', 'reactions'])->get();
-    
-        return $posts->map(function ($post) {
-            // Calculate tips count for the specific post
-            $tipsCount = $post->transactions()
-                ->where('type', Transaction::TIP_TYPE)
-                ->where('status', Transaction::APPROVED_STATUS)
-                ->count();
-    
-            // Process attachments
-            $attachments = $post->attachments->map(function ($attachment) {
-                $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
-                $type = null;
-    
-                if (in_array($extension, ['jpg', 'png', 'gif'])) {
-                    $type = 'image';
-                } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
-                    $type = 'video';
-                }
-    
-                return [
+        $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
+        $isPaid = $transactions->isNotEmpty();
+        $attachments = [];
+
+        foreach ($post->attachments as $attachment) {
+            $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+            $type = $this->determineAttachmentType($extension);
+
+            // Check if the post is accessible
+            if ($post->price == 0 || // Always accessible if price is 0
+                $isPaid || 
+                (Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) ||
+                (Auth::check() && \PostsHelper::hasUserUnlockedPost($post->postPurchases))) {
+                // Accessible content
+                $attachments[] = [
                     'content_type' => $type,
                     'file' => Storage::url('attachments/' . $attachment->filename),
+                    'price' => 0,
                 ];
-            })->toArray();
-    
-            return [
-                'post_id' => $post->id,
-                'name' => $post->user->name,
-                'username' => $post->user->username,
-                'avatar' => $post->user->avatar,
-                'post_text' => $post->text,
-                'attachments' => $attachments,
-                'commentsCount' => $post->comments_count,
-                'tipsCount' => $tipsCount,
-                'likesCount' => $post->reactions_count,
-                'created_at' => $post->created_at->diffForHumans(),
-            ];
-        });
-    }*/
-    public function feed_user()
+            } else {
+                // Locked content
+                $attachments[] = [
+                    'content_type' => 'locked',
+                    'file' => asset('/img/post-locked.svg'),
+                    'price' => $post->price,
+                ];
+            }
+        }
+        return $attachments;
+    }
+
+    private function determineAttachmentType($extension)
     {
-        // Check if the user is authenticated
+        if (in_array($extension, ['jpg', 'png', 'gif'])) {
+            return 'image';
+        } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+            return 'video';
+        }
+        return null; // Or some default value if needed
+    }
+    
+    private function getUserCourses($users, $page)
+    {
+        $perPage = 2;
+        $courses = $users->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'avatar' => $user->avatar,
+                'cover' => $user->cover,
+            ];
+        })->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return $courses->toArray();
+    }
+    public function feed_user(Request $request)
+    {
         if (!Auth::check()) {
             return response()->json([
                 'status' => 401,
@@ -563,56 +675,71 @@ class FeedsController extends Controller
         // Find the authenticated user
         $user = Auth::user()->only(['id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website']);
     
+        // Check if user data is available
         if (!$user) {
             return response()->json([
                 'status' => 404,
                 'message' => 'User not found'
             ]);
         }
-    
+        $userData = [
+            'id' => $user['id'],
+            'name' => $user['name'],
+            'username' => $user['username'],
+            'avatar' => $user['avatar'],
+            'bio' =>($user['bio']) ?: __('No description available.'),
+            'created_at' =>($user['created_at'])->format('F j'),
+            'location' =>($user['location']) ?: '',
+            'website' =>($user['website']) ?: '',
+        ];
         // Format user data
-        $user['created_at'] = Carbon::parse($user['created_at'])->format('F j');
-        $user['bio'] = $user['bio'] ?? __('No description available.');
+        $page = $request->input('page', 1);
+        $perPage = 6; // Number of posts per page
     
-        // Fetch the user's posts with counts
-        $posts = Auth::user()->posts()->withCount(['comments', 'reactions'])->get();
+        // Get posts and count
+        $postsQuery = Auth::user()->posts()->withCount(['comments', 'reactions']);
+        $totalPosts = $postsQuery->count();
+        $posts = $postsQuery->skip(($page - 1) * $perPage)->take($perPage)->get();
     
-        // Format posts data
+        // Format the posts
         $formattedPosts = $posts->map(function ($post) {
-            // Calculate tips count for the specific post
             $tipsCount = $post->transactions()
                 ->where('type', Transaction::TIP_TYPE)
                 ->where('status', Transaction::APPROVED_STATUS)
                 ->count();
     
-            // Process attachments
-            $attachments = $post->attachments->map(function ($attachment) {
+            $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
+            $isPaid = $transactions->isNotEmpty();
+            
+            $attachments = $post->attachments->map(function ($attachment) use ($post, $isPaid) {
                 $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
-                $type = null;
-    
-                if (in_array($extension, ['jpg', 'png', 'gif'])) {
-                    $type = 'image';
-                } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
-                    $type = 'video';
-                }
+                $type = $this->determineAttachmentType($extension);
+                $isAccessible = $post->price == 0 || $isPaid || 
+                    (Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) ||
+                    (Auth::check() && \PostsHelper::hasUserUnlockedPost($post->postPurchases));
     
                 return [
-                    'content_type' => $type,
-                    'file' => Storage::url('attachments/' . $attachment->filename),
+                    'content_type' => $isAccessible ? $type : 'locked',
+                    'file' => $isAccessible ? Storage::url('attachments/' . $attachment->filename) : asset('/img/post-locked.svg'),
+                    'price' => $isAccessible ? 0 : $post->price,
                 ];
-            })->toArray();
+            });
+    
+            $own_like = Auth::check() ? $post->reactions()->where('user_id', Auth::user()->id)
+                ->where('reaction_type', 'like')->exists() : false;
     
             return [
                 'post_id' => $post->id,
                 'name' => $post->user->name,
                 'username' => $post->user->username,
                 'avatar' => $post->user->avatar,
-                'bio' =>'',
+                'bio' => '',
                 'post_text' => $post->text,
                 'attachments' => $attachments,
                 'commentsCount' => $post->comments_count,
                 'tipsCount' => $tipsCount,
                 'likesCount' => $post->reactions_count,
+                'own_like' => $own_like,
                 'created_at' => $post->created_at->diffForHumans(),
             ];
         });
@@ -620,8 +747,8 @@ class FeedsController extends Controller
         return response()->json([
             'status' => 200,
             'data' => [
-                'user' => $user,
-                'posts' => $formattedPosts
+                'user' => $userData,
+                'posts' => $formattedPosts,
             ]
         ]);
     }
@@ -660,7 +787,8 @@ class FeedsController extends Controller
                 'currency' => $transaction->currency,
             ];
         });
-        $country = Country::find($post->user->country);
+        $userCountryName = $post->user->country;
+        $country = Country::where('name', $userCountryName)->first();
         $data = [
             'available_credit' =>auth()->user()->wallet->total,
             'avatar' => $post->user->avatar,
@@ -670,20 +798,22 @@ class FeedsController extends Controller
             'first_name' => $post->user->first_name,
             'last_name' => $post->user->last_name,
             'city' => $post->user->city,
-            'country' => $country ? $country->id : null, 
+            'country_id' => $country ? $country->id : null, 
             'state' => $post->user->state,
             'postcode' => $post->user->postcode,
             'transactions' => $transactionsData,
         ];
-    
+        $countries = Country::select('id', 'name')->get();
         return response()->json([
             'status' => 200,
-            'data' => $data,
+            'data' => [
+                'user' => $data ,
+                'countries' => $countries,
+            ],
         ]);
     }
     public function tips_submit(Request $request)
     {
-        // Validate the incoming request
         $validator = Validator::make($request->all(), [
             'post_id' => 'required|exists:posts,id',
             'amount' => 'required|numeric|min:1|max:500',
@@ -734,12 +864,11 @@ class FeedsController extends Controller
             "taxesTotalAmount" => $amt,
             "subtotal" => $amt
         ];
-        
         $tip = new Transaction();
         $tip->post_id = $request->post_id;
         $tip->sender_user_id = $user->id;
         $tip->recipient_user_id = $post->user_id;
-        $tip->status = Transaction::INITIATED_STATUS;
+        $tip->status = Transaction::APPROVED_STATUS;
         $tip->type = Transaction::TIP_TYPE; 
         $tip->currency = config('app.site.currency_code'); 
         $tip->amount = $amt;
@@ -750,6 +879,8 @@ class FeedsController extends Controller
         
         $user->wallet->total -= $amt;
         $user->wallet->save();
+        $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
+            ->where('status', Transaction::APPROVED_STATUS)->count();
         $formattedAmount = number_format($amt, 2);
         $currencySymbol = config('app.site.currency_symbol', '$');
         $country = Country::find($request->country);
@@ -765,7 +896,11 @@ class FeedsController extends Controller
             'postcode' => $request->postcode,
         ]);
             
-        return response()->json(['status' => 200, 'message' => 'You successfully sent a tip of ' . $currencySymbol . $formattedAmount . '.']);
+        return response()->json([
+        'status' => 200, 
+        'tipsCount' => $tipsCount,
+        'message' => 'You successfully sent a tip of ' . $currencySymbol . $formattedAmount . '.',    
+        ]);
     }
     public function country()
     {
