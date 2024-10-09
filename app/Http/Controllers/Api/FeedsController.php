@@ -156,7 +156,6 @@ class FeedsController extends Controller
         $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
                     ->find($userId);
     
-        // Check if user exists
         if (!$user) {
             return response()->json([
                 'status' => 404,
