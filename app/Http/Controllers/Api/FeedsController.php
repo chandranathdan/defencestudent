@@ -27,7 +27,7 @@ use Carbon\Carbon;
 class FeedsController extends Controller
 {
      //feeds-indivisual
-    public function feeds_indivisual($id,$page = 1)
+    public function feeds_individual($id,$page = 1)
     {
         // Check if the user is authenticated
         if (!Auth::check()) {
@@ -146,7 +146,7 @@ class FeedsController extends Controller
         ]);
     }
     //post feeds-indivisual
-    public function feeds_indivisuals(Request $request)
+    public function feeds_individuals(Request $request)
     {
         $userId = $request->input('id');
         $page = $request->input('page', 1);
@@ -260,7 +260,7 @@ class FeedsController extends Controller
         ]);
     }
     //feeds_indivisual_filter_image
-    public function feeds_indivisual_filter_image($id)
+    public function feeds_individual_filter_image($id)
     {
         $post = Post::select('id', 'user_id','text', 'release_date', 'expire_date')->with([
             'attachments' => function ($query) {
@@ -534,18 +534,18 @@ class FeedsController extends Controller
             return response()->json([
                 'status' => 401,
                 'message' => 'Unauthorized'
-            ], 401);
+            ]);
         }
     
         $users = User::all();
         $responseData = [];
         $page = $request->input('page', 1);
-        $coursesUserPage = $request->input('courses_user_page', 0);
-        
-        if ($coursesUserPage == 1) {
-            $responseData['posts'] = $this->getUserPosts($users, $page);
-            $responseData['courses_user_page'] = $this->getUserCourses($users, $page);
-        }
+        $coursesUserPage = $request->input('courses_user_page', 1);
+        $suggestedMembers = MembersHelperServiceProvider::getSuggestedMembers();
+    
+        // Pass suggested members to getUserPosts and getUserCourses if needed
+        $responseData['posts'] = $this->getUserPosts($users, $page);
+        $responseData['courses_user_page'] = $this->getUserCourses($suggestedMembers, $coursesUserPage);
     
         return response()->json([
             'status' => 200,
@@ -558,22 +558,24 @@ class FeedsController extends Controller
         $loggedUserId = Auth::id();
         $userFollowersListId = UserList::where(['user_id' => $loggedUserId, 'type' => 'following'])
             ->value('id');
-
+    
         if ($userFollowersListId === null) {
             return collect([]);
         }
-
+    
         $followingUserIds = UserListMember::where('list_id', $userFollowersListId)
             ->pluck('user_id');
-
+    
         $posts = $users->filter(function ($user) use ($followingUserIds) {
             return $followingUserIds->contains($user->id);
         })->flatMap(function ($user) {
             return $user->posts()->withCount(['comments', 'reactions'])->get();
         });
+    
         $perPage = 6; 
         $totalPosts = $posts->count();
         $posts = $posts->slice(($page - 1) * $perPage, $perPage)->values();
+    
         // Prepare the posts for response
         return $posts->map(function ($post) {
             $tipsCount = $post->transactions()
@@ -581,12 +583,12 @@ class FeedsController extends Controller
                 ->where('status', Transaction::APPROVED_STATUS)
                 ->count();
             $attachments = $this->getPostAttachments($post);
-
+    
             $own_like = Auth::check() ? $post->reactions()
                 ->where('user_id', Auth::user()->id)
                 ->where('reaction_type', 'like')
                 ->exists() : false;
-
+    
             return [
                 'post_id' => $post->id,
                 'name' => $post->user->name,
@@ -609,13 +611,12 @@ class FeedsController extends Controller
         $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
         $isPaid = $transactions->isNotEmpty();
         $attachments = [];
-
+    
         foreach ($post->attachments as $attachment) {
             $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
             $type = $this->determineAttachmentType($extension);
-
-            // Check if the post is accessible
-            if ($post->price == 0 || // Always accessible if price is 0
+    
+            if ($post->price == 0 ||
                 $isPaid || 
                 (Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) ||
                 (Auth::check() && \PostsHelper::hasUserUnlockedPost($post->postPurchases))) {
@@ -636,7 +637,7 @@ class FeedsController extends Controller
         }
         return $attachments;
     }
-
+    
     private function determineAttachmentType($extension)
     {
         if (in_array($extension, ['jpg', 'png', 'gif'])) {
@@ -644,23 +645,30 @@ class FeedsController extends Controller
         } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
             return 'video';
         }
-        return null; // Or some default value if needed
+        return null;
     }
-    
-    private function getUserCourses($users, $page)
+    private function getUserCourses($suggestedMembers, $coursesUserPage)
     {
-        $perPage = 2;
-        $courses = $users->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'avatar' => $user->avatar,
-                'cover' => $user->cover,
-            ];
-        })->slice(($page - 1) * $perPage, $perPage)->values();
-
-        return $courses->toArray();
+        $perPage = 5;
+        $suggestedMembers = collect($suggestedMembers);
+        $courses = $suggestedMembers->map(function ($user) {
+            if (is_string($user)) {
+                $user = User::find($user);
+            }
+            if ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'avatar' => $user->avatar,
+                    'cover' => $user->cover,
+                ];
+            }
+    
+            return null;
+        })->filter()->slice(($coursesUserPage - 1) * $perPage, $perPage)->values(); 
+    
+        return $courses;
     }
     public function feed_user(Request $request)
     {
@@ -670,11 +678,7 @@ class FeedsController extends Controller
                 'message' => 'Unauthorized'
             ]);
         }
-    
-        // Find the authenticated user
         $user = Auth::user()->only(['id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website']);
-    
-        // Check if user data is available
         if (!$user) {
             return response()->json([
                 'status' => 404,
@@ -693,7 +697,7 @@ class FeedsController extends Controller
         ];
         // Format user data
         $page = $request->input('page', 1);
-        $perPage = 6; // Number of posts per page
+        $perPage = 6;
     
         // Get posts and count
         $postsQuery = Auth::user()->posts()->withCount(['comments', 'reactions']);
@@ -709,7 +713,8 @@ class FeedsController extends Controller
     
             $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
             $isPaid = $transactions->isNotEmpty();
-            
+            $isAccessible = false;
+        
             $attachments = $post->attachments->map(function ($attachment) use ($post, $isPaid) {
                 $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
                 $type = $this->determineAttachmentType($extension);
@@ -718,9 +723,8 @@ class FeedsController extends Controller
                     (Auth::check() && \PostsHelper::hasUserUnlockedPost($post->postPurchases));
     
                 return [
-                    'content_type' => $isAccessible ? $type : 'locked',
-                    'file' => $isAccessible ? Storage::url('attachments/' . $attachment->filename) : asset('/img/post-locked.svg'),
-                    'price' => $isAccessible ? 0 : $post->price,
+                    'content_type' =>$type,
+                    'file' =>Storage::url('attachments/' . $attachment->filename),
                 ];
             });
     
@@ -734,6 +738,8 @@ class FeedsController extends Controller
                 'avatar' => $post->user->avatar,
                 'bio' => '',
                 'post_text' => $post->text,
+                'price' => $isAccessible ? 0 : $post->price,
+                'content_type' => $isAccessible ? 'locked' : 'locked',
                 'attachments' => $attachments,
                 'commentsCount' => $post->comments_count,
                 'tipsCount' => $tipsCount,

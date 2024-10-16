@@ -45,9 +45,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
 	Route::group(['middleware' => ['api_email_verified']], function () {
 		Route::get('/feeds/{id}/{page?}', [YourController::class, 'feeds_indivisual']);
-		Route::get('/feeds_indivisual/{id}/{page?}', [FeedsController::class, 'feeds_indivisual']); // feeds-indivisual URL
-		Route::post('/feeds_indivisual', [FeedsController::class, 'feeds_indivisuals']); // feeds-indivisuals URL
-		Route::get('/feeds_indivisual_filter_image/{id}', [FeedsController::class, 'feeds_indivisual_filter_image']); // feeds_indivisual_filter_image URL
+		Route::get('/feeds_individual/{id}/{page?}', [FeedsController::class, 'feeds_individual']); // feeds-individual URL
+		Route::post('/feeds_individual', [FeedsController::class, 'feeds_individuals']); // feeds-individuals URL
+		Route::get('/feeds_individual_filter_image/{id}', [FeedsController::class, 'feeds_individual_filter_image']); // feeds_individual_filter_image URL
 		Route::post('/feed_all_user', [FeedsController::class, 'feed_all_user']); // feed_all_user URL
 		Route::post('/feed_user', [FeedsController::class, 'feed_user']); // feed_user url
 		Route::post('/feeds_post_like', [FeedsController::class, 'feeds_post_like']); // feeds_post_like url
@@ -59,7 +59,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/country', [FeedsController::class, 'country']); // country url
 		Route::post('/tips_fetch', [FeedsController::class, 'tips_fetch']); // tips_fetch url
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url	
-		Route::post('/post_create_file', [UserController::class, 'post_create_file']); // post_create_file url		
+		Route::post('/fetch_post', [UserController::class, 'fetch_post']); // fetch_post url
+		Route::post('/post_edit', [UserController::class, 'post_edit']); // post_edit url	
+		Route::post('/post_delete', [UserController::class, 'post_delete']); // post_delete url	
+		Route::post('/post_delete', [UserController::class, 'post_delete']); // post_delete url	
+		Route::post('/post_delete_files', [UserController::class, 'post_delete_files']); // post_delete_files url		
 		Route::get('/user-data',[UserController::class, 'user_data']); // Get log in user data
 		Route::get('/privacy_fetch', [SettingsController::class, 'privacy_fetch']); // privacy_fetch url
 		Route::post('/privacy_update', [SettingsController::class, 'privacy_update']); // privacy_update url

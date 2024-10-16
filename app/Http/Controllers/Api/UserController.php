@@ -378,6 +378,160 @@ class UserController extends Controller
             'message' => 'post saved successfully'
         ]);
     }
+    public function fetch_post(Request $request)
+    {
+        // Validate the request for post_id
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|integer|exists:posts,id',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+    
+        // Fetch the post by ID
+        $post = Post::find($request->input('post_id'));
+    
+        if (!$post) {
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
+        }
+    
+        // Fetch associated files
+        $attachments = $post->attachments; 
+    
+        $fileData = [];
+        foreach ($attachments as $attachment) {
+            $fileData[] = [
+                'id' => $attachment->id,
+                'file_path' => asset('storage/attachments/' . $attachment->filename),
+            ];
+        }
+    
+        return response()->json([
+            'status' => 200,
+            'data' => [
+                'id' =>$post->id,
+                'text' => $post->text,
+                'price' => $post->price,
+                'files' => $fileData,
+            ],
+            
+        ]);
+    }
+    public function post_edit(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|integer|exists:posts,id',
+            'text' => 'required|string|min:10',
+            'price' => 'nullable|numeric',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+    
+        // Find the post by ID
+        $post = Post::find($request->input('post_id'));
+    
+        if (!$post) {
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
+        }
+    
+        // Ensure the user is authorized to edit the post
+        if ($post->user_id !== Auth::id()) {
+            return response()->json(['status' => 403, 'message' => 'Unauthorized'], 403);
+        }
+        $post->text = $request->input('text');
+        $post->price = $request->input('price', 0);
+        $post->save(); // Save the updated post
+    
+        return response()->json([
+            'status' => 200,
+            'message' => 'Post updated successfully'
+        ]);
+    }
+    public function post_delete(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|integer|exists:posts,id',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+        $post = Post::find($request->input('post_id'));
+        
+        if (!$post) {
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
+        }
+        if ($post->user_id !== Auth::id()) {
+            return response()->json(['status' => 403, 'message' => 'Unauthorized']);
+        }
+        $post->delete();
+        
+        return response()->json([
+            'status' => 200,
+            'message' =>'Post deleted successfully.'
+        ]);
+    }
+    public function post_delete_files(Request $request)
+    {
+        // Validate the request inputs
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|integer|exists:posts,id',
+            'file_id' => [
+                'required',
+                'string',
+                'size:32',
+                'regex:/^[a-f0-9]{32}$/',
+                'exists:attachments,id'
+            ],
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+        $post = Post::find($request->input('post_id'));
+    
+        if (!$post) {
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
+        }
+        if ($post->user_id !== Auth::id()) {
+            return response()->json(['status' => 403, 'message' => 'Unauthorized']);
+        }
+        $attachment = Attachment::find($request->input('file_id'));
+    
+        if (!$attachment) {
+            return response()->json(['status' => 400, 'message' => 'File not found']);
+        }
+    
+        try {
+            $filePath = public_path('storage/attachments/' . $attachment->filename);
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+            $attachment->delete();
+    
+            return response()->json([
+                'status' => 200,
+                'message' => 'File deleted successfully.',
+            ]);
+        } catch (\Exception $exception) {
+            return response()->json(['status' => 400, 'message' => 'File deletion failed.']);
+        }
+    }
     public function post_create_file(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -423,45 +577,6 @@ class UserController extends Controller
         }
 		return response()->json(['status' => 400, 'message' => 'No files uploaded']);
     }
-    /*{
-        $validator = Validator::make($request->all(), [
-            'attachments' => 'nullable|array',
-            'attachments.*' => 'file|mimes:jpeg,png,gif,mp4|max:2048', // Validate each file
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-                'status' => 600,
-            ]);
-        }
-    
-        $post = new Post();
-        $post->user_id = Auth::id();
-        $post->save();
-    
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                if ($file->isValid()) {
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $path = $file->storeAs('public/attachments', $filename);
-    
-                    $attachment = new Attachment();
-                    $attachment->id = (string) Str::uuid();
-                    $attachment->filename = $filename;
-                    $attachment->post_id = $post->id; 
-                    $attachment->driver = Attachment::PUBLIC_DRIVER;
-                    $attachment->type = $file->getClientOriginalExtension();
-                    $attachment->save();
-                }
-            }
-        }
-    
-        return response()->json([
-            'status' => 200,
-            'message' => 'Post_created and files saved successfully'
-        ]);
-    }*/
 	/*public function redirectToProvider(Request $request){
         return Socialite::driver($request->route('provider'))->redirect();
     }*/
