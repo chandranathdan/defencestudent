@@ -64,7 +64,7 @@ class FeedsController extends Controller
             'website' => $user->website ?? '',
         ];
         $authUser = Auth::user();
-    
+	
         // Use pagination
         $posts = $user->posts()
             ->withCount(['comments', 'reactions'])
@@ -150,7 +150,7 @@ class FeedsController extends Controller
     {
         $userId = $request->input('id');
         $page = $request->input('page', 1);
-        $perPage = 6;
+        $perPage = config('custom.api.INDIVIDUAL_USERS_POSTS_PERPAGE_DATA');
     
         // Fetch user by ID
         $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
@@ -187,7 +187,7 @@ class FeedsController extends Controller
             $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
             $isPaid = $transactions->isNotEmpty();
     
-            if (!$isPaid) {
+            //if (!$isPaid) {
                 // Logic for locked posts
                 if ((Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) || 
                     (!Auth::check() && $post->price > 0)) {
@@ -217,7 +217,7 @@ class FeedsController extends Controller
                         ];
                     })->toArray();
                 }
-            } else {
+           /* } else {
                 // Post is locked but paid
                 $attachments = [
                     [
@@ -226,7 +226,7 @@ class FeedsController extends Controller
                         'price' => $post->price,
                     ]
                 ];
-            }
+            }*/
     
             $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
                               ->where('status', Transaction::APPROVED_STATUS)

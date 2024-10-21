@@ -59,6 +59,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::get('/country', [FeedsController::class, 'country']); // country url
 		Route::post('/tips_fetch', [FeedsController::class, 'tips_fetch']); // tips_fetch url
 		Route::post('/post_create', [UserController::class, 'post_create']); // post_create url	
+		Route::post('/post_create_file', [UserController::class, 'post_create_file']); // post_create_file url
 		Route::post('/fetch_post', [UserController::class, 'fetch_post']); // fetch_post url
 		Route::post('/post_edit', [UserController::class, 'post_edit']); // post_edit url	
 		Route::post('/post_delete', [UserController::class, 'post_delete']); // post_delete url	
