@@ -725,12 +725,12 @@ class FeedsController extends Controller
         ];
         // Format user data
         $page = $request->input('page', 1);
-        $perPage = 6;
+        $perPage = config('custom.api.PROFILE_PAGE_OWN_USER_POSTS_PERPAGE_DATA');
     
         // Get posts and count
         $postsQuery = Auth::user()->posts()->withCount(['comments', 'reactions']);
         $totalPosts = $postsQuery->count();
-        $posts = $postsQuery->skip(($page - 1) * $perPage)->take($perPage)->get();
+        $posts = $postsQuery->skip(($page - 1) * $perPage)->take($perPage)->orderBy('created_at','DESC')->get();
     
         // Format the posts
         $formattedPosts = $posts->map(function ($post) {
@@ -744,8 +744,15 @@ class FeedsController extends Controller
             $isAccessible = false;
         
             $attachments = $post->attachments->map(function ($attachment) use ($post, $isPaid) {
-                $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
-                $type = $this->determineAttachmentType($extension);
+				$extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+				// $type = $this->determineAttachmentType($extension);
+				$type = null;
+				if (in_array($extension, ['jpg', 'png', 'gif'])) {
+					$type = 'image';
+				} elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+					$type = 'video';
+				}
+				
                 $isAccessible = $post->price == 0 || $isPaid || 
                     (Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) ||
                     (Auth::check() && \PostsHelper::hasUserUnlockedPost($post->postPurchases));
