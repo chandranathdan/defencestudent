@@ -15,7 +15,7 @@ use App\Model\Reaction;
 use App\Model\Transaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use function App\Helpers\getSetting;
+// use function App\Helpers\getSetting;
 use App\Helpers\PostsHelper;
 use App\Providers\GenericHelperServiceProvider;
 use App\Providers\MembersHelperServiceProvider;
@@ -563,16 +563,24 @@ class FeedsController extends Controller
             return collect([]);
         }
     
-        $followingUserIds = UserListMember::where('list_id', $userFollowersListId)
-            ->pluck('user_id');
-    
+        $followingUserIdss = UserListMember::where('list_id', $userFollowersListId)
+            // ->pluck('user_id');
+            ->get();
+		$followingUserIds = [];
+        foreach($followingUserIdss as $member){
+            if(!$member->user->paid_profile || (getSetting('profiles.allow_users_enabling_open_profiles') && $member->user->open_profile)){
+                $followingUserIds[] =  $member->user->id;
+            }
+        }
+		$followingUserIds = collect($followingUserIds);
         $posts = $users->filter(function ($user) use ($followingUserIds) {
             return $followingUserIds->contains($user->id);
         })->flatMap(function ($user) {
-            return $user->posts()->withCount(['comments', 'reactions'])->get();
+            return $user->posts()->withCount(['comments', 'reactions'])->orderBy('created_at','DESC')->get();
         });
     
-        $perPage = 6; 
+        // $perPage = 6; 
+        $perPage = config('custom.api.FEED_PAGE_PERPAGE_DATA'); 
         $totalPosts = $posts->count();
         $posts = $posts->slice(($page - 1) * $perPage, $perPage)->values();
     
@@ -613,10 +621,30 @@ class FeedsController extends Controller
         $attachments = [];
     
         foreach ($post->attachments as $attachment) {
-            $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
-            $type = $this->determineAttachmentType($extension);
-    
-            if ($post->price == 0 ||
+			if((Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) || (!Auth::check() && $post->price > 0 )){
+				// Locked content
+				$attachments[] = [
+					'content_type' => 'locked',
+					'file' => asset('/img/post-locked.svg'),
+					'price' => $post->price,
+				];
+			}else{
+				$extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+				// $type = $this->determineAttachmentType($extension);
+				$type = null;
+				if (in_array($extension, ['jpg', 'png', 'gif'])) {
+					$type = 'image';
+				} elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+					$type = 'video';
+				}
+				// Accessible content
+				$attachments[] = [
+					'content_type' => $type,
+					'file' => Storage::url('attachments/' . $attachment->filename),
+					'price' => 0,
+				];
+			}
+            /*if ($post->price == 0 ||
                 $isPaid || 
                 (Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) ||
                 (Auth::check() && \PostsHelper::hasUserUnlockedPost($post->postPurchases))) {
@@ -633,7 +661,7 @@ class FeedsController extends Controller
                     'file' => asset('/img/post-locked.svg'),
                     'price' => $post->price,
                 ];
-            }
+            }*/
         }
         return $attachments;
     }
@@ -649,7 +677,7 @@ class FeedsController extends Controller
     }
     private function getUserCourses($suggestedMembers, $coursesUserPage)
     {
-        $perPage = 5;
+		$perPage = config('custom.api.FEED_PAGE_PERPAGE_USER_DATA'); 
         $suggestedMembers = collect($suggestedMembers);
         $courses = $suggestedMembers->map(function ($user) {
             if (is_string($user)) {

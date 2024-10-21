@@ -1,0 +1,41 @@
+ import 'package:google_sign_in/google_sign_in.dart';
+
+
+LOGIN METHOD
+
+ googleLogin() async {
+    print("googleLogin method Called");
+    final _googleSignIn = GoogleSignIn();
+    var result = await _googleSignIn.signIn();
+    print("Result $result");
+  }
+
+
+
+
+
+FOR GENERATING KEYSTORE  FILE  (Search on google => Create an upload keystore)
+
+  keytool -genkey -v -keystore f:\upload-keystore1.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias uploadkeystore1
+
+
+
+
+
+
+ADD THIS IN THE android/app/build.gradle
+
+    signingConfigs {
+        debug {
+            keyAlias 'uploaddebug'
+            keyPassword 'android'
+            storeFile file('upload-keystore.jks')
+            storePassword 'android'
+        }
+    }
+
+
+COMMAND TO GET SHA1 Key
+./gradlew signingReport
+
+
