@@ -22,6 +22,7 @@ use App\Providers\MembersHelperServiceProvider;
 use Illuminate\Support\Facades\Storage;
 use App\Providers\PostsHelperServiceProvider;
 use App\Providers\ListsHelperServiceProvider;
+use App\Providers\SettingsServiceProvider;
 use Carbon\Carbon;
 
 class FeedsController extends Controller
@@ -153,9 +154,7 @@ class FeedsController extends Controller
         $perPage = config('custom.api.INDIVIDUAL_USERS_POSTS_PERPAGE_DATA');
     
         // Fetch user by ID
-        $user = User::select('id', 'name', 'username', 'avatar', 'cover', 'bio', 'created_at', 'location', 'website')
-                    ->find($userId);
-    
+        $user = User::find($userId);
         if (!$user) {
             return response()->json([
                 'status' => 404,
@@ -184,6 +183,17 @@ class FeedsController extends Controller
 			}else{
 				$status = 0;
 			}
+		$is_following = ListsHelperServiceProvider::isUserFollowing(Auth::user()->id, $userId);
+		$has_active_sub = PostsHelperServiceProvider::hasActiveSub(Auth::user()->id, $userId);
+		if($user->paid_profile){
+			$monthly_subscription_text = SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price).' for '.trans_choice('days', 30, ['number' => 30]);
+			$monthly_subscription_price = $user->profile_access_price;
+			$monthly_subscription_duration = trans_choice('days', 30, ['number' => 30]);
+		}else{
+			$monthly_subscription_text = '';
+			$monthly_subscription_price = '';
+			$monthly_subscription_duration = '';
+		}
         $userData = [
             'id' => $user->id,
             'name' => $user->name,
@@ -201,6 +211,12 @@ class FeedsController extends Controller
 			'gender_id' => $user->gender_id,
             'created_at' => Carbon::parse($user->created_at)->format('F j'),
             'user_verify' =>$status,
+            'is_follow' =>$is_following ? 1 : 0,
+            'is_paid_profile' =>$user->paid_profile,
+            'has_active_sub' =>$has_active_sub ? 1 : 0,
+            'monthly_subscription_text' =>$monthly_subscription_text,
+            'monthly_subscription_price' =>$monthly_subscription_price,
+            'monthly_subscription_duration' =>$monthly_subscription_duration,
         ];
 		//Social user start
 		$fetcfollowinglist = 1;
@@ -224,6 +240,44 @@ class FeedsController extends Controller
 			];
         }
 		//Social user end
+		
+		// user rate subscriptions start
+		if($user->paid_profile){
+			$three_months = [];
+			$six_months = [];
+			$twelve_months = [];
+			if($user->profile_access_price_3_months > 0){
+				$three_months = array(
+					'3_months' => [
+						'subscription_text' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_3_months * 3).' for '.trans_choice('months', 3,['number' => 3]),
+						'subscription_price' => $user->profile_access_price_3_months * 3,
+						'subscription_duration' => trim(trans_choice('months', 3,['number' => 3]), ' '),
+					]
+				);
+			}
+			if($user->profile_access_price_6_months > 0){
+				$six_months = array(
+					'6_months' => [
+						'subscription_text' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_6_months * 6).' for '.trans_choice('months', 6, ['number' => 6]),
+						'subscription_price' => $user->profile_access_price_6_months * 6,
+						'subscription_duration' => trim(trans_choice('months', 6, ['number' => 6]), ' '),
+					],
+				);
+			}
+			if($user->profile_access_price_12_months > 0){
+				$twelve_months = array(
+					'12_months' => [
+						'subscription_text' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_12_months * 12).' for '.trans_choice('months', 12, ['number' => 12]),
+						'subscription_price' => $user->profile_access_price_12_months * 12,
+						'subscription_duration' => trim(trans_choice('months', 12, ['number' => 12]), ' '),
+					],
+				);
+			}
+			$subscriptions = array_merge($three_months, $six_months, $twelve_months);
+		}else{
+			$subscriptions = [];
+		}
+		// user rate subscriptions end
 		
         // Format user data
         $user->created_at = $user->created_at->format('F j');
@@ -309,6 +363,7 @@ class FeedsController extends Controller
             'data' => [
                 'user' => $userData,
                 'social_user' => $socialUserData,
+                'subscription_bundle' => $subscriptions,
                 'posts' => $formattedPosts,
             ],
         ]);
