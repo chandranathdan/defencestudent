@@ -191,7 +191,7 @@ class FeedsController extends Controller
 			$monthly_subscription_duration = trans_choice('days', 30, ['number' => 30]);
 		}else{
 			$monthly_subscription_text = '';
-			$monthly_subscription_price = '';
+			$monthly_subscription_price = 0;
 			$monthly_subscription_duration = '';
 		}
         $userData = [
