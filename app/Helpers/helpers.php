@@ -114,3 +114,12 @@ function checkForMysqlND(){
             }
         });
 	}
+	function formatNumber($number) {
+		if ($number >= 1000000) {
+			return number_format($number / 1000000, 1) . 'm';
+		} elseif ($number >= 1000) {
+			return number_format($number / 1000, 1) . 'k';
+		} else {
+			return $number;
+		}
+	}

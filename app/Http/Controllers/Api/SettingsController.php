@@ -698,21 +698,18 @@ class SettingsController extends Controller
             $authUserId = Auth::id();
             $followers = ListsHelperServiceProvider::getUserFollowers($authUserId);
             $followerIds = collect($followers)->pluck('user_id');
-            $followersCount = $followerIds->count();
+            $followersCount = formatNumber($followerIds->count());
+			
+			$following = ListsHelperServiceProvider::getUserFollowing($authUserId);
+            $followingIds = collect($following)->pluck('user_id');
+            $followingCount = formatNumber($followingIds->count());
         
-            $following = UserListMember::all('id','user_id','list_id');
-            $followingCount = $following->count();
-            $post=post::all();
-            $posts = $post->count();
-            function formatNumber($number) {
-                if ($number >= 1000000) {
-                    return number_format($number / 1000000, 1) . 'm';
-                } elseif ($number >= 1000) {
-                    return number_format($number / 1000, 1) . 'k';
-                } else {
-                    return $number;
-                }
-            }
+            /*$following = UserListMember::all('id','user_id','list_id');
+            $followingCount = formatNumber($following->count());*/
+			
+            $post=post::where('user_id', $authUserId)->where('status', 1)->get();
+            $posts = formatNumber($post->count());
+			
             $response['data']['social_user'] = [
                         'total_followers' => $followersCount,
                         'total_following' => $followingCount,

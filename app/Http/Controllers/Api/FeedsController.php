@@ -162,16 +162,69 @@ class FeedsController extends Controller
                 'message' => 'User not found'
             ]);
         }
+		$parsedAUrl = parse_url($user->avatar);
+		$imageAPath = $parsedAUrl['path'];
+		$imageAName = basename($imageAPath);
+		$default_avatar = 0;
+		if($imageAName=='default-avatar.jpg') {
+			$default_avatar = 1;
+		}
+		$parsedCUrl = parse_url($user->cover);
+		$imageCPath = $parsedCUrl['path'];
+		$imageCName = basename($imageCPath);
+		$default_cover = 0;
+		if($imageCName=='default-cover.png') {
+			$default_cover = 1;
+		}
+		$userVerify = $user->email_verified_at && $user->birthdate && 
+		  ($user->verification && $user->verification->status == 'verified');
+			$status = 0;
+			if ($userVerify) {
+				$status = 1;
+			}else{
+				$status = 0;
+			}
         $userData = [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
             'avatar' => $user->avatar,
+            'cover' => $user->cover,
+			'default_avatar' => $default_avatar,
+            'default_cover' => $default_cover,
             'bio' => $user->bio ?? __('No description available.'),
-            'created_at' => $user->created_at->format('F j'),
+			'birthdate' => $user->birthdate,
+			'gender_pronoun' => $user->gender_pronoun,
             'location' => $user->location ?? '',
             'website' => $user->website ?? '',
+			'country_id' => $user->country_id,
+			'gender_id' => $user->gender_id,
+            'created_at' => Carbon::parse($user->created_at)->format('F j'),
+            'user_verify' =>$status,
         ];
+		//Social user start
+		$fetcfollowinglist = 1;
+		if ($fetcfollowinglist == 1) {
+            $authUserId = $userId;
+            $followers = ListsHelperServiceProvider::getUserFollowers($authUserId);
+            $followerIds = collect($followers)->pluck('user_id');
+            $followersCount = formatNumber($followerIds->count());
+        
+            $following = ListsHelperServiceProvider::getUserFollowing($authUserId);
+            $followingIds = collect($following)->pluck('user_id');
+            $followingCount = formatNumber($followingIds->count());
+			
+            $post=post::where('user_id', $authUserId)->where('status', 1)->get();
+            $posts = formatNumber($post->count());
+			
+            $socialUserData = [
+				'total_followers' => $followersCount,
+				'total_following' => $followingCount,
+				'total_post' => $posts,
+			];
+        }
+		//Social user end
+		
         // Format user data
         $user->created_at = $user->created_at->format('F j');
         $user->bio = $user->bio ?? __('No description available.');
@@ -255,6 +308,7 @@ class FeedsController extends Controller
             'status' => 200,
             'data' => [
                 'user' => $userData,
+                'social_user' => $socialUserData,
                 'posts' => $formattedPosts,
             ],
         ]);
