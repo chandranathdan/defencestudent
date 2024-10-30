@@ -406,7 +406,7 @@ class UserController extends Controller
         foreach ($attachments as $attachment) {
             $fileData[] = [
                 'id' => $attachment->id,
-                'file_path' => asset('storage/attachments/' . $attachment->filename),
+                'file_path' => asset('storage/' . $attachment->filename),
             ];
         }
     
@@ -518,7 +518,7 @@ class UserController extends Controller
         }
     
         try {
-            $filePath = public_path('storage/attachments/' . $attachment->filename);
+            $filePath = public_path('storage/' . $attachment->filename);
             if (file_exists($filePath)) {
                 unlink($filePath);
             }

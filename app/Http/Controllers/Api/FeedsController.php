@@ -868,7 +868,7 @@ class FeedsController extends Controller
     
                 return [
                     'content_type' =>$type,
-                    'file' =>Storage::url('attachments/' . $attachment->filename),
+                    'file' =>Storage::url($attachment->filename),
                 ];
             });
     
@@ -901,9 +901,9 @@ class FeedsController extends Controller
             ]
         ]);
     }
-    public function tips_fetch(Request $request)
+    public function billing_address(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        /*$validator = Validator::make($request->all(), [
             'post_id' => 'required|exists:posts,id',
         ]);
     
@@ -935,22 +935,30 @@ class FeedsController extends Controller
                 'Payment_method' => $transaction->payment_provider,
                 'currency' => $transaction->currency,
             ];
-        });
-        $userCountryName = $post->user->country;
+        });*/
+		if($request->user_id){
+			$user = User::find($request->user_id);
+			if (!$user) {
+				return response()->json(['message' => 'User not found'], 404);
+			}
+		}else{
+			$user = auth()->user();
+		}
+        $userCountryName = $user->country;
         $country = Country::where('name', $userCountryName)->first();
         $data = [
-            'available_credit' =>auth()->user()->wallet->total,
-            'avatar' => $post->user->avatar,
-            'name' => $post->user->name,
-            'username' => $post->user->username,
-            'address' => $post->user->billing_address,
-            'first_name' => $post->user->first_name,
-            'last_name' => $post->user->last_name,
-            'city' => $post->user->city,
+            'available_credit' =>$user->wallet->total,
+            'avatar' => $user->avatar,
+            'name' => $user->name,
+            'username' => $user->username,
+            'address' => $user->billing_address,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'city' => $user->city,
             'country_id' => $country ? $country->id : null, 
-            'state' => $post->user->state,
-            'postcode' => $post->user->postcode,
-            'transactions' => $transactionsData,
+            'state' => $user->state,
+            'postcode' => $user->postcode,
+            //'transactions' => $transactionsData,
         ];
         $countries = Country::select('id', 'name')->get();
         return response()->json([
@@ -1185,10 +1193,10 @@ class FeedsController extends Controller
         }
         $followUserId = $request->input('user_id');
         $follow = $request->input('follow');
-        if ($follow === '1') {
+        if ($follow == 1) {
             $this->followUser($user->id, $followUserId); 
-            return response()->json(['status' => 200, 'message' => ' Member added to list.']);
-        } elseif ($follow === '0') {
+            return response()->json(['status' => 200, 'message' => 'Member added to list.']);
+        } else if ($follow == 0) {
             $this->unfollowUser($user->id, $followUserId);
             return response()->json(['status' => 200, 'message' => 'Member removed from the list.']);
         } else {
