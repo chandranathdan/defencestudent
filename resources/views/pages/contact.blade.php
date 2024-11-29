@@ -82,9 +82,9 @@
                     </form>
                 </div>
 
-                <div class="col-12 col-md-6 d-none d-md-flex justify-content-center align-items-center">
+                {{--<div class="col-12 col-md-6 d-none d-md-flex justify-content-center align-items-center">
                     <img src="{{asset("/img/contact-page.svg")}}" class="img-fluid ">
-                </div>
+                </div>--}}
 
 
             </div>

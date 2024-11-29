@@ -54,26 +54,37 @@
         <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
         <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
         <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+        <li data-target="#carouselExampleIndicators" data-slide-to="3"></li>
       </ol>
       <div class="carousel-inner">
         <div class="carousel-item active">
           <img class="d-block w-100" src="{{asset('/img/static/slider4.png')}}" alt="First slide">
           <div class="carousel-caption d-none d-md-block">
-            <h1>Learn Self Defence Online</h1>
+			{{--<h1>Learn Self Defence Online</h1>--}}
+            <h1>Live PPV Streaming & Podcasts</h1>
             <p>...</p>
           </div>
         </div>
         <div class="carousel-item">
           <img class="d-block w-100" src="{{asset('/img/static/slider2.png')}}" alt="Second slide">
           <div class="carousel-caption d-none d-md-block">
-            <h1>Teach Self Defence Online</h1>
+			{{--<h1>Teach Self Defence Online</h1>--}}
+            <h1>Learn & Teach Martial Arts Online</h1>
             <p>...</p>
           </div>
         </div>
         <div class="carousel-item">
           <img class="d-block w-100" src="{{asset('/img/static/slider3.png')}}" alt="Third slide">
           <div class="carousel-caption d-none d-md-block">
-            <h1>Onlyfans for Self Defence</h1>
+			{{--<h1>Onlyfans for Self Defence</h1>--}}
+            <h1>Become An Influencer for Self Defence</h1>
+            <p>...</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <img class="d-block w-100" src="{{asset('/img/static/slider6.jpg')}}" alt="Third slide">
+          <div class="carousel-caption d-none d-md-block">
+            <h1>Health & Fitness</h1>
             <p>...</p>
           </div>
         </div>
@@ -98,7 +109,7 @@
                     <div class="d-flex justify-content-center mt-4">
                         <div class="col-12 col-md-10 text-center">
                             <h5 class="text-bold">{{__('LEARN ANYWHERE')}}</h5>
-                            <span>{{__('You Can Learn Martial Arts From Anywhere In The World With Our Easy 24/7 Online Access..')}} </span>
+                            <span>{{__('You Can Learn Martial Arts From Anywhere In The World With Our Easy 24/7 Online Access.')}} </span>
                         </div>
                     </div>
                 </div>
@@ -141,8 +152,8 @@
                 <div class="col-12 col-md-7">
                     <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                         <div class="pl-4 pl-md-5">
-                            <h4 class="font-weight-normal font-italic m-0 default-color-text">{{__('State Of The Art Online Training')}}.</h4>
-                            <h2 class="font-weight-bold m-0">{{__('ACHIEVE MORE THAN YOU EVER THOUGHT POSSIBLE!')}},</h2>
+                            <h4 class="font-weight-normal font-italic m-0 default-color-text">{{__('State Of The Art Online Training')}}</h4>
+                            <h2 class="font-weight-bold m-0">{{__('ACHIEVE MORE THAN YOU EVER THOUGHT POSSIBLE!')}}</h2>
                             <div class="my-4 col-9 px-0">
                                 <p>{{__("We focus on giving everyone the opportunity to achieve more than they ever thought possible.")}}</p>
                                 <p>{{__("This program gives you the ability to reach your goals in a much quicker period of time, providing you with access to some of the best Martial Arts in the world, by bringing together some of the most highly trained, respected and qualified instructors in the world.")}}</p>
@@ -355,7 +366,7 @@
         <div class="container">
             <div class="text-center">
                 <h4 class="font-weight-normal font-italic m-0"> Go Beyond your limits.</h4>
-				<h1 class="font-weight-bold">{{__("Challenge yourself. have you got what it takes?")}}</h1>
+				<h1 class="font-weight-bold">{{__("Challenge yourself. Have you got what it takes?")}}</h1>
                 <div>
 					<a href="{{route('register')}}" class="btn btn-grow mb-0 me-1 mt-2 mt-md-0 button-default">{{__('Join Us')}}</a>
 				</div>

@@ -57,7 +57,8 @@
     </div>
     @if((!Auth::user()->verification || (Auth::user()->verification && Auth::user()->verification->status !== 'verified' && Auth::user()->verification->status !== 'pending')) )
         <h5 class="mt-5 mb-3">{{__("Complete your verification")}}</h5>
-        <p class="mb-1 mt-2">{{__("Please attach clear photos of your ID card back and front side.")}}</p>
+        <p class="mb-1 mt-2">{{__("Please attach clear photos of your ID card showing both back and front sides.")}}</p>
+        <p class="mb-1 mt-2">{{__("Upload Multiple Files.")}}</p>
         <div class="dropzone-previews dropzone w-100 ppl-0 pr-0 pt-1 pb-1 border rounded"></div>
         <small class="form-text text-muted mb-2">{{__("Allowed file types")}}: {{str_replace(',',', ',AttachmentHelper::filterExtensions('manualPayments'))}}. {{__("Max size")}}: 4 {{__("MB")}}.</small>
         <div class="d-flex flex-row-reverse">

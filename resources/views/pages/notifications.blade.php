@@ -32,7 +32,7 @@
                     @include('elements.notifications.notifications-menu', ['variant' => 'mobile'])
                 </div>
             </div>
-            @include('elements.notifications.notifications-wrapper', ['notifications' => $notifications])
+            @include('elements.notifications.notifications-wrapper', ['notifications' => $notifications, 'activeType' => $activeType])
         </div>
     </div>
 @stop

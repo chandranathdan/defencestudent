@@ -28,7 +28,7 @@
                 </form>
                 </div>
                 <div class="new-message-no-contacts">
-                    {{__("Before sending a new message, please subscribe to a creator a follow a free profile.")}}
+                    {{__("Before sending a new message, please subscribe to a creator a follow a free profile6.")}}
                 </div>
             </div>
             <div class="modal-footer">

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use Session;
+use Cookie;
 
 class LoginController extends Controller
 {
@@ -113,6 +114,42 @@ class LoginController extends Controller
         }
         return redirect($redirectTo);
 
+    }
+	public function login(Request $request)
+    {
+        $this->validateLogin($request);
+
+		if($request->has('remember')){
+			Cookie::queue('frontuser', $request->email, (24*60*30));
+			Cookie::queue('frontpwd', $request->password, (24*60*30));
+		}else{
+			Cookie::queue('frontuser', $request->email, -(24*60*30));
+			Cookie::queue('frontpwd', $request->password, -(24*60*30));
+		}
+        // If the class is using the ThrottlesLogins trait, we can automatically throttle
+        // the login attempts for this application. We'll key this by the username and
+        // the IP address of the client making these requests into this application.
+        if (method_exists($this, 'hasTooManyLoginAttempts') &&
+            $this->hasTooManyLoginAttempts($request)) {
+            $this->fireLockoutEvent($request);
+
+            return $this->sendLockoutResponse($request);
+        }
+
+        if ($this->attemptLogin($request)) {
+            if ($request->hasSession()) {
+                $request->session()->put('auth.password_confirmed_at', time());
+            }
+
+            return $this->sendLoginResponse($request);
+        }
+
+        // If the login attempt was unsuccessful we will increment the number of attempts
+        // to login and redirect the user back to the login form. Of course, when this
+        // user surpasses their maximum number of attempts they will get locked out.
+        $this->incrementLoginAttempts($request);
+
+        return $this->sendFailedLoginResponse($request);
     }
 
 }
