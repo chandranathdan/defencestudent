@@ -1,1 +1,6 @@
 ALTER TABLE `users` ADD `otp` INT(25) NULL AFTER `settings`;
+
+-----------------------------------------------------------
+New created file for stripe payment gateway
+1) android/app/proguard-rules.pro
+-----------------------------------------------------------

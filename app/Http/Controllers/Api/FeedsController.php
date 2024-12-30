@@ -13,6 +13,7 @@ use App\Model\UserList;
 use App\Model\UserListMember;
 use App\Model\Reaction;
 use App\Model\Transaction;
+use App\Model\Subscription;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 // use function App\Helpers\getSetting;
@@ -23,6 +24,8 @@ use Illuminate\Support\Facades\Storage;
 use App\Providers\PostsHelperServiceProvider;
 use App\Providers\ListsHelperServiceProvider;
 use App\Providers\SettingsServiceProvider;
+use App\Providers\PaymentsServiceProvider;
+use App\Providers\InvoiceServiceProvider;
 use Carbon\Carbon;
 
 class FeedsController extends Controller
@@ -189,10 +192,12 @@ class FeedsController extends Controller
 			$monthly_subscription_text = SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price).' for '.trans_choice('days', 30, ['number' => 30]);
 			$monthly_subscription_price = $user->profile_access_price;
 			$monthly_subscription_duration = trans_choice('days', 30, ['number' => 30]);
+			$monthly_subscription_type = 'one-month-subscription';
 		}else{
 			$monthly_subscription_text = '';
 			$monthly_subscription_price = 0;
 			$monthly_subscription_duration = '';
+			$monthly_subscription_type = '';
 		}
         $userData = [
             'id' => $user->id,
@@ -217,6 +222,7 @@ class FeedsController extends Controller
             'monthly_subscription_text' =>$monthly_subscription_text,
             'monthly_subscription_price' =>$monthly_subscription_price,
             'monthly_subscription_duration' =>$monthly_subscription_duration,
+            'monthly_subscription_type' =>$monthly_subscription_type,
         ];
 		//Social user start
 		$fetcfollowinglist = 1;
@@ -252,6 +258,7 @@ class FeedsController extends Controller
 						'subscription_text' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_3_months * 3).' for '.trans_choice('months', 3,['number' => 3]),
 						'subscription_price' => $user->profile_access_price_3_months * 3,
 						'subscription_duration' => trim(trans_choice('months', 3,['number' => 3]), ' '),
+						'subscription_type' => 'three-months-subscription',
 					]
 				);
 			}
@@ -261,6 +268,7 @@ class FeedsController extends Controller
 						'subscription_text' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_6_months * 6).' for '.trans_choice('months', 6, ['number' => 6]),
 						'subscription_price' => $user->profile_access_price_6_months * 6,
 						'subscription_duration' => trim(trans_choice('months', 6, ['number' => 6]), ' '),
+						'subscription_type' => 'six-months-subscription',
 					],
 				);
 			}
@@ -270,6 +278,7 @@ class FeedsController extends Controller
 						'subscription_text' => SettingsServiceProvider::getWebsiteFormattedAmount($user->profile_access_price_12_months * 12).' for '.trans_choice('months', 12, ['number' => 12]),
 						'subscription_price' => $user->profile_access_price_12_months * 12,
 						'subscription_duration' => trim(trans_choice('months', 12, ['number' => 12]), ' '),
+						'subscription_type' => 'yearly-subscription',
 					],
 				);
 			}
@@ -366,6 +375,190 @@ class FeedsController extends Controller
                 'subscription_bundle' => $subscriptions,
                 'posts' => $formattedPosts,
             ],
+        ]);
+    }
+	//add_product_price
+	public function add_product_price(Request $request)
+    {
+		\Stripe\Stripe::setApiKey(getSetting('payments.stripe_secret_key'));
+		
+		// generate stripe product
+		$recipientUser = User::query()->where(['username' => $request->input('user_name')])->first();
+		$description = $recipientUser->name.' for '.SettingsServiceProvider::getWebsiteFormattedAmount($request->input('amount'));
+		$product = \Stripe\Product::create([
+			'name' => $description,
+		]);
+
+		// generate stripe price
+		$price = \Stripe\Price::create([
+			'product' => $product->id,
+			'unit_amount' => $request->input('amount') * 100,
+			'currency' => config('app.site.currency_code'),
+			'recurring' => [
+				'interval' => 'month',
+				'interval_count' => PaymentsServiceProvider::getSubscriptionMonthlyIntervalByTransactionType($request->input('transaction_type')),
+			],
+		]);
+		return response()->json([
+            'status' => 200,
+            'email' => $recipientUser->email,
+            'price' => $price->id,
+        ]);
+	}
+	public function createCustomer(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'payment_method' => 'required|string',
+        ]);
+
+        try {
+			\Stripe\Stripe::setApiKey(getSetting('payments.stripe_secret_key'));
+			$recipientUser = User::query()->where(['email' => $request->email])->first();
+            $customer = \Stripe\Customer::create([
+                'name' => $recipientUser->name,
+                'email' => $request->email,
+                'payment_method' => $request->payment_method,
+                'invoice_settings' => [
+                    'default_payment_method' => $request->payment_method,
+                ],
+            ]);
+            return response()->json([
+                'status' => 'success',
+                'customer_id' => $customer->id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a subscription for the customer.
+     */
+    public function createSubscription(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|string',
+            'price_id' => 'required|string',
+        ]);
+
+        try {
+			\Stripe\Stripe::setApiKey(getSetting('payments.stripe_secret_key'));
+            $subscription = \Stripe\Subscription::create([
+                'customer' => $request->customer_id,
+                'items' => [
+                    ['price' => $request->price_id],
+                ],
+                'expand' => ['latest_invoice.payment_intent'],
+            ]);
+			
+			$recipientUser = User::query()->where(['email' => $request->email])->first();
+			$sub_amount = $subscription->latest_invoice->subtotal/100;
+			$new_subscription = new Subscription();
+			$new_subscription->sender_user_id = Auth::user()->id;
+            $new_subscription->recipient_user_id = $recipientUser->id;
+            $new_subscription->stripe_subscription_id = $subscription->id;
+            $new_subscription->paypal_agreement_id = null;
+            $new_subscription->paypal_plan_id = null;
+            $new_subscription->amount = null;
+            $new_subscription->expires_at = null;
+            $new_subscription->canceled_at = null;
+            $new_subscription->ccbill_subscription_id = null;
+            $new_subscription->type = '';
+            $new_subscription->provider = Transaction::STRIPE_PROVIDER;
+            $new_subscription->status = Transaction::PENDING_STATUS;
+			$new_subscription->save();
+			// dd($new_subscription);
+			
+			/*$dataArray = [
+				"data" => [],
+				"taxesTotalAmount" => 0.00,
+				"subtotal" => $sub_amount
+			];*/
+			$transaction = new Transaction();
+			$transaction->sender_user_id = Auth::user()->id;
+            $transaction->recipient_user_id = $recipientUser->id;
+            $transaction->subscription_id = $new_subscription->id;
+			$transaction->stripe_transaction_id = $subscription->latest_invoice->payment_intent->id;
+            $transaction->status = Transaction::PENDING_STATUS;
+            $transaction->payment_provider = Transaction::STRIPE_PROVIDER;
+			$transaction->amount = $sub_amount;
+			// $transaction->taxes = json_encode($dataArray); 
+            $transaction->currency = config('app.site.currency_code');
+            $transaction->type = '';
+            $transaction->payment_provider = Transaction::STRIPE_PROVIDER;
+			$transaction->save();
+			
+			$invoice = InvoiceServiceProvider::createInvoiceByTransaction($transaction);
+			if ($invoice != null) {
+				$transaction->invoice_id = $invoice->id;
+				$transaction->save();
+			}
+			
+            return response()->json([
+                'status' => 'success',
+                'subscription_id' => $subscription->id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function subscription_submit(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:1|max:500',
+            'billing_address' => 'nullable|string',
+            'first_name' => 'nullable|string',
+            'last_name' => 'nullable|string',
+            'city' => 'nullable|string',
+            'country' => 'nullable|exists:countries,id',
+            'state' => 'nullable|string',
+            'postcode' => 'nullable|string',
+            'sub_id' => 'required',
+        ], 
+        [
+            'amount.required' => 'Please enter a valid amount.',
+            'amount.numeric' => 'Please enter a valid amount.',
+            'amount.min' => 'Please enter a valid amount.',
+            'amount.max' => 'Please enter a valid amount.',
+            'sub_id.required' => 'Subscription Id is required.',
+        ]);
+				
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        }
+		
+		$subscription = Subscription::where('stripe_subscription_id', $request->sub_id)->first();
+		$subscription->type = $request->feedData['subscription_type'];
+        $subscription->status = Subscription::ACTIVE_STATUS;
+		$subscription->expires_at = new \DateTime('+'.PaymentsServiceProvider::getSubscriptionMonthlyIntervalByTransactionType($request->feedData['subscription_type']).' month', new \DateTimeZone('UTC'));
+        $subscription->amount = $request->amount;		
+		$subscription->save();
+		
+		$dataArray = [
+			"data" => [],
+			"taxesTotalAmount" => 0.00,
+			"subtotal" => $request->amount,
+		];
+		$transaction = Transaction::where('subscription_id', $subscription->id)->first();
+		$transaction->status = Transaction::APPROVED_STATUS;
+		$transaction->type = $request->feedData['subscription_type'];
+		$transaction->amount = $request->amount;
+		$transaction->taxes = json_encode($dataArray); 
+		$transaction->save();
+		
+        return response()->json([
+        'status' => 200, 
+        'message' => 'You successfully subscribe',    
         ]);
     }
     //feeds_indivisual_filter_image
@@ -1010,8 +1203,10 @@ class FeedsController extends Controller
             return response()->json(['status' => 400, 'message' => 'This creator cannot earn money yet']);
         }
         
-        if ($user->wallet->total < $request->amount) {
-            return response()->json(['status' => 400, 'message' => 'Not enough credit. You can deposit using the wallet page or use a different payment method.']);
+		if($request->payment_type == 'credit'){
+			if ($user->wallet->total < $request->amount) {
+				return response()->json(['status' => 400, 'message' => 'Not enough credit. You can deposit using the wallet page or use a different payment method.']);
+			}
         }
         
         // Create the tip transaction
@@ -1030,7 +1225,13 @@ class FeedsController extends Controller
         $tip->currency = config('app.site.currency_code'); 
         $tip->amount = $amt;
         $tip->taxes = json_encode($dataArray); 
-        $tip->payment_provider = Transaction::CREDIT_PROVIDER;
+		if($request->payment_type == 'stripe'){
+			$tip->stripe_transaction_id =  $request->client_secret;
+			$tip->payment_provider = Transaction::STRIPE_PROVIDER;
+		}
+		if($request->payment_type == 'credit'){
+			$tip->payment_provider = Transaction::CREDIT_PROVIDER;
+		}
         $tip->save();
 
         
