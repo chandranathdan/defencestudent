@@ -169,8 +169,6 @@ class MembersHelperServiceProvider extends ServiceProvider
         }
         $members = $members->get();
          
-        // Shuffle the list each time for more randomness
-        // $members = $members->shuffle();
         // Return either raw data to the views or json encoded, rendered views
         if ($encodeToHtml) {
             $viewData = View::make('elements.feed.suggestions-wrapper')->with('profiles', $members);
