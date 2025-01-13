@@ -874,13 +874,15 @@ class FeedsController extends Controller
                 $followingUserIds[] =  $member->user->id;
             }
         }
-		$followingUserIds = collect($followingUserIds);
+		$active_sub = PostsHelperServiceProvider::getUserActiveSubs(Auth::user()->id);
+		
+		$followingUserIds = collect(array_merge($active_sub, $followingUserIds));
         $posts = $users->filter(function ($user) use ($followingUserIds) {
             return $followingUserIds->contains($user->id);
         })->flatMap(function ($user) {
             return $user->posts()->withCount(['comments', 'reactions'])->orderBy('created_at','DESC')->get();
         });
-    
+ 
         // $perPage = 6; 
         $perPage = config('custom.api.FEED_PAGE_PERPAGE_DATA'); 
         $totalPosts = $posts->count();
