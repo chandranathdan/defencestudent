@@ -112,6 +112,77 @@ class MembersHelperServiceProvider extends ServiceProvider
             return $members;
         }
     }
+    public static function getSuggestedMembersForApi($encodeToHtml = false, $filters = [])
+    {
+        $skipEmptyProfiles = getSetting('feed.suggestions_skip_empty_profiless') ? true : false;
+        $skipUnverifiedProfiles = getSetting('feed.suggestions_skip_unverified_profiles') ? true : false;
+        if(getSetting('feed.suggestions_use_featured_users_list')){
+            $userLists = FeaturedUser::get()->pluck('user_id')->toArray();
+            $members = User::limit(getSetting('feed.feed_suggestions_total_cards') * getSetting('feed.feed_suggestions_card_per_page'))->where('public_profile', 1)->whereIn('id',$userLists);
+        }
+        else{
+            // Get top 32 list of most subbed users
+            $mostSubbedMax = (int) getSetting('feed.feed_suggestions_total_cards') * 3;
+            $query = "
+            SELECT usersTable.id, COUNT(subsTable.id ) AS subs_count FROM users usersTable
+            INNER JOIN subscriptions subsTable ON usersTable.id = subsTable.recipient_user_id
+            ".($skipUnverifiedProfiles ? 'INNER JOIN user_verifies verifications ON usersTable.id = verifications.user_id AND verifications.status = \'verified\'' : '')."
+            WHERE usersTable.role_id = 2
+            ".($skipEmptyProfiles ? 'AND (usersTable.avatar IS NOT NULL AND usersTable.cover IS NOT NULL)' : '')."
+            GROUP BY usersTable.id
+            ORDER BY subs_count DESC
+            LIMIT 0,{$mostSubbedMax}
+        ";
+            $topSubbedUsers = DB::select($query);
+            $topSubbedUsers = array_map(function ($v) {
+                return $v->id;
+            }, $topSubbedUsers);
+            $members = User::limit(getSetting('feed.feed_suggestions_total_cards') * getSetting('feed.feed_suggestions_card_per_page'))->where('public_profile', 1);
+            // If there are more than 9 users having subs, use those
+            // Otherwise, grab latest 9 users by date
+            if (count($topSubbedUsers) >= 6) {
+                $members->whereIn('id', $topSubbedUsers);
+            } else {
+                $members->where('role_id',2);
+                $members->orderByDesc('users.created_at');
+                if(Auth::check()){
+                    $members->where('users.id', '<>', Auth::user()->id);
+                }
+                if($skipEmptyProfiles){
+                    $members->where('avatar', '<>', null);
+                    $members->where('cover', '<>', null);
+                }
+
+                if($skipUnverifiedProfiles){
+                    $members->join('user_verifies', function ($join) {
+                        $join->on('users.id', '=', 'user_verifies.user_id');
+                        $join->on('user_verifies.status', '=', DB::raw("'verified'"));
+                    });
+                }
+
+            }
+        }
+
+        // Filtering free/paid accounts
+        if (isset($filters['free'])) {
+            $members->where('paid_profile', 0);
+        }
+        $members = $members->get();
+         
+        // Shuffle the list each time for more randomness
+        // $members = $members->shuffle();
+        // Return either raw data to the views or json encoded, rendered views
+        if ($encodeToHtml) {
+            $viewData = View::make('elements.feed.suggestions-wrapper')->with('profiles', $members);
+            if(isset($filters['isMobile'])){
+                $viewData->with('isMobile',true);
+            }
+            $membersData['html'] = $viewData->render();
+            return $membersData;
+        } else {
+            return $members;
+        }
+    }
 
     /**
      * Returns a list of latest profiles.

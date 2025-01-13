@@ -843,7 +843,7 @@ class FeedsController extends Controller
         $responseData = [];
         $page = $request->input('page', 1);
         $coursesUserPage = $request->input('courses_user_page', 1);
-        $suggestedMembers = MembersHelperServiceProvider::getSuggestedMembers();
+        $suggestedMembers = MembersHelperServiceProvider::getSuggestedMembersForApi();
     
         // Pass suggested members to getUserPosts and getUserCourses if needed
         $responseData['posts'] = $this->getUserPosts($users, $page);
