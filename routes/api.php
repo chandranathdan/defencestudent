@@ -56,6 +56,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/feeds_like_comments', [FeedsController::class, 'feeds_like_comments']); // feeds_like_comments url
 		Route::post('/feeds_delete_comments', [FeedsController::class, 'feeds_delete_comments']); // feeds_delete_comments url
 		Route::post('/tips_submit', [FeedsController::class, 'tips_submit']); // tips_submit url
+		Route::post('/post_unlock_submit', [FeedsController::class, 'post_unlock_submit']); // post_unlock_submit url
 		Route::post('/subscription_submit', [FeedsController::class, 'subscription_submit']); // subscription_submit url
 		Route::post('/add_product_price', [FeedsController::class, 'add_product_price']);
 		Route::post('/create_customer', [FeedsController::class, 'createCustomer']);

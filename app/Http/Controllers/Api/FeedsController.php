@@ -1234,9 +1234,116 @@ class FeedsController extends Controller
 		}
         $tip->save();
 
-        
+        if($request->payment_type == 'credit'){
         $user->wallet->total -= $amt;
+		}
         $user->wallet->save();
+        $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
+            ->where('status', Transaction::APPROVED_STATUS)->count();
+        $formattedAmount = number_format($amt, 2);
+        $currencySymbol = config('app.site.currency_symbol', '$');
+        $country = Country::find($request->country);
+        $countryName = $country ? $country->name : null;
+    
+        User::where('id', $post->user->id)->update([
+            'billing_address' => $request->billing_address,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'city' => $request->city,
+            'country' =>$countryName,
+            'state' => $request->state,
+            'postcode' => $request->postcode,
+        ]);
+            
+        return response()->json([
+        'status' => 200, 
+        'tipsCount' => $tipsCount,
+        'message' => 'You successfully sent a tip of ' . $currencySymbol . $formattedAmount . '.',    
+        ]);
+    }
+    public function post_unlock_submit(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'post_id' => 'required|exists:posts,id',
+            'amount' => 'required|numeric|min:1|max:500',
+            'billing_address' => 'nullable|string',
+            'first_name' => 'nullable|string',
+            'last_name' => 'nullable|string',
+            'city' => 'nullable|string',
+            'country' => 'nullable|exists:countries,id',
+            'state' => 'nullable|string',
+            'postcode' => 'nullable|string',
+        ], 
+        [
+            'amount.required' => 'Please enter a valid amount.',
+            'amount.numeric' => 'Please enter a valid amount.',
+            'amount.min' => 'Please enter a valid amount.',
+            'amount.max' => 'Please enter a valid amount.',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+                'status' => 600,
+            ]);
+        } 
+        
+        $user = Auth::user();
+        $post = Post::find($request->post_id);
+        if (!$post) {
+            return response()->json(['status' => 400, 'message' => 'Post not found']);
+        }
+        
+        if ($post->user_id === $user->id) {
+            return response()->json(['status' => 400, 'message' => 'You don`t need to pay to see your post']);
+        }
+        
+        if (!GenericHelperServiceProvider::creatorCanEarnMoney($post->user)) {
+            return response()->json(['status' => 400, 'message' => 'This creator cannot earn money yet']);
+        }
+        
+		if($request->payment_type == 'credit'){
+			if ($user->wallet->total < $request->amount) {
+				return response()->json(['status' => 400, 'message' => 'Not enough credit. You can deposit using the wallet page or use a different payment method.']);
+			}
+        }
+        
+        // Create the tip transaction
+        $amt = $request->amount;
+        $dataArray = [
+            "data" => [],
+            "taxesTotalAmount" => $amt,
+            "subtotal" => $amt
+        ];
+        $tip = new Transaction();
+        $tip->post_id = $request->post_id;
+        $tip->sender_user_id = $user->id;
+        $tip->recipient_user_id = $post->user_id;
+        $tip->status = Transaction::APPROVED_STATUS;
+        $tip->type = Transaction::POST_UNLOCK; 
+        $tip->currency = config('app.site.currency_code'); 
+        $tip->amount = $amt;
+        $tip->taxes = json_encode($dataArray); 
+		if($request->payment_type == 'stripe'){
+			$tip->stripe_transaction_id =  $request->client_secret;
+			$tip->payment_provider = Transaction::STRIPE_PROVIDER;
+		}
+		if($request->payment_type == 'credit'){
+			$tip->payment_provider = Transaction::CREDIT_PROVIDER;
+		}
+        $tip->save();
+
+        if($request->payment_type == 'credit'){
+			$user->wallet->total -= $amt;
+			$user->wallet->save();
+		}
+		
+		$invoice = InvoiceServiceProvider::createInvoiceByTransaction($tip);
+		if ($invoice != null) {
+			$tip->invoice_id = $invoice->id;
+			$tip->save();
+		}
+		
         $tipsCount = $post->transactions()->where('type', Transaction::TIP_TYPE)
             ->where('status', Transaction::APPROVED_STATUS)->count();
         $formattedAmount = number_format($amt, 2);

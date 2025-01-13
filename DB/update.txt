@@ -4,3 +4,6 @@ ALTER TABLE `users` ADD `otp` INT(25) NULL AFTER `settings`;
 New created file for stripe payment gateway
 1) android/app/proguard-rules.pro
 -----------------------------------------------------------
+
+
+C:\Users\User\AppData\Local\Pub\Cache\hosted\pub.dev\zego_zimkit-1.18.13\android\src\main
