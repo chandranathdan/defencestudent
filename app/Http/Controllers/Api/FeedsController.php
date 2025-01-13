@@ -299,14 +299,13 @@ class FeedsController extends Controller
     
         $authUser = Auth::user();
         // Format posts
-        $formattedPosts = $posts->getCollection()->map(function ($post) use ($authUser) {
+        $formattedPosts = $posts->getCollection()->map(function ($post) use ($authUser, $userId) {
             $transactions = $post->transactions()->where('status', Transaction::APPROVED_STATUS)->get();
             $isPaid = $transactions->isNotEmpty();
     
             //if (!$isPaid) {
                 // Logic for locked posts
-                if ((Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) || 
-                    (!Auth::check() && $post->price > 0)) {
+				if((Auth::check() && Auth::user()->id !== $post->user_id && $post->price > 0 && !\PostsHelper::hasUserUnlockedPost($post->postPurchases)) || (!Auth::check() && $post->price > 0 )){
                     $attachments = [
                         [
                             'content_type' => 'locked',
@@ -315,23 +314,37 @@ class FeedsController extends Controller
                         ]
                     ];
                 } else {
-                    // User can view attachments
-                    $attachments = $post->attachments->map(function ($attachment) {
-                        $extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
-                        $type = null;
-    
-                        if (in_array($extension, ['jpg', 'png', 'gif'])) {
-                            $type = 'image';
-                        } elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
-                            $type = 'video';
-                        }
-    
-                        return [
-                            'content_type' => $type,
-                            'file' => Storage::url($attachment->filename),
-                            'price' => 0,
-                        ];
-                    })->toArray();
+					$authLoginUserId = Auth::id();
+					$userFollowersListId = UserList::where(['user_id' => $authLoginUserId, 'type' => 'following'])
+						->value('id');
+					$followingUserIdss = UserListMember::where('list_id', $userFollowersListId)->where('user_id', $userId)->first();
+					if($followingUserIdss){
+						// User can view attachments
+						$attachments = $post->attachments->map(function ($attachment) {
+							$extension = pathinfo($attachment->filename, PATHINFO_EXTENSION);
+							$type = null;
+		
+							if (in_array($extension, ['jpg', 'png', 'gif'])) {
+								$type = 'image';
+							} elseif (in_array($extension, ['mp4', 'mov', 'avi'])) {
+								$type = 'video';
+							}
+		
+							return [
+								'content_type' => $type,
+								'file' => Storage::url($attachment->filename),
+								'price' => 0,
+							];
+						})->toArray();
+					}else{
+						$attachments = [
+							[
+								'content_type' => 'locked',
+								'file' => asset('/img/post-locked.svg'),
+								'price' => $post->price,
+							]
+						];
+					}
                 }
            /* } else {
                 // Post is locked but paid
