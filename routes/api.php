@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\OtherUserController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\NotificationsController;
 use App\Http\Controllers\Api\BookmarksController;
+use App\Http\Controllers\Api\LivestreamingController;
 
 
 /*
@@ -112,6 +113,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 		Route::post('/social_lists', [FeedsController::class, 'social_lists']); // social_lists url
 		Route::post('/social_lists_following_delete', [FeedsController::class, 'social_lists_following_delete']); // social_lists_following_delete url
 		Route::post('/follow_creator', [FeedsController::class, 'follow_creator']); // follow_creator url
+		
+		//Live streaming
+		Route::post('/add_live_stream_room', [LivestreamingController::class, 'add_live_stream_room']); // add_live_stream_room
+		Route::post('/close_live_stream_room', [LivestreamingController::class, 'close_live_stream_room']); // close_live_stream_room
+		Route::get('/get_live_stream', [LivestreamingController::class, 'get_live_stream']); // get_live_stream
 
 	});
 });

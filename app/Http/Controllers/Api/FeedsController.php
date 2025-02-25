@@ -26,6 +26,7 @@ use App\Providers\ListsHelperServiceProvider;
 use App\Providers\SettingsServiceProvider;
 use App\Providers\PaymentsServiceProvider;
 use App\Providers\InvoiceServiceProvider;
+use App\Providers\NotificationServiceProvider;
 use Carbon\Carbon;
 
 class FeedsController extends Controller
@@ -568,6 +569,8 @@ class FeedsController extends Controller
 		$transaction->amount = $request->amount;
 		$transaction->taxes = json_encode($dataArray); 
 		$transaction->save();
+		
+		NotificationServiceProvider::createNewSubscriptionNotification($subscription);
 		
         return response()->json([
         'status' => 200, 
@@ -1248,7 +1251,9 @@ class FeedsController extends Controller
 			$tip->payment_provider = Transaction::CREDIT_PROVIDER;
 		}
         $tip->save();
-
+		
+		NotificationServiceProvider::createNewTipNotification($tip);
+		
         if($request->payment_type == 'credit'){
         $user->wallet->total -= $amt;
 		}
@@ -1347,6 +1352,8 @@ class FeedsController extends Controller
 			$tip->payment_provider = Transaction::CREDIT_PROVIDER;
 		}
         $tip->save();
+
+		NotificationServiceProvider::createNewPPVUnlockNotification($tip);
 
         if($request->payment_type == 'credit'){
 			$user->wallet->total -= $amt;
