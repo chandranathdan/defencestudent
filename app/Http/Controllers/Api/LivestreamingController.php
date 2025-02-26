@@ -77,7 +77,9 @@ class LivestreamingController extends Controller
             ]);
         }
 		
-		$room = LiveStreamingRoom::find($request->stream_id);
+		$room_details = LiveStreamingRoom::where('stream_id', $request->stream_id)->first();
+		
+		$room = LiveStreamingRoom::find($room_details->id);
         $room->status = 1;
         if($room->save()){
 			return response()->json([
