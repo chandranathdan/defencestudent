@@ -103,8 +103,18 @@ class LivestreamingController extends Controller
             ]);
         }
 		
-		$rooms = LiveStreamingRoom::where('status', 0)->orderBy('id', 'DESC')->get();
-		
+		$rooms = LiveStreamingRoom::with(['user_details:id,name'])->where('status', 0)->where('user_id', '!=', Auth::id())->orderBy('id', 'DESC')->get();
+		$rooms = $rooms->map(function ($room) {
+			return [
+				'id' => $room->id,
+				'stream_id' => $room->stream_id,
+				'user_id' => $room->user_id,
+				'created_at' => $room->created_at,
+				'updated_at' => $room->updated_at,
+				'status' => $room->status,
+				'name' => $room->user_details->name ?? null, // Get name from user_details, default to null if not found
+			];
+		});
         return response()->json([
             'status' => 200,
             'data' => $rooms,

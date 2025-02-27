@@ -11,4 +11,9 @@ class LiveStreamingRoom extends Model
 	protected $fillable = [
         'stream_id', 'user_id', 'status'
     ];
+	
+	public function user_details()
+    {
+        return $this->hasOne('App\User', 'id', 'user_id');
+    }
 }
