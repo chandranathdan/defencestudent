@@ -38,7 +38,9 @@ class LivestreamingController extends Controller
         }
 		$get_stream_exists = LiveStreamingRoom::where('stream_id', $request->stream_id)->exists();
 		if($get_stream_exists){
-			
+			return response()->json([
+				'status' => 300   
+			]);
 		}else{
 			$room = new LiveStreamingRoom();
 			$room->stream_id = $request->stream_id;
@@ -82,18 +84,23 @@ class LivestreamingController extends Controller
         }
 		
 		$room_details = LiveStreamingRoom::where('stream_id', $request->stream_id)->first();
-		
-		$room = LiveStreamingRoom::find($room_details->id);
-        $room->status = 1;
-        if($room->save()){
-			return response()->json([
-				'status' => 200, 
-				'message' => 'Room closed successfully.',    
-			]);
+		if($room_details){
+			$room = LiveStreamingRoom::find($room_details->id);
+			$room->status = 1;
+			if($room->save()){
+				return response()->json([
+					'status' => 200, 
+					'message' => 'Room closed successfully.',    
+				]);
+			}else{
+				return response()->json([
+					'status' => 400, 
+					'message' => 'Room not closed.',    
+				]);
+			}
 		}else{
 			return response()->json([
-				'status' => 400, 
-				'message' => 'Room not closed.',    
+				'status' => 300   
 			]);
 		}
 	}
