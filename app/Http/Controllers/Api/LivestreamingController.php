@@ -36,21 +36,25 @@ class LivestreamingController extends Controller
                 'status' => 600,
             ]);
         }
-		
-		$room = new LiveStreamingRoom();
-        $room->stream_id = $request->stream_id;
-        $room->user_id = $request->user_id;
-        $room->status = 0;
-        if($room->save()){
-			return response()->json([
-				'status' => 200, 
-				'message' => 'Room created successfully.',    
-			]);
+		$get_stream_exists = LiveStreamingRoom::where('stream_id', $request->stream_id)->exists();
+		if($get_stream_exists){
+			
 		}else{
-			return response()->json([
-				'status' => 400, 
-				'message' => 'Room not created.',    
-			]);
+			$room = new LiveStreamingRoom();
+			$room->stream_id = $request->stream_id;
+			$room->user_id = $request->user_id;
+			$room->status = 0;
+			if($room->save()){
+				return response()->json([
+					'status' => 200, 
+					'message' => 'Room created successfully.',    
+				]);
+			}else{
+				return response()->json([
+					'status' => 400, 
+					'message' => 'Room not created.',    
+				]);
+			}
 		}
 	}
 	public function close_live_stream_room(Request $request)
